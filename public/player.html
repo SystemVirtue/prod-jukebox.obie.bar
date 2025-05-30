@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,28 +5,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jukebox Player</title>
     <style>
-        /* Basic reset AND Ensure Full Height */
         html, body {
             margin: 0;
             padding: 0;
-            height: 100%; /* CRITICAL: Ensure parents have height */
+            height: 100%;
             width: 100%;
-            overflow: hidden; /* Prevent scrollbars on the body */
-            background-color: #000; /* Black background */
+            overflow: hidden;
+            background-color: #000;
         }
 
-        /* Player container fills the entire viewport */
         #youtube-fullscreen-player {
-            position: fixed; /* Use fixed to ensure it stays relative to viewport */
+            position: fixed;
             top: 0;
             left: 0;
-            width: 100%; /* Use 100% of parent (body) */
-            height: 100%; /* Use 100% of parent (body) */
+            width: 100%;
+            height: 100%;
             border: none;
-            z-index: 1; /* Base layer */
+            z-index: 1;
         }
 
-        /* Iframe fills its container */
         #youtube-fullscreen-player iframe {
             position: absolute;
             top: 0;
@@ -37,18 +33,17 @@
             border: none;
         }
 
-        /* Fade Overlay Styles */
         #fade-overlay {
-            position: fixed; /* Cover viewport */
+            position: fixed;
             top: 0;
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-color: #000; /* Black overlay */
-            opacity: 0; /* Start transparent */
-            visibility: hidden; /* Start hidden */
-            z-index: 2; /* Above the player iframe */
-            pointer-events: none; /* Allow clicks through when hidden */
+            background-color: #000;
+            opacity: 0;
+            visibility: hidden;
+            z-index: 2;
+            pointer-events: none;
             transition-property: opacity, visibility;
             transition-timing-function: ease-in-out;
             transition-duration: 0.5s, 0s;
@@ -56,20 +51,16 @@
         }
 
         #fade-overlay.fading-out {
-            opacity: 1; /* Fade to opaque */
-            visibility: visible; /* Make visible */
-            transition-delay: 0s, 0s !important; /* Show immediately */
+            opacity: 1;
+            visibility: visible;
+            transition-delay: 0s, 0s !important;
         }
     </style>
 </head>
 <body>
-    <!-- The single container for the YouTube player -->
     <div id="youtube-fullscreen-player"></div>
-
-    <!-- Overlay for visual fade -->
     <div id="fade-overlay"></div>
 
-    <!-- Load YouTube API -->
     <script src="https://www.youtube.com/iframe_api"></script>
     <script>
         // =============================================================================
