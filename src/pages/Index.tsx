@@ -433,11 +433,11 @@ const Index = () => {
       return;
     }
     
-    // Play from in-memory playlist and rotate it
+    // Play from in-memory playlist
     if (state.inMemoryPlaylist.length > 0) {
       const nextVideo = state.inMemoryPlaylist[0];
       
-      // Move played song from first position to last position (rotation)
+      // Move played song to end of playlist
       setState(prev => ({ 
         ...prev, 
         inMemoryPlaylist: [...prev.inMemoryPlaylist.slice(1), nextVideo]
@@ -732,7 +732,7 @@ const Index = () => {
       upcoming.push(`🎵 ${state.priorityQueue[i].title}`);
     }
     
-    // Fill remaining slots with in-memory playlist songs (next songs to play)
+    // Fill remaining slots with in-memory playlist songs
     if (upcoming.length < 3 && state.inMemoryPlaylist.length > 0) {
       const remainingSlots = 3 - upcoming.length;
       for (let i = 0; i < Math.min(remainingSlots, state.inMemoryPlaylist.length); i++) {
@@ -837,56 +837,23 @@ const Index = () => {
   };
 
   const handlePlaylistReorder = (newPlaylist: PlaylistItem[]) => {
-    // Separate the reordered playlist into priority queue and in-memory playlist
-    const nowPlayingItems = newPlaylist.filter(item => item.isNowPlaying);
-    const userRequests = newPlaylist.filter(item => item.isUserRequest && !item.isNowPlaying);
-    const defaultPlaylistItems = newPlaylist.filter(item => !item.isUserRequest && !item.isNowPlaying);
-    
-    setState(prev => ({
-      ...prev,
-      priorityQueue: userRequests.map(item => ({
-        id: item.id,
-        title: item.title,
-        channelTitle: item.channelTitle,
-        videoId: item.videoId,
-        timestamp: new Date().toISOString()
-      })),
-      inMemoryPlaylist: defaultPlaylistItems
-    }));
-  };
-
-  const handleRemoveFromPlaylist = (index: number) => {
-    setState(prev => {
-      const newPlaylist = [...prev.inMemoryPlaylist];
-      const removedItem = newPlaylist[index];
-      
-      // Check if it's a user request in priority queue
-      const isUserRequest = prev.priorityQueue.some(req => req.videoId === removedItem?.videoId);
-      
-      if (isUserRequest) {
-        // Remove from priority queue
-        const newPriorityQueue = prev.priorityQueue.filter(req => req.videoId !== removedItem?.videoId);
-        return { ...prev, priorityQueue: newPriorityQueue };
-      } else {
-        // Remove from in-memory playlist
-        newPlaylist.splice(index, 1);
-        return { ...prev, inMemoryPlaylist: newPlaylist };
-      }
-    });
-    
-    addLog('SONG_PLAYED', 'Song removed from playlist by admin');
+    setState(prev => ({ ...prev, inMemoryPlaylist: newPlaylist }));
   };
 
   const handlePlaylistShuffle = () => {
     // Don't shuffle if currently playing - only shuffle the remaining playlist
-    const remainingPlaylist = state.inMemoryPlaylist.slice(0); // Copy the current playlist
+    const currentSong = state.inMemoryPlaylist.find(song => song.title === state.currentlyPlaying);
+    const remainingPlaylist = state.inMemoryPlaylist.filter(song => song.title !== state.currentlyPlaying);
     const shuffledRemaining = shuffleArray(remainingPlaylist);
     
-    setState(prev => ({ ...prev, inMemoryPlaylist: shuffledRemaining }));
-    addLog('SONG_PLAYED', 'Playlist shuffled by admin');
+    // If there's a current song, keep it at the front
+    const newPlaylist = currentSong ? [currentSong, ...shuffledRemaining] : shuffledRemaining;
+    
+    setState(prev => ({ ...prev, inMemoryPlaylist: newPlaylist }));
+    addLog('SONG_PLAYED', 'Playlist shuffled by admin (excluding current song)');
     toast({
       title: "Playlist Shuffled",
-      description: "The playlist order has been randomized",
+      description: "The playlist order has been randomized (current song unchanged)",
     });
   };
 
