@@ -1,14 +1,14 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Check, X, Settings, Upload, ArrowLeft } from 'lucide-react';
+import { Check, X, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { Checkbox } from "@/components/ui/checkbox";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { SearchInterface } from "@/components/SearchInterface";
+import { AdminConsole } from "@/components/AdminConsole";
+import { useSerialCommunication } from "@/components/SerialCommunication";
+import { useBackgroundManager, BackgroundDisplay } from "@/components/BackgroundManager";
 
 interface SearchResult {
   id: string;
@@ -57,7 +57,6 @@ interface JukeboxState {
   playerWindow: Window | null;
   apiKey: string;
   logs: LogEntry[];
-  serialPort: any;
   backgrounds: BackgroundFile[];
   selectedBackground: string;
   cycleBackgrounds: boolean;
@@ -69,18 +68,8 @@ interface JukeboxState {
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
 const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
 
-const KEYBOARD_LAYOUT = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
-  ['SPACE', 'BACKSPACE', 'SEARCH']
-];
-
 const Index = () => {
   const { toast } = useToast();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const backgroundVideoRef = useRef<HTMLVideoElement>(null);
-  const cycleIntervalRef = useRef<NodeJS.Timeout>();
 
   const [state, setState] = useState<JukeboxState>({
     mode: 'FREEPLAY',
@@ -98,7 +87,6 @@ const Index = () => {
     playerWindow: null,
     apiKey: DEFAULT_API_KEY,
     logs: [],
-    serialPort: null,
     backgrounds: [{ id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' }],
     selectedBackground: 'default',
     cycleBackgrounds: false,
@@ -112,6 +100,25 @@ const Index = () => {
     video: SearchResult | null;
   }>({ isOpen: false, video: null });
 
+  // Use background manager hook
+  const { getCurrentBackground } = useBackgroundManager({
+    backgrounds: state.backgrounds,
+    selectedBackground: state.selectedBackground,
+    cycleBackgrounds: state.cycleBackgrounds,
+    backgroundCycleIndex: state.backgroundCycleIndex,
+    onBackgroundCycleIndexChange: (index) => setState(prev => ({ ...prev, backgroundCycleIndex: index })),
+    onSelectedBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id }))
+  });
+
+  // Use serial communication hook
+  useSerialCommunication({
+    mode: state.mode,
+    selectedCoinAcceptor: state.selectedCoinAcceptor,
+    onCreditsChange: (credits) => setState(prev => ({ ...prev, credits })),
+    credits: state.credits,
+    onAddLog: addLog
+  });
+
   // Initialize player window and load default playlist
   useEffect(() => {
     const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
@@ -120,8 +127,6 @@ const Index = () => {
     if (playerWindow) {
       setState(prev => ({ ...prev, playerWindow }));
       console.log('Player window opened successfully');
-      
-      // Load default playlist
       loadPlaylistVideos(DEFAULT_PLAYLIST_ID);
     } else {
       toast({
@@ -137,43 +142,6 @@ const Index = () => {
       }
     };
   }, []);
-
-  // Setup serial port communication
-  useEffect(() => {
-    if (state.mode === 'PAID' && state.selectedCoinAcceptor && 'serial' in navigator) {
-      setupSerialConnection();
-    }
-  }, [state.mode, state.selectedCoinAcceptor]);
-
-  // Background cycling logic
-  useEffect(() => {
-    if (state.cycleBackgrounds && state.backgrounds.length > 1) {
-      const validBackgrounds = state.backgrounds.filter(bg => bg.id !== 'default');
-      if (validBackgrounds.length > 0) {
-        cycleIntervalRef.current = setInterval(() => {
-          setState(prev => {
-            const nextIndex = (prev.backgroundCycleIndex + 1) % validBackgrounds.length;
-            const nextBackground = validBackgrounds[nextIndex];
-            return {
-              ...prev,
-              backgroundCycleIndex: nextIndex,
-              selectedBackground: nextBackground.id
-            };
-          });
-        }, 25000);
-      }
-    } else {
-      if (cycleIntervalRef.current) {
-        clearInterval(cycleIntervalRef.current);
-      }
-    }
-
-    return () => {
-      if (cycleIntervalRef.current) {
-        clearInterval(cycleIntervalRef.current);
-      }
-    };
-  }, [state.cycleBackgrounds, state.backgrounds]);
 
   // Autoplay from default playlist
   useEffect(() => {
@@ -197,7 +165,7 @@ const Index = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  const addLog = (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => {
+  function addLog(type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) {
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       type,
@@ -206,60 +174,7 @@ const Index = () => {
       creditAmount
     };
     setState(prev => ({ ...prev, logs: [logEntry, ...prev.logs] }));
-  };
-
-  const setupSerialConnection = async () => {
-    try {
-      if ('serial' in navigator) {
-        const ports = await (navigator as any).serial.getPorts();
-        let targetPort = ports.find((port: any) => 
-          port.getInfo().usbProductId === 1420 || 
-          port.getInfo().serialNumber?.includes('usbserial-1420')
-        );
-
-        if (!targetPort) {
-          targetPort = await (navigator as any).serial.requestPort();
-        }
-
-        await targetPort.open({ baudRate: 9600 });
-        setState(prev => ({ ...prev, serialPort: targetPort }));
-
-        const reader = targetPort.readable.getReader();
-        const decoder = new TextDecoder();
-
-        const readLoop = async () => {
-          try {
-            while (true) {
-              const { value, done } = await reader.read();
-              if (done) break;
-              
-              const text = decoder.decode(value);
-              if (text.includes('a')) {
-                setState(prev => ({ ...prev, credits: prev.credits + 1 }));
-                addLog('CREDIT_ADDED', 'COIN DEPOSITED - $1 ("a")', undefined, 1);
-                toast({ title: "Credit Added", description: "+1 Credit from coin acceptor" });
-              } else if (text.includes('b')) {
-                setState(prev => ({ ...prev, credits: prev.credits + 3 }));
-                addLog('CREDIT_ADDED', 'COIN DEPOSITED - $3 ("b")', undefined, 3);
-                toast({ title: "Credits Added", description: "+3 Credits from coin acceptor" });
-              }
-            }
-          } catch (error) {
-            console.error('Serial read error:', error);
-          }
-        };
-
-        readLoop();
-      }
-    } catch (error) {
-      console.error('Serial connection error:', error);
-      toast({
-        title: "Serial Connection Error",
-        description: "Failed to connect to coin acceptor",
-        variant: "destructive"
-      });
-    }
-  };
+  }
 
   const loadPlaylistVideos = async (playlistId: string) => {
     try {
@@ -288,35 +203,6 @@ const Index = () => {
     }
   };
 
-  const loadChannelPlaylists = async () => {
-    try {
-      // First get channel ID from channel handle
-      const channelResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/search?part=snippet&q=@outsideobie2113&type=channel&maxResults=1&key=${state.apiKey}`
-      );
-      
-      if (!channelResponse.ok) throw new Error('Failed to find channel');
-      
-      const channelData = await channelResponse.json();
-      if (channelData.items.length === 0) throw new Error('Channel not found');
-      
-      const channelId = channelData.items[0].snippet.channelId;
-      
-      // Now get playlists
-      const playlistResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/playlists?part=snippet&channelId=${channelId}&maxResults=50&key=${state.apiKey}`
-      );
-      
-      if (!playlistResponse.ok) throw new Error('Failed to load playlists');
-      
-      const playlistData = await playlistResponse.json();
-      return playlistData.items;
-    } catch (error) {
-      console.error('Error loading channel playlists:', error);
-      return [];
-    }
-  };
-
   const playNextDefaultVideo = () => {
     if (state.defaultPlaylistVideos.length === 0) return;
     
@@ -342,7 +228,6 @@ const Index = () => {
 
   const handleVideoEnded = () => {
     if (state.currentPlaylist.length > 0) {
-      // Play next user selection
       const nextVideoId = state.currentPlaylist[0];
       setState(prev => ({ 
         ...prev, 
@@ -364,7 +249,6 @@ const Index = () => {
         }
       }
     } else {
-      // Play next from default playlist
       playNextDefaultVideo();
     }
   };
@@ -567,33 +451,10 @@ const Index = () => {
     });
   };
 
-  const getCurrentBackground = () => {
-    return state.backgrounds.find(bg => bg.id === state.selectedBackground) || state.backgrounds[0];
-  };
-
   const currentBackground = getCurrentBackground();
 
   return (
-    <div 
-      className="min-h-screen bg-cover bg-center bg-no-repeat relative"
-      style={{ 
-        backgroundImage: currentBackground.type === 'image' ? `url('${currentBackground.url}')` : 'none',
-        backgroundSize: 'cover'
-      }}
-    >
-      {currentBackground.type === 'video' && (
-        <video
-          ref={backgroundVideoRef}
-          autoPlay
-          loop
-          muted
-          className="absolute inset-0 w-full h-full object-cover"
-          src={currentBackground.url}
-        />
-      )}
-
-      <div className="absolute inset-0 bg-black bg-opacity-40" />
-      
+    <BackgroundDisplay background={currentBackground}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
         <div className="flex justify-end mb-8">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
@@ -635,141 +496,27 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Search Dialog with Keyboard */}
-      <Dialog open={state.isSearchOpen} onOpenChange={(open) => {
-        if (!open) {
-          setState(prev => ({ 
-            ...prev, 
-            isSearchOpen: false, 
-            showKeyboard: false, 
-            showSearchResults: false,
-            searchQuery: '', 
-            searchResults: [] 
-          }));
-        }
-      }}>
-        <DialogContent className="max-w-full max-h-full w-screen h-screen bg-gray-900 border-gray-700 p-0">
-          {state.showKeyboard && (
-            <div className="flex flex-col h-full bg-gray-900">
-              <div className="p-6">
-                <h2 className="text-3xl font-bold text-white mb-6">Search for Music</h2>
-                <div className="bg-gray-800 p-4 rounded-lg mb-6">
-                  <Input
-                    value={state.searchQuery}
-                    readOnly
-                    placeholder="Type using the keyboard below..."
-                    className="text-2xl p-4 bg-gray-700 text-white border-gray-600"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex-1 p-6">
-                <div className="grid grid-cols-10 gap-3 mb-4">
-                  {KEYBOARD_LAYOUT[0].map((key) => (
-                    <Button
-                      key={key}
-                      onClick={() => handleKeyboardInput(key)}
-                      className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                    >
-                      {key}
-                    </Button>
-                  ))}
-                </div>
-                
-                <div className="grid grid-cols-9 gap-3 mb-4 ml-8">
-                  {KEYBOARD_LAYOUT[1].map((key) => (
-                    <Button
-                      key={key}
-                      onClick={() => handleKeyboardInput(key)}
-                      className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                    >
-                      {key}
-                    </Button>
-                  ))}
-                </div>
-                
-                <div className="grid grid-cols-7 gap-3 mb-4 ml-16">
-                  {KEYBOARD_LAYOUT[2].map((key) => (
-                    <Button
-                      key={key}
-                      onClick={() => handleKeyboardInput(key)}
-                      className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                    >
-                      {key}
-                    </Button>
-                  ))}
-                </div>
-                
-                <div className="flex justify-center gap-6">
-                  <Button
-                    onClick={() => handleKeyboardInput('SPACE')}
-                    className="h-16 px-24 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    SPACE
-                  </Button>
-                  <Button
-                    onClick={() => handleKeyboardInput('BACKSPACE')}
-                    className="h-16 px-12 text-xl font-bold bg-red-700 hover:bg-red-600 text-white border-2 border-red-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    ←
-                  </Button>
-                  <Button
-                    onClick={() => handleKeyboardInput('SEARCH')}
-                    disabled={!state.searchQuery.trim() || state.isSearching}
-                    className="h-16 px-12 text-xl font-bold bg-green-700 hover:bg-green-600 text-white border-2 border-green-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    {state.isSearching ? '...' : 'SEARCH'}
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+      <SearchInterface
+        isOpen={state.isSearchOpen}
+        onClose={() => setState(prev => ({ 
+          ...prev, 
+          isSearchOpen: false, 
+          showKeyboard: false, 
+          showSearchResults: false,
+          searchQuery: '', 
+          searchResults: [] 
+        }))}
+        searchQuery={state.searchQuery}
+        onSearchQueryChange={(query) => setState(prev => ({ ...prev, searchQuery: query }))}
+        searchResults={state.searchResults}
+        isSearching={state.isSearching}
+        showKeyboard={state.showKeyboard}
+        showSearchResults={state.showSearchResults}
+        onKeyboardInput={handleKeyboardInput}
+        onVideoSelect={handleVideoSelect}
+        onBackToSearch={() => setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }))}
+      />
 
-          {state.showSearchResults && (
-            <div className="flex flex-col h-full bg-gray-900">
-              <div className="p-4 border-b border-gray-700 flex items-center justify-between bg-gray-800">
-                <Button
-                  onClick={() => setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }))}
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-lg"
-                >
-                  <ArrowLeft className="w-5 h-5 mr-2" />
-                  Back to Search
-                </Button>
-                <h2 className="text-2xl font-bold text-white">Search Results</h2>
-              </div>
-              
-              <ScrollArea className="flex-1" style={{ scrollbarWidth: '40px' }}>
-                <div className="p-6 grid grid-cols-4 gap-6">
-                  {state.searchResults.map((video) => (
-                    <Card 
-                      key={video.id} 
-                      className="cursor-pointer hover:bg-gray-700 transition-colors bg-gray-800 border-gray-600"
-                      onClick={() => handleVideoSelect(video)}
-                    >
-                      <CardContent className="p-4">
-                        <img 
-                          src={video.thumbnailUrl} 
-                          alt={video.title}
-                          className="w-full h-32 object-cover rounded mb-3"
-                        />
-                        <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2">{video.title}</h3>
-                        <p className="text-gray-300 text-xs line-clamp-1">{video.channelTitle}</p>
-                        {video.officialScore && video.officialScore > 5 && (
-                          <Badge variant="secondary" className="mt-2 bg-green-600 text-white">
-                            Official
-                          </Badge>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </ScrollArea>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ isOpen: false, video: null })}>
         <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
           <DialogHeader>
@@ -815,187 +562,27 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Enhanced Admin Dialog */}
-      <Dialog open={state.isAdminOpen} onOpenChange={(open) => setState(prev => ({ ...prev, isAdminOpen: open }))}>
-        <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-slate-900">Admin Console</DialogTitle>
-          </DialogHeader>
-          
-          <div className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Play Mode
-              </label>
-              <Select 
-                value={state.mode} 
-                onValueChange={(value: 'FREEPLAY' | 'PAID') => setState(prev => ({ ...prev, mode: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="FREEPLAY">Free Play</SelectItem>
-                  <SelectItem value="PAID">Credit Mode</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {state.mode === 'PAID' && (
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Credit Balance: {state.credits}
-                </label>
-                <div className="flex gap-2 mb-4">
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setState(prev => ({ ...prev, credits: prev.credits + 1 }));
-                      addLog('CREDIT_ADDED', 'ADMIN CREDIT (+1)', undefined, 1);
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    +1
-                  </Button>
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setState(prev => ({ ...prev, credits: prev.credits + 3 }));
-                      addLog('CREDIT_ADDED', 'ADMIN CREDIT (+3)', undefined, 3);
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    +3
-                  </Button>
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      setState(prev => ({ ...prev, credits: prev.credits + 5 }));
-                      addLog('CREDIT_ADDED', 'ADMIN CREDIT (+5)', undefined, 5);
-                    }}
-                    className="bg-green-600 hover:bg-green-700"
-                  >
-                    +5
-                  </Button>
-                  <Button 
-                    size="sm"
-                    onClick={() => {
-                      addLog('CREDIT_REMOVED', `ADMIN CREDIT CLEAR (was ${state.credits})`, undefined, -state.credits);
-                      setState(prev => ({ ...prev, credits: 0 }));
-                    }}
-                    variant="destructive"
-                  >
-                    Clear(0)
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                YouTube API Key
-              </label>
-              <Input
-                value={state.apiKey}
-                onChange={(e) => setState(prev => ({ ...prev, apiKey: e.target.value }))}
-                placeholder="Enter YouTube API Key"
-                className="font-mono text-sm"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Main UI Background
-              </label>
-              <div className="flex gap-2 items-center mb-2">
-                <Select 
-                  value={state.selectedBackground}
-                  onValueChange={(value) => {
-                    if (value === 'add-new') {
-                      fileInputRef.current?.click();
-                    } else {
-                      setState(prev => ({ ...prev, selectedBackground: value }));
-                    }
-                  }}
-                >
-                  <SelectTrigger className="flex-1">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {state.backgrounds.map(bg => (
-                      <SelectItem key={bg.id} value={bg.id}>
-                        {bg.name} ({bg.type})
-                      </SelectItem>
-                    ))}
-                    <SelectItem value="add-new">
-                      <Upload className="w-4 h-4 mr-2" />
-                      Add Background...
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="cycle-backgrounds"
-                    checked={state.cycleBackgrounds}
-                    onCheckedChange={(checked) => setState(prev => ({ ...prev, cycleBackgrounds: !!checked }))}
-                  />
-                  <label htmlFor="cycle-backgrounds" className="text-sm">
-                    Cycle Backgrounds
-                  </label>
-                </div>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,video/*"
-                style={{ display: 'none' }}
-                onChange={handleBackgroundUpload}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Coin Acceptor Device
-              </label>
-              <Select 
-                value={state.selectedCoinAcceptor}
-                onValueChange={(value) => setState(prev => ({ ...prev, selectedCoinAcceptor: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select device..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Device</SelectItem>
-                  <SelectItem value="usbserial-1420">USB Serial Device (usbserial-1420)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Activity Log
-              </label>
-              <ScrollArea className="h-48 border rounded-md p-2 bg-white">
-                {state.logs.map((log, index) => (
-                  <div key={index} className="text-xs mb-1 border-b pb-1">
-                    <span className="text-gray-500">
-                      {new Date(log.timestamp).toLocaleString()}
-                    </span>
-                    <span className="ml-2 font-semibold">
-                      [{log.type}]
-                    </span>
-                    <span className="ml-2">
-                      {log.description}
-                    </span>
-                  </div>
-                ))}
-              </ScrollArea>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+      <AdminConsole
+        isOpen={state.isAdminOpen}
+        onClose={() => setState(prev => ({ ...prev, isAdminOpen: false }))}
+        mode={state.mode}
+        onModeChange={(mode) => setState(prev => ({ ...prev, mode }))}
+        credits={state.credits}
+        onCreditsChange={(credits) => setState(prev => ({ ...prev, credits }))}
+        apiKey={state.apiKey}
+        onApiKeyChange={(apiKey) => setState(prev => ({ ...prev, apiKey }))}
+        selectedCoinAcceptor={state.selectedCoinAcceptor}
+        onCoinAcceptorChange={(device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device }))}
+        logs={state.logs}
+        backgrounds={state.backgrounds}
+        selectedBackground={state.selectedBackground}
+        onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
+        cycleBackgrounds={state.cycleBackgrounds}
+        onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
+        onBackgroundUpload={handleBackgroundUpload}
+        onAddLog={addLog}
+      />
+    </BackgroundDisplay>
   );
 };
 
