@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle } from 'lucide-react';
 
 interface LogEntry {
   timestamp: string;
@@ -77,6 +77,7 @@ interface AdminConsoleProps {
   onDefaultPlaylistChange: (playlistId: string) => void;
   currentPlaylistVideos: any[];
   onPlaylistReorder?: (newPlaylist: any[]) => void;
+  onPlaylistShuffle?: () => void;
   currentlyPlaying: string;
 }
 
@@ -123,6 +124,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onDefaultPlaylistChange,
   currentPlaylistVideos,
   onPlaylistReorder,
+  onPlaylistShuffle,
   currentlyPlaying
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -328,14 +330,24 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   ))}
                 </SelectContent>
               </Select>
-              <Button
-                onClick={() => setShowPlaylistDialog(true)}
-                className="mt-2 bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                size="sm"
-              >
-                <List className="w-4 h-4" />
-                Show Playlist ({currentPlaylistVideos.length} songs)
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  onClick={() => setShowPlaylistDialog(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                  size="sm"
+                >
+                  <List className="w-4 h-4" />
+                  Show Playlist ({currentPlaylistVideos.length} songs)
+                </Button>
+                <Button
+                  onClick={onPlaylistShuffle}
+                  className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+                  size="sm"
+                >
+                  <Shuffle className="w-4 h-4" />
+                  Shuffle
+                </Button>
+              </div>
             </div>
 
             {mode === 'PAID' && (
@@ -620,8 +632,16 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
       <Dialog open={showPlaylistDialog} onOpenChange={setShowPlaylistDialog}>
         <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-4xl max-h-[80vh]">
           <DialogHeader>
-            <DialogTitle className="text-xl text-slate-900">
+            <DialogTitle className="text-xl text-slate-900 flex items-center justify-between">
               Current Playlist ({displayPlaylist.length} songs)
+              <Button
+                onClick={onPlaylistShuffle}
+                className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
+                size="sm"
+              >
+                <Shuffle className="w-4 h-4" />
+                Shuffle Playlist
+              </Button>
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">

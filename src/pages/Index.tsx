@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -232,16 +233,29 @@ const Index = () => {
     }
   }, [state.shuffledPlaylist, state.currentPlaylist, state.isPlayerRunning, state.isPlayerPaused]);
 
-  // Enhanced video end handling with proper queue management
+  // Enhanced video end handling with proper queue management and player status tracking
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'jukeboxStatus' && event.newValue) {
         const status = JSON.parse(event.newValue);
+        
+        // Update currently playing based on player window communication
+        if (status.status === 'playing' && status.title) {
+          setState(prev => ({ ...prev, currentlyPlaying: status.title }));
+        }
+        
         if (status.status === 'ended') {
           handleVideoEnded();
         } else if (status.status === 'fadeComplete') {
-          // Handle fade complete for skip functionality
           handleVideoEnded();
+        }
+      }
+      
+      // Listen for player window commands to track what's playing
+      if (event.key === 'jukeboxCommand' && event.newValue) {
+        const command = JSON.parse(event.newValue);
+        if (command.action === 'play' && command.title) {
+          setState(prev => ({ ...prev, currentlyPlaying: command.title }));
         }
       }
     };
@@ -298,6 +312,8 @@ const Index = () => {
             // Filter out private/unavailable videos
             return item.snippet.title !== 'Private video' && 
                    item.snippet.title !== 'Deleted video' && 
+                   item.snippet.title !== '[Private video]' &&
+                   item.snippet.title !== '[Deleted video]' &&
                    item.snippet.resourceId?.videoId;
           })
           .map((item: any) => ({
@@ -337,7 +353,7 @@ const Index = () => {
     const video = state.shuffledPlaylist[state.currentVideoIndex];
     const nextIndex = (state.currentVideoIndex + 1) % state.shuffledPlaylist.length;
     
-    setState(prev => ({ ...prev, currentVideoIndex: nextIndex, currentlyPlaying: video.title }));
+    setState(prev => ({ ...prev, currentVideoIndex: nextIndex }));
     
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
@@ -349,6 +365,7 @@ const Index = () => {
       
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+        // currentlyPlaying will be updated via storage event when player responds
         addLog('SONG_PLAYED', `Autoplay: ${video.title}`, video.videoId);
       } catch (error) {
         console.error('Error sending command to player:', error);
@@ -367,8 +384,7 @@ const Index = () => {
       
       setState(prev => ({ 
         ...prev, 
-        currentPlaylist: prev.currentPlaylist.slice(1),
-        currentlyPlaying: title
+        currentPlaylist: prev.currentPlaylist.slice(1)
       }));
       
       if (state.playerWindow && !state.playerWindow.closed) {
@@ -381,6 +397,7 @@ const Index = () => {
         
         try {
           state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+          // currentlyPlaying will be updated via storage event when player responds
           addLog('USER_SELECTION', `Playing user request: ${title}`, nextVideoId);
         } catch (error) {
           console.error('Error sending command to player:', error);
@@ -766,6 +783,16 @@ const Index = () => {
     setState(prev => ({ ...prev, shuffledPlaylist: newPlaylist }));
   };
 
+  const handlePlaylistShuffle = () => {
+    const shuffled = shuffleArray([...state.shuffledPlaylist]);
+    setState(prev => ({ ...prev, shuffledPlaylist: shuffled }));
+    addLog('SONG_PLAYED', 'Playlist shuffled by admin');
+    toast({
+      title: "Playlist Shuffled",
+      description: "The playlist order has been randomized",
+    });
+  };
+
   const currentBackground = getCurrentBackground();
 
   return (
@@ -977,6 +1004,7 @@ const Index = () => {
         onDefaultPlaylistChange={handleDefaultPlaylistChange}
         currentPlaylistVideos={state.shuffledPlaylist}
         onPlaylistReorder={handlePlaylistReorder}
+        onPlaylistShuffle={handlePlaylistShuffle}
         currentlyPlaying={state.currentlyPlaying}
       />
     </BackgroundDisplay>
