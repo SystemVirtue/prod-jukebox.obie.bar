@@ -257,6 +257,8 @@ const Index = () => {
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
     
+    console.log('performSearch called with query:', query);
+    
     if (query.toUpperCase() === 'ADMIN') {
       setState(prev => ({ 
         ...prev, 
@@ -269,9 +271,16 @@ const Index = () => {
       return;
     }
 
-    setState(prev => ({ ...prev, isSearching: true, searchResults: [], showKeyboard: false, showSearchResults: true }));
+    setState(prev => ({ 
+      ...prev, 
+      isSearching: true, 
+      searchResults: [], 
+      showKeyboard: false, 
+      showSearchResults: true 
+    }));
 
     try {
+      console.log('Starting YouTube search for:', query);
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=50&key=${state.apiKey}`;
       
       const response = await fetch(searchUrl);
@@ -280,6 +289,7 @@ const Index = () => {
       }
 
       const data = await response.json();
+      console.log('YouTube API response:', data);
       
       if (data.items && data.items.length > 0) {
         const filteredResults = filterForOfficial(data.items, query);
@@ -292,8 +302,10 @@ const Index = () => {
           officialScore: video.officialScore
         }));
         
+        console.log('Filtered search results:', searchResults);
         setState(prev => ({ ...prev, searchResults }));
       } else {
+        console.log('No search results found');
         toast({
           title: "No Results",
           description: "No music videos found for your search.",
@@ -344,11 +356,14 @@ const Index = () => {
   };
 
   const handleVideoSelect = (video: SearchResult) => {
+    console.log('Video selected:', video);
     setConfirmDialog({ isOpen: true, video });
   };
 
   const confirmAddToPlaylist = () => {
     if (!confirmDialog.video) return;
+
+    console.log('Adding video to playlist:', confirmDialog.video);
 
     if (state.mode === 'PAID' && state.credits === 0) {
       toast({
@@ -403,27 +418,32 @@ const Index = () => {
   };
 
   const handleKeyboardInput = (key: string) => {
+    console.log('Keyboard input:', key);
+    
     setState(prev => {
       let newQuery = prev.searchQuery;
       
       switch (key) {
         case 'BACKSPACE':
           newQuery = newQuery.slice(0, -1);
-          break;
+          console.log('New query after backspace:', newQuery);
+          return { ...prev, searchQuery: newQuery };
         case 'SPACE':
           newQuery += ' ';
-          break;
+          console.log('New query after space:', newQuery);
+          return { ...prev, searchQuery: newQuery };
         case 'SEARCH':
+          console.log('Search button pressed, query:', newQuery);
           if (newQuery.trim()) {
-            performSearch(newQuery);
+            // Perform search asynchronously
+            setTimeout(() => performSearch(newQuery), 0);
           }
-          return prev;
+          return prev; // Don't update query here, let performSearch handle state
         default:
           newQuery += key;
-          break;
+          console.log('New query after key press:', newQuery);
+          return { ...prev, searchQuery: newQuery };
       }
-      
-      return { ...prev, searchQuery: newQuery };
     });
   };
 
@@ -522,7 +542,10 @@ const Index = () => {
 
         <div className="flex-1 flex items-center justify-center">
           <Button
-            onClick={() => setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true }))}
+            onClick={() => {
+              console.log('Search button clicked - opening search interface');
+              setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
+            }}
             className="w-96 h-24 text-3xl font-bold bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-amber-900 shadow-2xl transform hover:scale-105 transition-all duration-200 border-4 border-amber-500"
           >
             🎵 Search for Music 🎵
@@ -555,25 +578,35 @@ const Index = () => {
 
       <SearchInterface
         isOpen={state.isSearchOpen}
-        onClose={() => setState(prev => ({ 
-          ...prev, 
-          isSearchOpen: false, 
-          showKeyboard: false, 
-          showSearchResults: false,
-          searchQuery: '', 
-          searchResults: [] 
-        }))}
+        onClose={() => {
+          console.log('Search interface closing');
+          setState(prev => ({ 
+            ...prev, 
+            isSearchOpen: false, 
+            showKeyboard: false, 
+            showSearchResults: false,
+            searchQuery: '', 
+            searchResults: [] 
+          }));
+        }}
         searchQuery={state.searchQuery}
-        onSearchQueryChange={(query) => setState(prev => ({ ...prev, searchQuery: query }))}
+        onSearchQueryChange={(query) => {
+          console.log('Search query changed:', query);
+          setState(prev => ({ ...prev, searchQuery: query }));
+        }}
         searchResults={state.searchResults}
         isSearching={state.isSearching}
         showKeyboard={state.showKeyboard}
         showSearchResults={state.showSearchResults}
         onKeyboardInput={handleKeyboardInput}
         onVideoSelect={handleVideoSelect}
-        onBackToSearch={() => setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }))}
+        onBackToSearch={() => {
+          console.log('Back to search pressed');
+          setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
+        }}
       />
 
+      {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ isOpen: false, video: null })}>
         <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
           <DialogHeader>
