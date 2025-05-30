@@ -79,6 +79,7 @@ interface JukeboxState {
   backgrounds: BackgroundFile[];
   selectedBackground: string;
   cycleBackgrounds: boolean;
+  bounceVideos: boolean;
   backgroundCycleIndex: number;
   showKeyboard: boolean;
   showSearchResults: boolean;
@@ -119,6 +120,7 @@ const Index = () => {
     backgrounds: [{ id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' }],
     selectedBackground: 'default',
     cycleBackgrounds: false,
+    bounceVideos: false,
     backgroundCycleIndex: 0,
     showKeyboard: false,
     showSearchResults: false,
@@ -181,6 +183,7 @@ const Index = () => {
     selectedBackground: state.selectedBackground,
     cycleBackgrounds: state.cycleBackgrounds,
     backgroundCycleIndex: state.backgroundCycleIndex,
+    bounceVideos: state.bounceVideos,
     onBackgroundCycleIndexChange: (index) => setState(prev => ({ ...prev, backgroundCycleIndex: index })),
     onSelectedBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id }))
   });
@@ -196,20 +199,24 @@ const Index = () => {
 
   // Initialize player window and load default playlist
   useEffect(() => {
-    const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
-      'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
-    
-    if (playerWindow) {
-      setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true }));
-      console.log('Player window opened successfully');
-      loadPlaylistVideos(DEFAULT_PLAYLIST_ID);
-    } else {
-      toast({
-        title: "Error",
-        description: "Failed to open player window. Please allow popups.",
-        variant: "destructive"
-      });
-    }
+    const openPlayerWindow = () => {
+      const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
+        'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
+      
+      if (playerWindow) {
+        setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true }));
+        console.log('Player window opened successfully');
+        loadPlaylistVideos(DEFAULT_PLAYLIST_ID);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to open player window. Please allow popups.",
+          variant: "destructive"
+        });
+      }
+    };
+
+    openPlayerWindow();
 
     return () => {
       if (state.playerWindow && !state.playerWindow.closed) {
@@ -276,7 +283,6 @@ const Index = () => {
 
   const loadPlaylistVideos = async (playlistId: string) => {
     try {
-      // Load ALL videos from playlist without limiting to 50
       let allVideos: PlaylistItem[] = [];
       let nextPageToken = '';
       
@@ -287,12 +293,19 @@ const Index = () => {
         if (!response.ok) throw new Error('Failed to load playlist');
         
         const data = await response.json();
-        const videos: PlaylistItem[] = data.items.map((item: any) => ({
-          id: item.id,
-          title: item.snippet.title,
-          channelTitle: item.snippet.channelTitle,
-          videoId: item.snippet.resourceId.videoId
-        }));
+        const videos: PlaylistItem[] = data.items
+          .filter((item: any) => {
+            // Filter out private/unavailable videos
+            return item.snippet.title !== 'Private video' && 
+                   item.snippet.title !== 'Deleted video' && 
+                   item.snippet.resourceId?.videoId;
+          })
+          .map((item: any) => ({
+            id: item.id,
+            title: item.snippet.title,
+            channelTitle: item.snippet.channelTitle,
+            videoId: item.snippet.resourceId.videoId
+          }));
         
         allVideos = [...allVideos, ...videos];
         nextPageToken = data.nextPageToken || '';
@@ -670,6 +683,35 @@ const Index = () => {
   };
 
   const handlePlayerToggle = () => {
+    // Check if player window is closed and needs to be reopened
+    if (!state.playerWindow || state.playerWindow.closed) {
+      console.log('Player window is closed, reopening...');
+      const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
+        'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
+      
+      if (playerWindow) {
+        setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true, isPlayerPaused: false }));
+        console.log('Player window reopened successfully');
+        
+        // Start playing the first song in the playlist after a short delay
+        setTimeout(() => {
+          if (state.shuffledPlaylist.length > 0) {
+            playNextDefaultVideo();
+          }
+        }, 2000); // Give the player window time to load
+        
+        addLog('SONG_PLAYED', 'Player window reopened and started');
+        return;
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to reopen player window. Please allow popups.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     if (state.isPlayerRunning && !state.isPlayerPaused) {
       // Pause player
       if (state.playerWindow && !state.playerWindow.closed) {
@@ -727,7 +769,7 @@ const Index = () => {
   const currentBackground = getCurrentBackground();
 
   return (
-    <BackgroundDisplay background={currentBackground}>
+    <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
         {/* Now Playing Ticker - Top Left */}
         <div className="absolute top-4 left-4 z-20">
@@ -919,6 +961,8 @@ const Index = () => {
         onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
         cycleBackgrounds={state.cycleBackgrounds}
         onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
+        bounceVideos={state.bounceVideos}
+        onBounceVideosChange={(bounce) => setState(prev => ({ ...prev, bounceVideos: bounce }))}
         onBackgroundUpload={handleBackgroundUpload}
         onAddLog={addLog}
         onAddUserRequest={addUserRequest}
@@ -933,6 +977,7 @@ const Index = () => {
         onDefaultPlaylistChange={handleDefaultPlaylistChange}
         currentPlaylistVideos={state.shuffledPlaylist}
         onPlaylistReorder={handlePlaylistReorder}
+        currentlyPlaying={state.currentlyPlaying}
       />
     </BackgroundDisplay>
   );

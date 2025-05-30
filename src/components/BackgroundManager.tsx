@@ -13,6 +13,7 @@ interface BackgroundManagerProps {
   selectedBackground: string;
   cycleBackgrounds: boolean;
   backgroundCycleIndex: number;
+  bounceVideos: boolean;
   onBackgroundCycleIndexChange: (index: number) => void;
   onSelectedBackgroundChange: (id: string) => void;
 }
@@ -22,6 +23,7 @@ export const useBackgroundManager = ({
   selectedBackground,
   cycleBackgrounds,
   backgroundCycleIndex,
+  bounceVideos,
   onBackgroundCycleIndexChange,
   onSelectedBackgroundChange
 }: BackgroundManagerProps) => {
@@ -60,9 +62,43 @@ export const useBackgroundManager = ({
 
 export const BackgroundDisplay: React.FC<{
   background: BackgroundFile;
+  bounceVideos: boolean;
   children: React.ReactNode;
-}> = ({ background, children }) => {
+}> = ({ background, bounceVideos, children }) => {
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = backgroundVideoRef.current;
+    if (!video || background.type !== 'video' || !bounceVideos) return;
+
+    let direction = 1; // 1 for forward, -1 for backward
+
+    const handleTimeUpdate = () => {
+      if (direction === 1 && video.currentTime >= video.duration - 0.1) {
+        // Reached end, start playing backward
+        direction = -1;
+        video.pause();
+        
+        const playBackward = () => {
+          if (video.currentTime <= 0.1) {
+            // Reached beginning, start playing forward again
+            direction = 1;
+            video.play();
+            return;
+          }
+          video.currentTime -= 0.1;
+          requestAnimationFrame(playBackward);
+        };
+        playBackward();
+      }
+    };
+
+    video.addEventListener('timeupdate', handleTimeUpdate);
+
+    return () => {
+      video.removeEventListener('timeupdate', handleTimeUpdate);
+    };
+  }, [background, bounceVideos]);
 
   return (
     <>
@@ -77,7 +113,7 @@ export const BackgroundDisplay: React.FC<{
           <video
             ref={backgroundVideoRef}
             autoPlay
-            loop
+            loop={!bounceVideos}
             muted
             className="absolute inset-0 w-full h-full object-cover"
             src={background.url}

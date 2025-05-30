@@ -1,4 +1,3 @@
-
 import React, { useRef, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -62,6 +61,8 @@ interface AdminConsoleProps {
   onBackgroundChange: (id: string) => void;
   cycleBackgrounds: boolean;
   onCycleBackgroundsChange: (cycle: boolean) => void;
+  bounceVideos: boolean;
+  onBounceVideosChange: (bounce: boolean) => void;
   onBackgroundUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAddLog: (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => void;
   onAddUserRequest: (title: string, videoId: string, channelTitle: string) => void;
@@ -76,6 +77,7 @@ interface AdminConsoleProps {
   onDefaultPlaylistChange: (playlistId: string) => void;
   currentPlaylistVideos: any[];
   onPlaylistReorder?: (newPlaylist: any[]) => void;
+  currentlyPlaying: string;
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
@@ -105,6 +107,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onBackgroundChange,
   cycleBackgrounds,
   onCycleBackgroundsChange,
+  bounceVideos,
+  onBounceVideosChange,
   onBackgroundUpload,
   onAddLog,
   onAddUserRequest,
@@ -118,7 +122,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   defaultPlaylist,
   onDefaultPlaylistChange,
   currentPlaylistVideos,
-  onPlaylistReorder
+  onPlaylistReorder,
+  currentlyPlaying
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
@@ -175,6 +180,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
+    // Don't allow dragging the currently playing song (index 0)
+    if (index === 0) return;
     setDraggedIndex(index);
     e.dataTransfer.effectAllowed = 'move';
   };
@@ -186,7 +193,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
   const handleDrop = (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault();
-    if (draggedIndex === null) return;
+    if (draggedIndex === null || draggedIndex === 0 || dropIndex === 0) return;
 
     const newPlaylist = [...reorderedPlaylist];
     const draggedItem = newPlaylist[draggedIndex];
@@ -205,6 +212,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   };
 
   const handleRemoveFromPlaylist = (index: number) => {
+    // Don't allow removing the currently playing song (index 0)
+    if (index === 0) return;
+    
     const newPlaylist = reorderedPlaylist.filter((_, i) => i !== index);
     setReorderedPlaylist(newPlaylist);
     
@@ -247,6 +257,36 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
+
+  // Get display playlist with currently playing song at top
+  const getDisplayPlaylist = () => {
+    if (!currentlyPlaying || currentlyPlaying === 'Loading...') {
+      return reorderedPlaylist;
+    }
+
+    // Find currently playing song in playlist
+    const playingIndex = reorderedPlaylist.findIndex(video => 
+      video.title === currentlyPlaying || video.title.toLowerCase().includes(currentlyPlaying.toLowerCase())
+    );
+
+    if (playingIndex === -1) {
+      // If currently playing song not found in playlist, create a dummy entry at top
+      const nowPlayingEntry = {
+        id: 'now-playing',
+        title: currentlyPlaying,
+        channelTitle: 'Now Playing',
+        videoId: 'current'
+      };
+      return [nowPlayingEntry, ...reorderedPlaylist];
+    }
+
+    // Move currently playing song to top
+    const newPlaylist = [...reorderedPlaylist];
+    const playingSong = newPlaylist.splice(playingIndex, 1)[0];
+    return [playingSong, ...newPlaylist];
+  };
+
+  const displayPlaylist = getDisplayPlaylist();
 
   return (
     <>
@@ -427,15 +467,28 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   </SelectContent>
                 </Select>
                 
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="cycle-backgrounds"
-                    checked={cycleBackgrounds}
-                    onCheckedChange={onCycleBackgroundsChange}
-                  />
-                  <label htmlFor="cycle-backgrounds" className="text-sm">
-                    Cycle Backgrounds
-                  </label>
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="cycle-backgrounds"
+                      checked={cycleBackgrounds}
+                      onCheckedChange={onCycleBackgroundsChange}
+                    />
+                    <label htmlFor="cycle-backgrounds" className="text-sm">
+                      Cycle Backgrounds
+                    </label>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="bounce-videos"
+                      checked={bounceVideos}
+                      onCheckedChange={onBounceVideosChange}
+                    />
+                    <label htmlFor="bounce-videos" className="text-sm">
+                      Bounce Videos
+                    </label>
+                  </div>
                 </div>
               </div>
               <input
@@ -568,38 +621,50 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
         <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl text-slate-900">
-              Current Playlist ({reorderedPlaylist.length} songs)
+              Current Playlist ({displayPlaylist.length} songs)
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">
-            {reorderedPlaylist.map((video, index) => (
+            {displayPlaylist.map((video, index) => (
               <div
                 key={`${video.id}-${index}`}
-                draggable
+                draggable={index !== 0}
                 onDragStart={(e) => handleDragStart(e, index)}
                 onDragOver={handleDragOver}
                 onDrop={(e) => handleDrop(e, index)}
-                className="flex items-center gap-3 p-3 border-b hover:bg-gray-50 cursor-move group"
+                className={`flex items-center gap-3 p-3 border-b hover:bg-gray-50 group ${
+                  index === 0 ? 'bg-green-50 border-green-200' : 'cursor-move'
+                }`}
               >
-                <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                {index === 0 ? (
+                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                    <Play className="w-2 h-2 text-white" />
+                  </div>
+                ) : (
+                  <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
+                )}
                 <span className="text-sm font-mono text-gray-500 w-8">
-                  {index + 1}.
+                  {index === 0 ? '♪' : `${index}.`}
                 </span>
                 <div className="flex-1">
-                  <div className="font-semibold text-sm">{video.title}</div>
+                  <div className={`font-semibold text-sm ${index === 0 ? 'text-green-700' : ''}`}>
+                    {video.title} {index === 0 && '(Now Playing)'}
+                  </div>
                   <div className="text-xs text-gray-600">{video.channelTitle}</div>
                 </div>
-                <Button
-                  onClick={() => handleRemoveFromPlaylist(index)}
-                  size="sm"
-                  variant="ghost"
-                  className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 hover:bg-red-50"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                {index !== 0 && (
+                  <Button
+                    onClick={() => handleRemoveFromPlaylist(index)}
+                    size="sm"
+                    variant="ghost"
+                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 hover:bg-red-50"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                )}
               </div>
             ))}
-            {reorderedPlaylist.length === 0 && (
+            {displayPlaylist.length === 0 && (
               <div className="text-center py-8 text-gray-500">
                 No songs in playlist
               </div>
