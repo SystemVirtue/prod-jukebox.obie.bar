@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users } from 'lucide-react';
 
 interface LogEntry {
   timestamp: string;
@@ -40,6 +40,14 @@ interface BackgroundFile {
   name: string;
   url: string;
   type: 'image' | 'video';
+}
+
+interface QueuedRequest {
+  id: string;
+  title: string;
+  channelTitle: string;
+  videoId: string;
+  timestamp: string;
 }
 
 interface AdminConsoleProps {
@@ -79,6 +87,7 @@ interface AdminConsoleProps {
   onPlaylistReorder?: (newPlaylist: any[]) => void;
   onPlaylistShuffle?: () => void;
   currentlyPlaying: string;
+  priorityQueue: QueuedRequest[];
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
@@ -125,18 +134,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   currentPlaylistVideos,
   onPlaylistReorder,
   onPlaylistShuffle,
-  currentlyPlaying
+  currentlyPlaying,
+  priorityQueue
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
   const [playlistTitles, setPlaylistTitles] = useState<{ [key: string]: string }>({});
-  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [reorderedPlaylist, setReorderedPlaylist] = useState(currentPlaylistVideos);
-
-  // Update local playlist when prop changes
-  useEffect(() => {
-    setReorderedPlaylist(currentPlaylistVideos);
-  }, [currentPlaylistVideos]);
 
   // Load playlist titles on mount
   useEffect(() => {
@@ -181,49 +184,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     }
   };
 
-  const handleDragStart = (e: React.DragEvent, index: number) => {
-    // Don't allow dragging the currently playing song (index 0)
-    if (index === 0) return;
-    setDraggedIndex(index);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
-    e.preventDefault();
-    if (draggedIndex === null || draggedIndex === 0 || dropIndex === 0) return;
-
-    const newPlaylist = [...reorderedPlaylist];
-    const draggedItem = newPlaylist[draggedIndex];
-    
-    // Remove from old position
-    newPlaylist.splice(draggedIndex, 1);
-    
-    // Insert at new position
-    newPlaylist.splice(dropIndex, 0, draggedItem);
-    
-    setReorderedPlaylist(newPlaylist);
-    setDraggedIndex(null);
-    
-    // Notify parent component about reordering
-    onPlaylistReorder?.(newPlaylist);
-  };
-
-  const handleRemoveFromPlaylist = (index: number) => {
-    // Don't allow removing the currently playing song (index 0)
-    if (index === 0) return;
-    
-    const newPlaylist = reorderedPlaylist.filter((_, i) => i !== index);
-    setReorderedPlaylist(newPlaylist);
-    
-    // Notify parent component about removal
-    onPlaylistReorder?.(newPlaylist);
-  };
-
   const exportLogs = (logType: 'event' | 'user_requests' | 'credit_history') => {
     let content = '';
     let filename = '';
@@ -260,35 +220,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  // Get display playlist with currently playing song at top
-  const getDisplayPlaylist = () => {
-    if (!currentlyPlaying || currentlyPlaying === 'Loading...') {
-      return reorderedPlaylist;
-    }
-
-    // Find currently playing song in playlist
-    const playingIndex = reorderedPlaylist.findIndex(video => 
-      video.title === currentlyPlaying || video.title.toLowerCase().includes(currentlyPlaying.toLowerCase())
-    );
-
-    if (playingIndex === -1) {
-      // If currently playing song not found in playlist, create a dummy entry at top
-      const nowPlayingEntry = {
-        id: 'now-playing',
-        title: currentlyPlaying,
-        channelTitle: 'Now Playing',
-        videoId: 'current'
-      };
-      return [nowPlayingEntry, ...reorderedPlaylist];
-    }
-
-    // Move currently playing song to top
-    const newPlaylist = [...reorderedPlaylist];
-    const playingSong = newPlaylist.splice(playingIndex, 1)[0];
-    return [playingSong, ...newPlaylist];
+  // Calculate total playlist length including priority queue
+  const getTotalPlaylistLength = () => {
+    const defaultPlaylistLength = currentPlaylistVideos.filter(video => !video.isUserRequest && !video.isNowPlaying).length;
+    return priorityQueue.length + defaultPlaylistLength;
   };
-
-  const displayPlaylist = getDisplayPlaylist();
 
   return (
     <>
@@ -337,7 +273,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   size="sm"
                 >
                   <List className="w-4 h-4" />
-                  Show Playlist ({currentPlaylistVideos.length} songs)
+                  Show Queue ({getTotalPlaylistLength()} songs)
                 </Button>
                 <Button
                   onClick={onPlaylistShuffle}
@@ -628,67 +564,112 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Enhanced Playlist Dialog with Drag & Drop */}
+      {/* Enhanced Current Playlist Dialog */}
       <Dialog open={showPlaylistDialog} onOpenChange={setShowPlaylistDialog}>
         <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl text-slate-900 flex items-center justify-between">
-              Current Playlist ({displayPlaylist.length} songs)
+              Current Queue ({getTotalPlaylistLength()} songs)
               <Button
                 onClick={onPlaylistShuffle}
                 className="bg-purple-600 hover:bg-purple-700 text-white flex items-center gap-2"
                 size="sm"
               >
                 <Shuffle className="w-4 h-4" />
-                Shuffle Playlist
+                Shuffle Default Playlist
               </Button>
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">
-            {displayPlaylist.map((video, index) => (
-              <div
-                key={`${video.id}-${index}`}
-                draggable={index !== 0}
-                onDragStart={(e) => handleDragStart(e, index)}
-                onDragOver={handleDragOver}
-                onDrop={(e) => handleDrop(e, index)}
-                className={`flex items-center gap-3 p-3 border-b hover:bg-gray-50 group ${
-                  index === 0 ? 'bg-green-50 border-green-200' : 'cursor-move'
-                }`}
-              >
-                {index === 0 ? (
+            {/* Now Playing Section */}
+            {currentlyPlaying && currentlyPlaying !== 'Loading...' && (
+              <div className="mb-4">
+                <div className="flex items-center gap-3 p-3 bg-green-50 border-green-200 border rounded-md">
                   <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                     <Play className="w-2 h-2 text-white" />
                   </div>
-                ) : (
-                  <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
-                )}
-                <span className="text-sm font-mono text-gray-500 w-8">
-                  {index === 0 ? '♪' : `${index}.`}
-                </span>
-                <div className="flex-1">
-                  <div className={`font-semibold text-sm ${index === 0 ? 'text-green-700' : ''}`}>
-                    {video.title} {index === 0 && '(Now Playing)'}
+                  <span className="text-sm font-mono text-gray-500 w-8">♪</span>
+                  <div className="flex-1">
+                    <div className="font-semibold text-sm text-green-700">
+                      {currentlyPlaying} (Now Playing)
+                    </div>
+                    <div className="text-xs text-green-600">Currently Playing</div>
                   </div>
-                  <div className="text-xs text-gray-600">{video.channelTitle}</div>
                 </div>
-                {index !== 0 && (
-                  <Button
-                    onClick={() => handleRemoveFromPlaylist(index)}
-                    size="sm"
-                    variant="ghost"
-                    className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 hover:bg-red-50"
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
-                )}
-              </div>
-            ))}
-            {displayPlaylist.length === 0 && (
-              <div className="text-center py-8 text-gray-500">
-                No songs in playlist
               </div>
             )}
+
+            {/* Priority Queue Section */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Users className="w-4 h-4 text-blue-600" />
+                <h3 className="font-semibold text-blue-700">
+                  Priority Queue (Requests): {priorityQueue.length > 0 ? `${priorityQueue.length} songs` : 'Empty'}
+                </h3>
+              </div>
+              {priorityQueue.length > 0 ? (
+                <div className="space-y-1">
+                  {priorityQueue.map((request, index) => (
+                    <div
+                      key={`priority-${request.id}-${index}`}
+                      className="flex items-center gap-3 p-3 bg-blue-50 border-blue-200 border rounded-md"
+                    >
+                      <span className="text-sm font-mono text-blue-600 w-8">
+                        {index + 1}.
+                      </span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-sm text-blue-700">
+                          {request.title}
+                        </div>
+                        <div className="text-xs text-blue-600">{request.channelTitle}</div>
+                      </div>
+                      <div className="text-xs text-blue-500">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {new Date(request.timestamp).toLocaleTimeString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-4 text-gray-500">
+                  No user requests pending
+                </div>
+              )}
+            </div>
+
+            {/* Default Playlist Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <List className="w-4 h-4 text-gray-600" />
+                <h3 className="font-semibold text-gray-700">
+                  Default Playlist: Next {Math.min(10, currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length)} songs
+                </h3>
+              </div>
+              {currentPlaylistVideos
+                .filter(video => !video.isUserRequest && !video.isNowPlaying)
+                .slice(0, 10)
+                .map((video, index) => (
+                  <div
+                    key={`default-${video.id}-${index}`}
+                    className="flex items-center gap-3 p-3 border-b hover:bg-gray-50"
+                  >
+                    <span className="text-sm font-mono text-gray-500 w-8">
+                      {index + 1}.
+                    </span>
+                    <div className="flex-1">
+                      <div className="font-semibold text-sm">
+                        {video.title}
+                      </div>
+                      <div className="text-xs text-gray-600">{video.channelTitle}</div>
+                    </div>
+                  </div>
+                ))}
+              {currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length === 0 && (
+                <div className="text-center py-4 text-gray-500">
+                  No songs in default playlist
+                </div>
+              )}
+            </div>
           </ScrollArea>
         </DialogContent>
       </Dialog>
