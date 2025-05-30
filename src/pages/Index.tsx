@@ -36,6 +36,20 @@ interface LogEntry {
   creditAmount?: number;
 }
 
+interface UserRequest {
+  timestamp: string;
+  title: string;
+  videoId: string;
+  channelTitle: string;
+}
+
+interface CreditHistory {
+  timestamp: string;
+  amount: number;
+  type: 'ADDED' | 'REMOVED';
+  description: string;
+}
+
 interface BackgroundFile {
   id: string;
   name: string;
@@ -60,6 +74,8 @@ interface JukeboxState {
   playerWindow: Window | null;
   apiKey: string;
   logs: LogEntry[];
+  userRequests: UserRequest[];
+  creditHistory: CreditHistory[];
   backgrounds: BackgroundFile[];
   selectedBackground: string;
   cycleBackgrounds: boolean;
@@ -72,6 +88,7 @@ interface JukeboxState {
   showInsufficientCredits: boolean;
   showDuplicateSong: boolean;
   duplicateSongTitle: string;
+  isPlayerPaused: boolean;
 }
 
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
@@ -97,6 +114,8 @@ const Index = () => {
     playerWindow: null,
     apiKey: DEFAULT_API_KEY,
     logs: [],
+    userRequests: [],
+    creditHistory: [],
     backgrounds: [{ id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' }],
     selectedBackground: 'default',
     cycleBackgrounds: false,
@@ -108,7 +127,8 @@ const Index = () => {
     maxSongLength: 10,
     showInsufficientCredits: false,
     showDuplicateSong: false,
-    duplicateSongTitle: ''
+    duplicateSongTitle: '',
+    isPlayerPaused: false
   });
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -200,10 +220,10 @@ const Index = () => {
 
   // Autoplay from default playlist
   useEffect(() => {
-    if (state.shuffledPlaylist.length > 0 && state.currentPlaylist.length === 0) {
+    if (state.shuffledPlaylist.length > 0 && state.currentPlaylist.length === 0 && state.isPlayerRunning && !state.isPlayerPaused) {
       playNextDefaultVideo();
     }
-  }, [state.shuffledPlaylist, state.currentPlaylist]);
+  }, [state.shuffledPlaylist, state.currentPlaylist, state.isPlayerRunning, state.isPlayerPaused]);
 
   // Listen for player status updates
   useEffect(() => {
@@ -231,6 +251,26 @@ const Index = () => {
     setState(prev => ({ ...prev, logs: [logEntry, ...prev.logs] }));
   }
 
+  function addUserRequest(title: string, videoId: string, channelTitle: string) {
+    const userRequest: UserRequest = {
+      timestamp: new Date().toISOString(),
+      title,
+      videoId,
+      channelTitle
+    };
+    setState(prev => ({ ...prev, userRequests: [userRequest, ...prev.userRequests] }));
+  }
+
+  function addCreditHistory(amount: number, type: 'ADDED' | 'REMOVED', description: string) {
+    const creditEntry: CreditHistory = {
+      timestamp: new Date().toISOString(),
+      amount,
+      type,
+      description
+    };
+    setState(prev => ({ ...prev, creditHistory: [creditEntry, ...prev.creditHistory] }));
+  }
+
   const loadPlaylistVideos = async (playlistId: string) => {
     try {
       const response = await fetch(
@@ -248,7 +288,12 @@ const Index = () => {
       }));
 
       const shuffled = shuffleArray(videos);
-      setState(prev => ({ ...prev, defaultPlaylistVideos: videos, shuffledPlaylist: shuffled }));
+      setState(prev => ({ 
+        ...prev, 
+        defaultPlaylistVideos: videos, 
+        shuffledPlaylist: shuffled,
+        currentVideoIndex: 0
+      }));
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
@@ -285,7 +330,10 @@ const Index = () => {
   };
 
   const handleVideoEnded = () => {
+    const wasUserRequest = state.currentPlaylist.length > 0;
+    
     if (state.currentPlaylist.length > 0) {
+      // Play next user request
       const nextVideoId = state.currentPlaylist[0];
       const video = state.searchResults.find(r => r.id === nextVideoId);
       const title = video ? video.title : 'User Selection';
@@ -311,6 +359,16 @@ const Index = () => {
         }
       }
     } else {
+      // If the last song was from default playlist, add it to the end of the shuffled playlist
+      if (!wasUserRequest && state.shuffledPlaylist.length > 0) {
+        const lastVideo = state.shuffledPlaylist[state.currentVideoIndex - 1] || state.shuffledPlaylist[state.shuffledPlaylist.length - 1];
+        setState(prev => ({
+          ...prev,
+          shuffledPlaylist: [...prev.shuffledPlaylist, lastVideo]
+        }));
+      }
+      
+      // Play next from default playlist
       playNextDefaultVideo();
     }
   };
@@ -494,8 +552,10 @@ const Index = () => {
     }
 
     addLog('USER_SELECTION', `Selected: ${confirmDialog.video.title}`, confirmDialog.video.id);
+    addUserRequest(confirmDialog.video.title, confirmDialog.video.id, confirmDialog.video.channelTitle);
     if (state.mode === 'PAID') {
       addLog('CREDIT_REMOVED', 'Song request cost', undefined, -1);
+      addCreditHistory(1, 'REMOVED', 'Song request cost');
     }
 
     toast({
@@ -596,21 +656,33 @@ const Index = () => {
   };
 
   const handlePlayerToggle = () => {
-    if (state.isPlayerRunning) {
-      // Stop player
+    if (state.isPlayerRunning && !state.isPlayerPaused) {
+      // Pause player
       if (state.playerWindow && !state.playerWindow.closed) {
-        const command = { action: 'stop' };
+        const command = { action: 'pause' };
         try {
           state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-          addLog('SONG_PLAYED', 'Player stopped by admin');
+          addLog('SONG_PLAYED', 'Player paused by admin');
         } catch (error) {
-          console.error('Error sending stop command:', error);
+          console.error('Error sending pause command:', error);
         }
       }
-      setState(prev => ({ ...prev, isPlayerRunning: false, currentlyPlaying: 'Stopped' }));
+      setState(prev => ({ ...prev, isPlayerPaused: true }));
+    } else if (state.isPlayerRunning && state.isPlayerPaused) {
+      // Resume player
+      if (state.playerWindow && !state.playerWindow.closed) {
+        const command = { action: 'play' };
+        try {
+          state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+          addLog('SONG_PLAYED', 'Player resumed by admin');
+        } catch (error) {
+          console.error('Error sending play command:', error);
+        }
+      }
+      setState(prev => ({ ...prev, isPlayerPaused: false }));
     } else {
       // Start player
-      setState(prev => ({ ...prev, isPlayerRunning: true }));
+      setState(prev => ({ ...prev, isPlayerRunning: true, isPlayerPaused: false }));
       playNextDefaultVideo();
       addLog('SONG_PLAYED', 'Player started by admin');
     }
@@ -626,6 +698,11 @@ const Index = () => {
         console.error('Error sending skip command:', error);
       }
     }
+  };
+
+  const handleDefaultPlaylistChange = (playlistId: string) => {
+    setState(prev => ({ ...prev, defaultPlaylist: playlistId }));
+    loadPlaylistVideos(playlistId);
   };
 
   const currentBackground = getCurrentBackground();
@@ -816,6 +893,8 @@ const Index = () => {
         selectedCoinAcceptor={state.selectedCoinAcceptor}
         onCoinAcceptorChange={(device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device }))}
         logs={state.logs}
+        userRequests={state.userRequests}
+        creditHistory={state.creditHistory}
         backgrounds={state.backgrounds}
         selectedBackground={state.selectedBackground}
         onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
@@ -823,12 +902,17 @@ const Index = () => {
         onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
         onBackgroundUpload={handleBackgroundUpload}
         onAddLog={addLog}
+        onAddUserRequest={addUserRequest}
+        onAddCreditHistory={addCreditHistory}
         playerWindow={state.playerWindow}
         isPlayerRunning={state.isPlayerRunning}
         onPlayerToggle={handlePlayerToggle}
         onSkipSong={handleSkipSong}
         maxSongLength={state.maxSongLength}
         onMaxSongLengthChange={(minutes) => setState(prev => ({ ...prev, maxSongLength: minutes }))}
+        defaultPlaylist={state.defaultPlaylist}
+        onDefaultPlaylistChange={handleDefaultPlaylistChange}
+        currentPlaylistVideos={state.shuffledPlaylist}
       />
     </BackgroundDisplay>
   );
