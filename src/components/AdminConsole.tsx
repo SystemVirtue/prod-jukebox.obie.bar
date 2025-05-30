@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X } from 'lucide-react';
 
 interface LogEntry {
   timestamp: string;
@@ -75,6 +75,7 @@ interface AdminConsoleProps {
   defaultPlaylist: string;
   onDefaultPlaylistChange: (playlistId: string) => void;
   currentPlaylistVideos: any[];
+  onPlaylistReorder?: (newPlaylist: any[]) => void;
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
@@ -116,11 +117,19 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onMaxSongLengthChange,
   defaultPlaylist,
   onDefaultPlaylistChange,
-  currentPlaylistVideos
+  currentPlaylistVideos,
+  onPlaylistReorder
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
   const [playlistTitles, setPlaylistTitles] = useState<{ [key: string]: string }>({});
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [reorderedPlaylist, setReorderedPlaylist] = useState(currentPlaylistVideos);
+
+  // Update local playlist when prop changes
+  useEffect(() => {
+    setReorderedPlaylist(currentPlaylistVideos);
+  }, [currentPlaylistVideos]);
 
   // Load playlist titles on mount
   useEffect(() => {
@@ -163,6 +172,44 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     } else {
       onBackgroundChange(value);
     }
+  };
+
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+
+    const newPlaylist = [...reorderedPlaylist];
+    const draggedItem = newPlaylist[draggedIndex];
+    
+    // Remove from old position
+    newPlaylist.splice(draggedIndex, 1);
+    
+    // Insert at new position
+    newPlaylist.splice(dropIndex, 0, draggedItem);
+    
+    setReorderedPlaylist(newPlaylist);
+    setDraggedIndex(null);
+    
+    // Notify parent component about reordering
+    onPlaylistReorder?.(newPlaylist);
+  };
+
+  const handleRemoveFromPlaylist = (index: number) => {
+    const newPlaylist = reorderedPlaylist.filter((_, i) => i !== index);
+    setReorderedPlaylist(newPlaylist);
+    
+    // Notify parent component about removal
+    onPlaylistReorder?.(newPlaylist);
   };
 
   const exportLogs = (logType: 'event' | 'user_requests' | 'credit_history') => {
@@ -247,7 +294,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 size="sm"
               >
                 <List className="w-4 h-4" />
-                Show Playlist
+                Show Playlist ({currentPlaylistVideos.length} songs)
               </Button>
             </div>
 
@@ -516,26 +563,47 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
         </DialogContent>
       </Dialog>
 
-      {/* Playlist Dialog */}
+      {/* Enhanced Playlist Dialog with Drag & Drop */}
       <Dialog open={showPlaylistDialog} onOpenChange={setShowPlaylistDialog}>
-        <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-2xl max-h-[80vh]">
+        <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl text-slate-900">
-              Current Playlist ({currentPlaylistVideos.length} songs)
+              Current Playlist ({reorderedPlaylist.length} songs)
             </DialogTitle>
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">
-            {currentPlaylistVideos.map((video, index) => (
-              <div key={video.id} className="flex items-center gap-3 p-2 border-b">
+            {reorderedPlaylist.map((video, index) => (
+              <div
+                key={`${video.id}-${index}`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, index)}
+                onDragOver={handleDragOver}
+                onDrop={(e) => handleDrop(e, index)}
+                className="flex items-center gap-3 p-3 border-b hover:bg-gray-50 cursor-move group"
+              >
+                <GripVertical className="w-4 h-4 text-gray-400 group-hover:text-gray-600" />
                 <span className="text-sm font-mono text-gray-500 w-8">
                   {index + 1}.
                 </span>
-                <div>
+                <div className="flex-1">
                   <div className="font-semibold text-sm">{video.title}</div>
                   <div className="text-xs text-gray-600">{video.channelTitle}</div>
                 </div>
+                <Button
+                  onClick={() => handleRemoveFromPlaylist(index)}
+                  size="sm"
+                  variant="ghost"
+                  className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-800 hover:bg-red-50"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             ))}
+            {reorderedPlaylist.length === 0 && (
+              <div className="text-center py-8 text-gray-500">
+                No songs in playlist
+              </div>
+            )}
           </ScrollArea>
         </DialogContent>
       </Dialog>

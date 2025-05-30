@@ -218,19 +218,22 @@ const Index = () => {
     };
   }, []);
 
-  // Autoplay from default playlist
+  // Enhanced autoplay logic for user requests priority
   useEffect(() => {
     if (state.shuffledPlaylist.length > 0 && state.currentPlaylist.length === 0 && state.isPlayerRunning && !state.isPlayerPaused) {
       playNextDefaultVideo();
     }
   }, [state.shuffledPlaylist, state.currentPlaylist, state.isPlayerRunning, state.isPlayerPaused]);
 
-  // Listen for player status updates
+  // Enhanced video end handling with proper queue management
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'jukeboxStatus' && event.newValue) {
         const status = JSON.parse(event.newValue);
         if (status.status === 'ended') {
+          handleVideoEnded();
+        } else if (status.status === 'fadeComplete') {
+          // Handle fade complete for skip functionality
           handleVideoEnded();
         }
       }
@@ -273,27 +276,38 @@ const Index = () => {
 
   const loadPlaylistVideos = async (playlistId: string) => {
     try {
-      const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}`
-      );
+      // Load ALL videos from playlist without limiting to 50
+      let allVideos: PlaylistItem[] = [];
+      let nextPageToken = '';
       
-      if (!response.ok) throw new Error('Failed to load playlist');
-      
-      const data = await response.json();
-      const videos: PlaylistItem[] = data.items.map((item: any) => ({
-        id: item.id,
-        title: item.snippet.title,
-        channelTitle: item.snippet.channelTitle,
-        videoId: item.snippet.resourceId.videoId
-      }));
+      do {
+        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+        const response = await fetch(url);
+        
+        if (!response.ok) throw new Error('Failed to load playlist');
+        
+        const data = await response.json();
+        const videos: PlaylistItem[] = data.items.map((item: any) => ({
+          id: item.id,
+          title: item.snippet.title,
+          channelTitle: item.snippet.channelTitle,
+          videoId: item.snippet.resourceId.videoId
+        }));
+        
+        allVideos = [...allVideos, ...videos];
+        nextPageToken = data.nextPageToken || '';
+      } while (nextPageToken);
 
-      const shuffled = shuffleArray(videos);
+      // Shuffle the complete playlist ONCE
+      const shuffled = shuffleArray(allVideos);
       setState(prev => ({ 
         ...prev, 
-        defaultPlaylistVideos: videos, 
+        defaultPlaylistVideos: allVideos, 
         shuffledPlaylist: shuffled,
         currentVideoIndex: 0
       }));
+      
+      console.log(`Loaded ${allVideos.length} videos from playlist and shuffled`);
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
@@ -330,10 +344,10 @@ const Index = () => {
   };
 
   const handleVideoEnded = () => {
-    const wasUserRequest = state.currentPlaylist.length > 0;
+    console.log('Video ended, checking queue...');
     
     if (state.currentPlaylist.length > 0) {
-      // Play next user request
+      // Play next user request (priority queue)
       const nextVideoId = state.currentPlaylist[0];
       const video = state.searchResults.find(r => r.id === nextVideoId);
       const title = video ? video.title : 'User Selection';
@@ -354,21 +368,23 @@ const Index = () => {
         
         try {
           state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+          addLog('USER_SELECTION', `Playing user request: ${title}`, nextVideoId);
         } catch (error) {
           console.error('Error sending command to player:', error);
         }
       }
     } else {
-      // If the last song was from default playlist, add it to the end of the shuffled playlist
-      if (!wasUserRequest && state.shuffledPlaylist.length > 0) {
-        const lastVideo = state.shuffledPlaylist[state.currentVideoIndex - 1] || state.shuffledPlaylist[state.shuffledPlaylist.length - 1];
-        setState(prev => ({
-          ...prev,
-          shuffledPlaylist: [...prev.shuffledPlaylist, lastVideo]
-        }));
+      // Play next from default playlist and move completed song to end
+      if (state.shuffledPlaylist.length > 0) {
+        const currentVideo = state.shuffledPlaylist[state.currentVideoIndex - 1 >= 0 ? state.currentVideoIndex - 1 : state.shuffledPlaylist.length - 1];
+        if (currentVideo) {
+          // Move the completed video to the end of the playlist
+          setState(prev => ({
+            ...prev,
+            shuffledPlaylist: [...prev.shuffledPlaylist.slice(0, prev.currentVideoIndex), ...prev.shuffledPlaylist.slice(prev.currentVideoIndex + 1), currentVideo]
+          }));
+        }
       }
-      
-      // Play next from default playlist
       playNextDefaultVideo();
     }
   };
@@ -520,22 +536,20 @@ const Index = () => {
     console.log('Adding video to playlist:', confirmDialog.video);
 
     if (state.mode === 'PAID' && state.credits === 0) {
-      toast({
-        title: "Insufficient Credits",
-        description: "Please add credit to make requests.",
-        variant: "destructive"
-      });
+      setState(prev => ({ ...prev, showInsufficientCredits: true }));
       setConfirmDialog({ isOpen: false, video: null });
       return;
     }
 
+    // Insert user request at the beginning of the queue (priority)
     setState(prev => ({
       ...prev,
       currentPlaylist: [...prev.currentPlaylist, confirmDialog.video!.id],
       credits: prev.mode === 'PAID' ? Math.max(0, prev.credits - 1) : prev.credits
     }));
 
-    if (state.playerWindow && !state.playerWindow.closed) {
+    // If nothing is currently playing, start the user request immediately
+    if (state.currentPlaylist.length === 0 && state.playerWindow && !state.playerWindow.closed) {
       const command = {
         action: 'play',
         videoId: confirmDialog.video.id,
@@ -632,15 +646,15 @@ const Index = () => {
   const getUpcomingTitles = () => {
     const upcoming = [];
     
-    // Add user requests first
+    // Add user requests first (they have priority)
     for (let i = 0; i < Math.min(3, state.currentPlaylist.length); i++) {
       const result = state.searchResults.find(r => r.id === state.currentPlaylist[i]);
       if (result) {
-        upcoming.push(result.title);
+        upcoming.push(`🎵 ${result.title}`);
       }
     }
     
-    // Fill remaining slots with shuffled playlist
+    // Fill remaining slots with upcoming default playlist songs
     if (upcoming.length < 3 && state.shuffledPlaylist.length > 0) {
       let playlistIndex = state.currentVideoIndex;
       while (upcoming.length < 3 && playlistIndex < state.shuffledPlaylist.length) {
@@ -702,7 +716,12 @@ const Index = () => {
 
   const handleDefaultPlaylistChange = (playlistId: string) => {
     setState(prev => ({ ...prev, defaultPlaylist: playlistId }));
+    // Immediately load and shuffle the new playlist
     loadPlaylistVideos(playlistId);
+  };
+
+  const handlePlaylistReorder = (newPlaylist: PlaylistItem[]) => {
+    setState(prev => ({ ...prev, shuffledPlaylist: newPlaylist }));
   };
 
   const currentBackground = getCurrentBackground();
@@ -913,6 +932,7 @@ const Index = () => {
         defaultPlaylist={state.defaultPlaylist}
         onDefaultPlaylistChange={handleDefaultPlaylistChange}
         currentPlaylistVideos={state.shuffledPlaylist}
+        onPlaylistReorder={handlePlaylistReorder}
       />
     </BackgroundDisplay>
   );
