@@ -1,24 +1,23 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Check, X, Settings } from 'lucide-react';
-import { useToast } from "@/hooks/use-toast";
-import { SearchInterface } from "@/components/SearchInterface";
-import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
-import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
-import { AdminConsole } from "@/components/AdminConsole";
-import { useSerialCommunication } from "@/components/SerialCommunication";
-import { useBackgroundManager, BackgroundDisplay } from "@/components/BackgroundManager";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { SearchInterface } from '../components/SearchInterface';
+import { AdminConsole } from '../components/AdminConsole';
+import { InsufficientCreditsDialog } from '../components/InsufficientCreditsDialog';
+import { DuplicateSongDialog } from '../components/DuplicateSongDialog';
+import { BackgroundManager } from '../components/BackgroundManager';
+import { PlaylistManager } from '../components/PlaylistManager';
+import { SerialCommunication } from '../components/SerialCommunication';
+import { Settings, Music, Coins, Volume2 } from 'lucide-react';
 
-interface SearchResult {
-  id: string;
-  title: string;
-  channelTitle: string;
-  thumbnailUrl: string;
-  videoUrl: string;
-  officialScore?: number;
-  duration?: string;
+interface YouTubeSearchResult {
+  id: { videoId: string };
+  snippet: {
+    title: string;
+    channelTitle: string;
+  };
 }
 
 interface PlaylistItem {
@@ -26,14 +25,8 @@ interface PlaylistItem {
   title: string;
   channelTitle: string;
   videoId: string;
-}
-
-interface QueuedRequest {
-  id: string;
-  title: string;
-  channelTitle: string;
-  videoId: string;
-  timestamp: string;
+  isNowPlaying?: boolean;
+  isUserRequest?: boolean;
 }
 
 interface LogEntry {
@@ -65,46 +58,21 @@ interface BackgroundFile {
   type: 'image' | 'video';
 }
 
-interface JukeboxState {
-  mode: 'FREEPLAY' | 'PAID';
-  credits: number;
-  priorityQueue: QueuedRequest[];
-  defaultPlaylist: string;
-  defaultPlaylistVideos: PlaylistItem[];
-  inMemoryPlaylist: PlaylistItem[];
-  currentVideoIndex: number;
-  isSearchOpen: boolean;
-  isAdminOpen: boolean;
-  searchResults: SearchResult[];
-  searchQuery: string;
-  isSearching: boolean;
-  selectedCoinAcceptor: string;
-  playerWindow: Window | null;
-  apiKey: string;
-  logs: LogEntry[];
-  userRequests: UserRequest[];
-  creditHistory: CreditHistory[];
-  backgrounds: BackgroundFile[];
-  selectedBackground: string;
-  cycleBackgrounds: boolean;
-  bounceVideos: boolean;
-  backgroundCycleIndex: number;
-  showKeyboard: boolean;
-  showSearchResults: boolean;
-  isPlayerRunning: boolean;
-  currentlyPlaying: string;
-  currentVideoId: string;
-  maxSongLength: number;
-  showInsufficientCredits: boolean;
-  showDuplicateSong: boolean;
-  duplicateSongTitle: string;
-  isPlayerPaused: boolean;
-  showSkipConfirmation: boolean;
-  showMiniPlayer: boolean;
+interface QueuedRequest {
+  id: string;
+  title: string;
+  channelTitle: string;
+  videoId: string;
+  timestamp: string;
 }
 
-const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
-const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
+const DEFAULT_BACKGROUNDS: BackgroundFile[] = [
+  { id: 'default-1', name: 'Stars', url: '/stars.mp4', type: 'video' },
+  { id: 'default-2', name: 'Cityscape', url: '/cityscape.mp4', type: 'video' },
+  { id: 'default-3', name: 'Aurora', url: '/aurora.mp4', type: 'video' },
+  { id: 'default-4', name: 'Synthwave', url: '/synthwave.gif', type: 'image' },
+  { id: 'default-5', name: 'Arcade', url: '/arcade.gif', type: 'image' },
+];
 
 // Helper function to clean title text by removing content in brackets
 const cleanTitle = (title: string): string => {
@@ -112,1081 +80,544 @@ const cleanTitle = (title: string): string => {
 };
 
 const Index = () => {
-  const { toast } = useToast();
+  const [searchResults, setSearchResults] = useState<YouTubeSearchResult[]>([]);
+  const [searchText, setSearchText] = useState('');
+  const [adminConsoleOpen, setAdminConsoleOpen] = useState(false);
+  const [insufficientCreditsOpen, setInsufficientCreditsOpen] = useState(false);
+  const [duplicateSongOpen, setDuplicateSongOpen] = useState(false);
+  const [duplicateSongTitle, setDuplicateSongTitle] = useState('');
+  const [duplicateSongChannel, setDuplicateSongChannel] = useState('');
+  const [mode, setMode] = useState<'FREEPLAY' | 'PAID'>('FREEPLAY');
+  const [credits, setCredits] = useState(0);
+  const [apiKey, setApiKey] = useState(process.env.NEXT_PUBLIC_YOUTUBE_API_KEY || '');
+  const [selectedCoinAcceptor, setSelectedCoinAcceptor] = useState('none');
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [userRequests, setUserRequests] = useState<UserRequest[]>([]);
+  const [creditHistory, setCreditHistory] = useState<CreditHistory[]>([]);
+  const [backgrounds, setBackgrounds] = useState<BackgroundFile[]>(DEFAULT_BACKGROUNDS);
+  const [selectedBackground, setSelectedBackground] = useState(DEFAULT_BACKGROUNDS[0].id);
+  const [cycleBackgrounds, setCycleBackgrounds] = useState(false);
+  const [bounceVideos, setBounceVideos] = useState(false);
+  const [playerWindow, setPlayerWindow] = useState<Window | null>(null);
+  const [isPlayerRunning, setIsPlayerRunning] = useState(false);
+  const [maxSongLength, setMaxSongLength] = useState(10);
+  const [defaultPlaylist, setDefaultPlaylist] = useState('PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH');
+  const [currentPlaylistVideos, setCurrentPlaylistVideos] = useState<PlaylistItem[]>([]);
+  const [currentlyPlaying, setCurrentlyPlaying] = useState<string>('Loading...');
+  const [priorityQueue, setPriorityQueue] = useState<QueuedRequest[]>([]);
+  const [showMiniPlayer, setShowMiniPlayer] = useState(true);
 
-  const [state, setState] = useState<JukeboxState>({
-    mode: 'FREEPLAY',
-    credits: 0,
-    priorityQueue: [],
-    defaultPlaylist: DEFAULT_PLAYLIST_ID,
-    defaultPlaylistVideos: [],
-    inMemoryPlaylist: [],
-    currentVideoIndex: 0,
-    isSearchOpen: false,
-    isAdminOpen: false,
-    searchResults: [],
-    searchQuery: '',
-    isSearching: false,
-    selectedCoinAcceptor: '',
-    playerWindow: null,
-    apiKey: DEFAULT_API_KEY,
-    logs: [],
-    userRequests: [],
-    creditHistory: [],
-    backgrounds: [{ id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' }],
-    selectedBackground: 'default',
-    cycleBackgrounds: false,
-    bounceVideos: false,
-    backgroundCycleIndex: 0,
-    showKeyboard: false,
-    showSearchResults: false,
-    isPlayerRunning: false,
-    currentlyPlaying: 'Loading...',
-    currentVideoId: '',
-    maxSongLength: 10,
-    showInsufficientCredits: false,
-    showDuplicateSong: false,
-    duplicateSongTitle: '',
-    isPlayerPaused: false,
-    showSkipConfirmation: false,
-    showMiniPlayer: false
-  });
+  const serialRef = useRef<SerialCommunication>(null);
 
-  const [confirmDialog, setConfirmDialog] = useState<{
-    isOpen: boolean;
-    video: SearchResult | null;
-  }>({ isOpen: false, video: null });
-
-  // Helper function to shuffle array
-  const shuffleArray = <T,>(array: T[]): T[] => {
-    const shuffled = [...array];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-  };
-
-  // Helper function to convert duration string to minutes
-  const durationToMinutes = (duration: string): number => {
-    // Parse ISO 8601 duration format (PT4M33S)
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return 0;
-    
-    const hours = parseInt(match[1] || '0');
-    const minutes = parseInt(match[2] || '0');
-    const seconds = parseInt(match[3] || '0');
-    
-    return hours * 60 + minutes + (seconds > 30 ? 1 : 0); // Round up if over 30 seconds
-  };
-
-  // Helper function to format duration for display
-  const formatDuration = (duration: string): string => {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return '';
-    
-    const hours = parseInt(match[1] || '0');
-    const minutes = parseInt(match[2] || '0');
-    const seconds = parseInt(match[3] || '0');
-    
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    } else {
-      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-    }
-  };
-
-  // Use background manager hook
-  const { getCurrentBackground } = useBackgroundManager({
-    backgrounds: state.backgrounds,
-    selectedBackground: state.selectedBackground,
-    cycleBackgrounds: state.cycleBackgrounds,
-    backgroundCycleIndex: state.backgroundCycleIndex,
-    bounceVideos: state.bounceVideos,
-    onBackgroundCycleIndexChange: (index) => setState(prev => ({ ...prev, backgroundCycleIndex: index })),
-    onSelectedBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id }))
-  });
-
-  // Use serial communication hook
-  useSerialCommunication({
-    mode: state.mode,
-    selectedCoinAcceptor: state.selectedCoinAcceptor,
-    onCreditsChange: (credits) => setState(prev => ({ ...prev, credits })),
-    credits: state.credits,
-    onAddLog: addLog
-  });
-
-  // Initialize player window and load default playlist
-  useEffect(() => {
-    const openPlayerWindow = () => {
-      const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
-        'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
-      
-      if (playerWindow) {
-        setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true }));
-        console.log('Player window opened successfully');
-        loadPlaylistVideos(DEFAULT_PLAYLIST_ID);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to open player window. Please allow popups.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    openPlayerWindow();
-
-    return () => {
-      if (state.playerWindow && !state.playerWindow.closed) {
-        state.playerWindow.close();
-      }
-    };
-  }, []);
-
-  // Enhanced autoplay logic
-  useEffect(() => {
-    if (state.inMemoryPlaylist.length > 0 && state.priorityQueue.length === 0 && state.isPlayerRunning && !state.isPlayerPaused) {
-      // Only auto-start if nothing is currently playing
-      if (state.currentlyPlaying === 'Loading...' || state.currentlyPlaying === '') {
-        playNextSong();
-      }
-    }
-  }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused]);
-
-  // Enhanced video end handling with proper queue management and sync
-  useEffect(() => {
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'jukeboxStatus' && event.newValue) {
-        const status = JSON.parse(event.newValue);
-        console.log('DEBUG: [Jukebox] Parsed status:', status);
-        
-        // Update currently playing based on player window communication
-        if (status.status === 'playing' && status.title) {
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: cleanTitle(status.title),
-            currentVideoId: status.videoId || prev.currentVideoId
-          }));
-        }
-        
-        // Handle video ended - check priority queue first
-        if (status.status === 'ended') {
-          const statusVideoId = status.id;
-          if (statusVideoId && statusVideoId === state.currentVideoId) {
-            setState(prev => ({ 
-              ...prev, 
-              currentlyPlaying: 'Loading...',
-              currentVideoId: ''
-            }));
-            handleVideoEnded();
-          } else {
-            console.warn(`DEBUG: [Jukebox] Received 'ended' for unexpected ID: ${statusVideoId}. Ignoring.`);
-          }
-        }
-        
-        if (status.status === 'fadeComplete') {
-          const statusVideoId = status.id;
-          if (statusVideoId && statusVideoId === state.currentVideoId) {
-            setState(prev => ({ 
-              ...prev, 
-              currentlyPlaying: 'Loading...',
-              currentVideoId: ''
-            }));
-            handleVideoEnded();
-          }
-        }
-        
-        // Handle video unavailable/error - auto-skip with enhanced sync
-        if (status.status === 'error' || status.status === 'unavailable') {
-          const statusVideoId = status.id;
-          if (statusVideoId && statusVideoId === state.currentVideoId) {
-            console.log('Video unavailable or error, auto-skipping...');
-            addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${state.currentlyPlaying}`);
-            setState(prev => ({ 
-              ...prev, 
-              currentlyPlaying: 'Loading...',
-              currentVideoId: ''
-            }));
-            setTimeout(() => handleVideoEnded(), 1500);
-          } else {
-            console.warn(`DEBUG: [Jukebox] Received 'error' for unexpected ID: ${statusVideoId}. Ignoring.`);
-          }
-        }
-
-        // Handle player ready status
-        if (status.status === 'ready') {
-          console.log("DEBUG: [Jukebox] Player window ready.");
-        }
-      }
-      
-      // Listen for player window commands to track what's playing
-      if (event.key === 'jukeboxCommand' && event.newValue) {
-        const command = JSON.parse(event.newValue);
-        if (command.action === 'play' && command.title) {
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: cleanTitle(command.title),
-            currentVideoId: command.videoId || prev.currentVideoId
-          }));
-        }
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [state.currentVideoId]);
-
-  function addLog(type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) {
-    const logEntry: LogEntry = {
+  // Function to add a log entry
+  const addLog = (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => {
+    const newLog: LogEntry = {
       timestamp: new Date().toISOString(),
       type,
       description,
       videoId,
-      creditAmount
+      creditAmount,
     };
-    setState(prev => ({ ...prev, logs: [logEntry, ...prev.logs] }));
-  }
+    setLogs(prevLogs => [newLog, ...prevLogs]);
+  };
 
-  function addUserRequest(title: string, videoId: string, channelTitle: string) {
-    const userRequest: UserRequest = {
+  // Function to add a user request
+  const addUserRequest = (title: string, videoId: string, channelTitle: string) => {
+    const newRequest: UserRequest = {
       timestamp: new Date().toISOString(),
-      title: cleanTitle(title),
+      title,
       videoId,
-      channelTitle
+      channelTitle,
     };
-    setState(prev => ({ ...prev, userRequests: [userRequest, ...prev.userRequests] }));
-  }
+    setUserRequests(prevRequests => [newRequest, ...prevRequests]);
+  };
 
-  function addCreditHistory(amount: number, type: 'ADDED' | 'REMOVED', description: string) {
-    const creditEntry: CreditHistory = {
+  // Function to add a credit history entry
+  const addCreditHistory = (amount: number, type: 'ADDED' | 'REMOVED', description: string) => {
+    const newCreditEntry: CreditHistory = {
       timestamp: new Date().toISOString(),
       amount,
       type,
-      description
+      description,
     };
-    setState(prev => ({ ...prev, creditHistory: [creditEntry, ...prev.creditHistory] }));
-  }
-
-  const loadPlaylistVideos = async (playlistId: string) => {
-    try {
-      let allVideos: PlaylistItem[] = [];
-      let nextPageToken = '';
-      
-      do {
-        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
-        const response = await fetch(url);
-        
-        if (!response.ok) throw new Error('Failed to load playlist');
-        
-        const data = await response.json();
-        const videos: PlaylistItem[] = data.items
-          .filter((item: any) => {
-            // Filter out private/unavailable videos
-            return item.snippet.title !== 'Private video' && 
-                   item.snippet.title !== 'Deleted video' && 
-                   item.snippet.title !== '[Private video]' &&
-                   item.snippet.title !== '[Deleted video]' &&
-                   item.snippet.resourceId?.videoId;
-          })
-          .map((item: any) => ({
-            id: item.id,
-            title: cleanTitle(item.snippet.title),
-            channelTitle: item.snippet.channelTitle,
-            videoId: item.snippet.resourceId.videoId
-          }));
-        
-        allVideos = [...allVideos, ...videos];
-        nextPageToken = data.nextPageToken || '';
-      } while (nextPageToken);
-
-      // Create shuffled in-memory playlist
-      const shuffled = shuffleArray(allVideos);
-      setState(prev => ({ 
-        ...prev, 
-        defaultPlaylistVideos: allVideos, 
-        inMemoryPlaylist: shuffled,
-        currentVideoIndex: 0
-      }));
-      
-      console.log(`Loaded ${allVideos.length} videos from playlist and shuffled`);
-    } catch (error) {
-      console.error('Error loading playlist:', error);
-      toast({
-        title: "Playlist Error",
-        description: "Failed to load default playlist",
-        variant: "destructive"
-      });
-    }
+    setCreditHistory(prevHistory => [newCreditEntry, ...prevHistory]);
   };
 
-  const playNextSong = () => {
-    // Always check priority queue first
-    if (state.priorityQueue.length > 0) {
-      const nextRequest = state.priorityQueue[0];
-      setState(prev => ({ 
-        ...prev, 
-        priorityQueue: prev.priorityQueue.slice(1) 
-      }));
-      
-      playSong(nextRequest.videoId, nextRequest.title, nextRequest.channelTitle, 'USER_SELECTION');
-      return;
-    }
-    
-    // Play from in-memory playlist and rotate it
-    if (state.inMemoryPlaylist.length > 0) {
-      const nextVideo = state.inMemoryPlaylist[0];
-      
-      // Move played song from first position to last position (rotation)
-      setState(prev => ({ 
-        ...prev, 
-        inMemoryPlaylist: [...prev.inMemoryPlaylist.slice(1), nextVideo]
-      }));
-      
-      playSong(nextVideo.videoId, nextVideo.title, nextVideo.channelTitle, 'SONG_PLAYED');
-    }
-  };
-
-  const playSong = (videoId: string, title: string, artist: string, logType: 'SONG_PLAYED' | 'USER_SELECTION') => {
-    if (state.playerWindow && !state.playerWindow.closed) {
-      const command = {
-        action: 'play',
-        videoId: videoId,
-        title: title,
-        artist: artist,
-        timestamp: Date.now()
-      };
-      
-      try {
-        state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-        setState(prev => ({ 
-          ...prev, 
-          currentlyPlaying: cleanTitle(title),
-          currentVideoId: videoId
-        }));
-        
-        const description = logType === 'USER_SELECTION' ? 
-          `Playing user request: ${title}` : 
-          `Autoplay: ${title}`;
-        addLog(logType, description, videoId);
-      } catch (error) {
-        console.error('Error sending command to player:', error);
-      }
-    }
-  };
-
-  const handleVideoEnded = () => {
-    console.log('Video ended, checking priority queue and playing next song...');
-    playNextSong();
-  };
-
-  const performSearch = async (query: string) => {
-    if (!query.trim()) return;
-    
-    console.log('performSearch called with query:', query);
-    
-    if (query.toUpperCase() === 'ADMIN') {
-      setState(prev => ({ 
-        ...prev, 
-        isAdminOpen: true, 
-        searchQuery: '', 
-        showKeyboard: false,
-        showSearchResults: false,
-        isSearchOpen: false 
-      }));
-      return;
-    }
-
-    setState(prev => ({ 
-      ...prev, 
-      isSearching: true, 
-      searchResults: [], 
-      showKeyboard: false, 
-      showSearchResults: true 
-    }));
-
-    try {
-      console.log('Starting YouTube search for:', query);
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=50&key=${state.apiKey}`;
-      
-      const response = await fetch(searchUrl);
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('YouTube API response:', data);
-      
-      if (data.items && data.items.length > 0) {
-        // Get video durations
-        const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
-        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${state.apiKey}`;
-        const detailsResponse = await fetch(detailsUrl);
-        const detailsData = await detailsResponse.json();
-        
-        // Create duration map
-        const durationMap = new Map();
-        detailsData.items?.forEach((item: any) => {
-          durationMap.set(item.id, item.contentDetails.duration);
-        });
-        
-        const filteredResults = filterForOfficial(data.items, query);
-        const searchResults: SearchResult[] = filteredResults
-          .map(video => {
-            const duration = durationMap.get(video.id.videoId) || '';
-            const durationMinutes = durationToMinutes(duration);
-            return {
-              id: video.id.videoId,
-              title: cleanTitle(video.snippet.title),
-              channelTitle: video.snippet.channelTitle,
-              thumbnailUrl: video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url,
-              videoUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-              officialScore: video.officialScore,
-              duration: formatDuration(duration),
-              durationMinutes
-            };
-          })
-          .filter(video => video.durationMinutes <= state.maxSongLength)
-          .slice(0, 20);
-        
-        console.log('Filtered search results:', searchResults);
-        setState(prev => ({ ...prev, searchResults }));
-      } else {
-        console.log('No search results found');
-        toast({
-          title: "No Results",
-          description: "No music videos found for your search.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to search for music videos.",
-        variant: "destructive"
-      });
-    } finally {
-      setState(prev => ({ ...prev, isSearching: false }));
-    }
-  };
-
-  const filterForOfficial = (videos: any[], originalQuery: string) => {
-    const officialKeywords = [
-      "official video", "official music video", "official audio", 
-      "official lyric video", "vevo", "official channel"
-    ];
-    
-    return videos
-      .map(video => {
-        let score = 0;
-        const titleLower = video.snippet.title.toLowerCase();
-        const channelTitleLower = video.snippet.channelTitle.toLowerCase();
-
-        if (channelTitleLower.includes("vevo")) score += 10;
-        
-        for (const keyword of officialKeywords) {
-          if (titleLower.includes(keyword)) {
-            score += 5;
-            break;
-          }
-        }
-        
-        if (channelTitleLower.includes("official")) score += 3;
-        if (titleLower.includes("cover") || titleLower.includes("remix")) score -= 5;
-        
-        video.officialScore = score;
-        return video;
-      })
-      .filter(video => video.officialScore > 0)
-      .sort((a, b) => b.officialScore - a.officialScore);
-  };
-
-  const handleVideoSelect = (video: SearchResult) => {
-    console.log('Video selected:', video);
-    
-    // Check for duplicate in priority queue
-    const isDuplicate = state.priorityQueue.some(req => req.videoId === video.id);
-    
-    if (isDuplicate) {
-      setState(prev => ({ 
-        ...prev, 
-        showDuplicateSong: true, 
-        duplicateSongTitle: video.title 
-      }));
-      return;
-    }
-    
-    setConfirmDialog({ isOpen: true, video });
-  };
-
-  const confirmAddToPlaylist = () => {
-    if (!confirmDialog.video) return;
-
-    console.log('Adding video to priority queue:', confirmDialog.video);
-
-    if (state.mode === 'PAID' && state.credits === 0) {
-      setState(prev => ({ ...prev, showInsufficientCredits: true }));
-      setConfirmDialog({ isOpen: false, video: null });
-      return;
-    }
-
-    // Add to priority queue
-    const newRequest: QueuedRequest = {
-      id: confirmDialog.video.id,
-      title: confirmDialog.video.title,
-      channelTitle: confirmDialog.video.channelTitle,
-      videoId: confirmDialog.video.id,
-      timestamp: new Date().toISOString()
-    };
-
-    setState(prev => ({
-      ...prev,
-      priorityQueue: [...prev.priorityQueue, newRequest],
-      credits: prev.mode === 'PAID' ? Math.max(0, prev.credits - 1) : prev.credits
-    }));
-
-    addLog('USER_SELECTION', `Selected: ${confirmDialog.video.title}`, confirmDialog.video.id);
-    addUserRequest(confirmDialog.video.title, confirmDialog.video.id, confirmDialog.video.channelTitle);
-    if (state.mode === 'PAID') {
-      addLog('CREDIT_REMOVED', 'Song request cost', undefined, -1);
-      addCreditHistory(1, 'REMOVED', 'Song request cost');
-    }
-
-    toast({
-      title: "Song Added",
-      description: `"${confirmDialog.video.title}" added to priority queue`,
-    });
-
-    setConfirmDialog({ isOpen: false, video: null });
-    setState(prev => ({ 
-      ...prev, 
-      isSearchOpen: false, 
-      showKeyboard: false, 
-      showSearchResults: false,
-      searchQuery: '',
-      searchResults: []
-    }));
-  };
-
-  const handleKeyboardInput = (key: string) => {
-    console.log('Keyboard input:', key);
-    
-    setState(prev => {
-      let newQuery = prev.searchQuery;
-      
-      switch (key) {
-        case 'BACKSPACE':
-          newQuery = newQuery.slice(0, -1);
-          console.log('New query after backspace:', newQuery);
-          return { ...prev, searchQuery: newQuery };
-        case 'SPACE':
-          newQuery += ' ';
-          console.log('New query after space:', newQuery);
-          return { ...prev, searchQuery: newQuery };
-        case 'SEARCH':
-          console.log('Search button pressed, query:', newQuery);
-          if (newQuery.trim()) {
-            // Perform search asynchronously
-            setTimeout(() => performSearch(newQuery), 0);
-          }
-          return prev; // Don't update query here, let performSearch handle state
-        default:
-          newQuery += key;
-          console.log('New query after key press:', newQuery);
-          return { ...prev, searchQuery: newQuery };
-      }
-    });
-  };
-
+  // Function to handle background upload
   const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (file) {
+      const url = URL.createObjectURL(file);
+      const newBackground: BackgroundFile = {
+        id: `custom-${Date.now()}`,
+        name: file.name,
+        url,
+        type: file.type.startsWith('image') ? 'image' : 'video',
+      };
+      setBackgrounds(prevBackgrounds => [...prevBackgrounds, newBackground]);
+      setSelectedBackground(newBackground.id);
+    }
+  };
 
-    const url = URL.createObjectURL(file);
-    const type = file.type.startsWith('video/') ? 'video' : 'image';
+  // Function to handle background change
+  const handleBackgroundChange = (id: string) => {
+    setSelectedBackground(id);
+  };
+
+  // Function to toggle background cycling
+  const handleCycleBackgroundsChange = (cycle: boolean) => {
+    setCycleBackgrounds(cycle);
+  };
+
+  // Function to toggle video bouncing
+  const handleBounceVideosChange = (bounce: boolean) => {
+    setBounceVideos(bounce);
+  };
+
+  // Function to handle API key change
+  const handleApiKeyChange = (key: string) => {
+    setApiKey(key);
+  };
+
+  // Function to handle coin acceptor change
+  const handleCoinAcceptorChange = (device: string) => {
+    setSelectedCoinAcceptor(device);
+  };
+
+  // Function to handle mode change
+  const handleModeChange = (newMode: 'FREEPLAY' | 'PAID') => {
+    setMode(newMode);
+  };
+
+  // Function to handle credits change
+  const handleCreditsChange = (newCredits: number) => {
+    setCredits(newCredits);
+  };
+
+  // Function to handle max song length change
+  const handleMaxSongLengthChange = (minutes: number) => {
+    setMaxSongLength(minutes);
+  };
+
+  // Function to handle default playlist change
+  const handleDefaultPlaylistChange = (playlistId: string) => {
+    setDefaultPlaylist(playlistId);
+  };
+
+  // Function to handle playlist reorder
+  const handlePlaylistReorder = (newPlaylist: PlaylistItem[]) => {
+    setCurrentPlaylistVideos(newPlaylist);
+  };
+
+  // Function to handle playlist shuffle
+  const handlePlaylistShuffle = () => {
+    const nowPlaying = currentPlaylistVideos.find(video => video.isNowPlaying);
+    const userRequests = currentPlaylistVideos.filter(video => video.isUserRequest);
+    const defaultPlaylist = currentPlaylistVideos.filter(video => !video.isUserRequest && !video.isNowPlaying);
+
+    // Shuffle only the default playlist
+    const shuffledDefaultPlaylist = [...defaultPlaylist].sort(() => Math.random() - 0.5);
+
+    // Reconstruct the playlist with now playing, user requests, and shuffled default playlist
+    const newPlaylist: PlaylistItem[] = [];
+    if (nowPlaying) newPlaylist.push(nowPlaying);
+    newPlaylist.push(...userRequests);
+    newPlaylist.push(...shuffledDefaultPlaylist);
+
+    setCurrentPlaylistVideos(newPlaylist);
+  };
+
+  // Function to handle removing a song from the playlist
+  const handleRemoveFromPlaylist = (index: number) => {
+    const newPlaylist = [...currentPlaylistVideos];
+    newPlaylist.splice(index, 1);
+    setCurrentPlaylistVideos(newPlaylist);
+  };
+
+  // Function to handle player toggle
+  const handlePlayerToggle = () => {
+    if (!playerWindow || playerWindow.closed) {
+      // Open the player window
+      const newWindow = window.open('/player', 'JukeboxPlayer', 'width=640,height=360');
+      setPlayerWindow(newWindow);
+
+      // Set up a listener for when the window is closed
+      const intervalId = setInterval(() => {
+        if (!newWindow || newWindow.closed) {
+          setIsPlayerRunning(false);
+          clearInterval(intervalId);
+        }
+      }, 500);
+
+      setIsPlayerRunning(true);
+    } else {
+      // If the player window is already open, close it
+      playerWindow.close();
+      setIsPlayerRunning(false);
+    }
+  };
+
+  // Function to handle skip song
+  const handleSkipSong = () => {
+    if (playerWindow) {
+      playerWindow.postMessage({ type: 'SKIP_SONG' }, '*');
+      addLog('SONG_PLAYED', 'Song Skipped', currentPlaylistVideos[0]?.videoId);
+    }
+  };
+
+  // Function to handle show mini player change
+  const handleShowMiniPlayerChange = (show: boolean) => {
+    setShowMiniPlayer(show);
+  };
+
+  // Enhanced function to load ALL playlist items (no 50 item limit)
+  const loadPlaylistVideos = useCallback(async (playlistId: string) => {
+    if (!apiKey) {
+      console.log('No API key available');
+      return;
+    }
+
+    console.log(`Loading all videos from playlist: ${playlistId}`);
+    setCurrentPlaylistVideos([]);
     
-    const newBackground: BackgroundFile = {
-      id: Date.now().toString(),
-      name: file.name,
-      url,
-      type
+    try {
+      let allVideos: any[] = [];
+      let nextPageToken = '';
+      let pageCount = 0;
+      const maxPages = 200; // Safety limit to prevent infinite loops (200 pages = ~10,000 videos max)
+
+      do {
+        console.log(`Loading playlist page ${pageCount + 1}${nextPageToken ? ` (token: ${nextPageToken.substring(0, 10)}...)` : ''}`);
+        
+        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&key=${apiKey}&maxResults=50${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+        
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.items && data.items.length > 0) {
+          const pageVideos = data.items
+            .filter((item: any) => item.snippet?.videoOwnerChannelTitle && item.snippet?.resourceId?.videoId)
+            .map((item: any) => ({
+              id: `${item.snippet.resourceId.videoId}-${Date.now()}-${Math.random()}`,
+              title: cleanTitle(item.snippet.title),
+              channelTitle: item.snippet.videoOwnerChannelTitle,
+              videoId: item.snippet.resourceId.videoId,
+              isUserRequest: false,
+              isNowPlaying: false
+            }));
+          
+          allVideos = [...allVideos, ...pageVideos];
+          console.log(`Page ${pageCount + 1}: Added ${pageVideos.length} videos (total: ${allVideos.length})`);
+        }
+        
+        nextPageToken = data.nextPageToken || '';
+        pageCount++;
+        
+        // Safety check to prevent infinite loops
+        if (pageCount >= maxPages) {
+          console.warn(`Reached maximum page limit (${maxPages}). Stopping playlist load.`);
+          break;
+        }
+        
+      } while (nextPageToken);
+
+      console.log(`Playlist loading complete. Total videos loaded: ${allVideos.length}`);
+      setCurrentPlaylistVideos(allVideos);
+      
+    } catch (error) {
+      console.error('Error loading playlist:', error);
+      setCurrentPlaylistVideos([]);
+    }
+  }, [apiKey]);
+
+  // Initial load of playlist videos
+  useEffect(() => {
+    if (defaultPlaylist) {
+      loadPlaylistVideos(defaultPlaylist);
+    }
+  }, [defaultPlaylist, loadPlaylistVideos]);
+
+  // Effect to send state updates to the player window
+  useEffect(() => {
+    if (playerWindow && !playerWindow.closed) {
+      playerWindow.postMessage({
+        type: 'UPDATE_STATE',
+        payload: {
+          mode,
+          credits,
+          apiKey,
+          selectedCoinAcceptor,
+          maxSongLength,
+          defaultPlaylist,
+          currentPlaylistVideos,
+          currentlyPlaying,
+          priorityQueue,
+          showMiniPlayer,
+        }
+      }, '*');
+    }
+  }, [mode, credits, apiKey, selectedCoinAcceptor, maxSongLength, defaultPlaylist, currentPlaylistVideos, currentlyPlaying, priorityQueue, showMiniPlayer, playerWindow]);
+
+  // Effect to handle messages from the player window
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data.type === 'SONG_ENDED') {
+        // Remove the song that just finished playing
+        setCurrentPlaylistVideos(prevVideos => {
+          const newPlaylist = [...prevVideos];
+          newPlaylist.shift(); // Remove the first song
+          return newPlaylist;
+        });
+      } else if (event.data.type === 'CREDIT_DEDUCTED') {
+        // Deduct credits when a song is played in PAID mode
+        setCredits(prevCredits => Math.max(0, prevCredits - 1));
+        addCreditHistory(-1, 'REMOVED', 'SONG PLAYED');
+      } else if (event.data.type === 'UPDATE_NOW_PLAYING') {
+        setCurrentlyPlaying(event.data.title);
+      } else if (event.data.type === 'ADD_TO_PLAYLIST') {
+        const { title, videoId, channelTitle } = event.data;
+
+        // Check if the song is already in the playlist
+        const isDuplicate = currentPlaylistVideos.some(video => video.videoId === videoId);
+        if (isDuplicate) {
+          setDuplicateSongTitle(title);
+          setDuplicateSongChannel(channelTitle);
+          setDuplicateSongOpen(true);
+          return;
+        }
+
+        if (mode === 'PAID' && credits <= 0) {
+          setInsufficientCreditsOpen(true);
+          return;
+        }
+
+        // Add the song to the priority queue
+        const newRequest: QueuedRequest = {
+          id: `${videoId}-${Date.now()}-${Math.random()}`,
+          title,
+          videoId,
+          channelTitle,
+          timestamp: new Date().toISOString(),
+        };
+        setPriorityQueue(prevQueue => [newRequest, ...prevQueue]);
+
+        // Add the song to the playlist with isUserRequest flag
+        const newPlaylistItem: PlaylistItem = {
+          id: `${videoId}-${Date.now()}-${Math.random()}`,
+          title,
+          videoId,
+          channelTitle,
+          isUserRequest: true,
+        };
+        setCurrentPlaylistVideos(prevVideos => [...prevVideos, newPlaylistItem]);
+
+        // Deduct credits if in PAID mode
+        if (mode === 'PAID') {
+          setCredits(prevCredits => prevCredits - 1);
+          addCreditHistory(-1, 'REMOVED', `USER REQUEST: ${title}`);
+          addLog('USER_SELECTION', `User selected: ${title}`, videoId, -1);
+        } else {
+          addLog('USER_SELECTION', `User selected: ${title}`, videoId);
+        }
+        addUserRequest(title, videoId, channelTitle);
+      }
     };
 
-    setState(prev => ({
-      ...prev,
-      backgrounds: [...prev.backgrounds, newBackground]
-    }));
-
-    toast({
-      title: "Background Added",
-      description: `${file.name} has been added to backgrounds`,
-    });
-  };
-
-  const getUpcomingTitles = () => {
-    const upcoming = [];
-    
-    // Add priority queue songs first
-    for (let i = 0; i < Math.min(3, state.priorityQueue.length); i++) {
-      upcoming.push(`🎵 ${state.priorityQueue[i].title}`);
-    }
-    
-    // Fill remaining slots with in-memory playlist songs (next songs to play)
-    if (upcoming.length < 3 && state.inMemoryPlaylist.length > 0) {
-      const remainingSlots = 3 - upcoming.length;
-      for (let i = 0; i < Math.min(remainingSlots, state.inMemoryPlaylist.length); i++) {
-        upcoming.push(state.inMemoryPlaylist[i].title);
-      }
-    }
-    
-    return upcoming;
-  };
-
-  const isCurrentSongUserRequest = () => {
-    // The currently playing song is a user request if it matches the last played user request or if priorityQueue is not empty
-    // Since priorityQueue is emptied on play, we check if currentlyPlaying matches any user request in userRequests
-    return state.userRequests.some(req => req.title === state.currentlyPlaying);
-  };
-
-  const handlePlayerToggle = () => {
-    if (!state.playerWindow || state.playerWindow.closed) {
-      console.log('Player window is closed, reopening...');
-      const playerWindow = window.open('/player.html', 'JukeboxPlayer', 
-        'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
-      
-      if (playerWindow) {
-        setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true, isPlayerPaused: false }));
-        console.log('Player window reopened successfully');
-        
-        // Start playing the first song in the playlist after a short delay
-        setTimeout(() => {
-          if (state.inMemoryPlaylist.length > 0) {
-            playNextSong();
-          }
-        }, 2000); // Give the player window time to load
-        
-        addLog('SONG_PLAYED', 'Player window reopened and started');
-        return;
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to reopen player window. Please allow popups.",
-          variant: "destructive"
-        });
-        return;
-      }
-    }
-
-    if (state.isPlayerRunning && !state.isPlayerPaused) {
-      // Pause player
-      if (state.playerWindow && !state.playerWindow.closed) {
-        const command = { action: 'pause' };
-        try {
-          state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-          addLog('SONG_PLAYED', 'Player paused by admin');
-        } catch (error) {
-          console.error('Error sending pause command:', error);
-        }
-      }
-      setState(prev => ({ ...prev, isPlayerPaused: true }));
-    } else if (state.isPlayerRunning && state.isPlayerPaused) {
-      // Resume player
-      if (state.playerWindow && !state.playerWindow.closed) {
-        const command = { action: 'play' };
-        try {
-          state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-          addLog('SONG_PLAYED', 'Player resumed by admin');
-        } catch (error) {
-          console.error('Error sending play command:', error);
-        }
-      }
-      setState(prev => ({ ...prev, isPlayerPaused: false }));
-    } else {
-      // Start player
-      setState(prev => ({ ...prev, isPlayerRunning: true, isPlayerPaused: false }));
-      playNextSong();
-      addLog('SONG_PLAYED', 'Player started by admin');
-    }
-  };
-
-  const handleSkipSong = () => {
-    if (isCurrentSongUserRequest()) {
-      setState(prev => ({ ...prev, showSkipConfirmation: true }));
-    } else {
-      performSkip();
-    }
-  };
-
-  const performSkip = () => {
-    if (state.playerWindow && !state.playerWindow.closed) {
-      const command = { action: 'fadeOutAndBlack', fadeDuration: 3000 };
-      try {
-        state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-        addLog('SONG_PLAYED', `SKIPPING: ${state.currentlyPlaying}`);
-      } catch (error) {
-        console.error('Error sending skip command:', error);
-      }
-    }
-    setState(prev => ({ ...prev, showSkipConfirmation: false }));
-  };
-
-  const handleDefaultPlaylistChange = (playlistId: string) => {
-    setState(prev => ({ ...prev, defaultPlaylist: playlistId }));
-    loadPlaylistVideos(playlistId);
-  };
-
-  const handlePlaylistReorder = (newPlaylist: PlaylistItem[]) => {
-    // Separate the reordered playlist into priority queue and in-memory playlist
-    const nowPlayingItems = newPlaylist.filter(item => item.isNowPlaying);
-    const userRequests = newPlaylist.filter(item => item.isUserRequest && !item.isNowPlaying);
-    const defaultPlaylistItems = newPlaylist.filter(item => !item.isUserRequest && !item.isNowPlaying);
-    
-    setState(prev => ({
-      ...prev,
-      priorityQueue: userRequests.map(item => ({
-        id: item.id,
-        title: item.title,
-        channelTitle: item.channelTitle,
-        videoId: item.videoId,
-        timestamp: new Date().toISOString()
-      })),
-      inMemoryPlaylist: defaultPlaylistItems
-    }));
-  };
-
-  const handleRemoveFromPlaylist = (index: number) => {
-    setState(prev => {
-      const newPlaylist = [...prev.inMemoryPlaylist];
-      const removedItem = newPlaylist[index];
-      
-      // Check if it's a user request in priority queue
-      const isUserRequest = prev.priorityQueue.some(req => req.videoId === removedItem?.videoId);
-      
-      if (isUserRequest) {
-        // Remove from priority queue
-        const newPriorityQueue = prev.priorityQueue.filter(req => req.videoId !== removedItem?.videoId);
-        return { ...prev, priorityQueue: newPriorityQueue };
-      } else {
-        // Remove from in-memory playlist
-        newPlaylist.splice(index, 1);
-        return { ...prev, inMemoryPlaylist: newPlaylist };
-      }
-    });
-    
-    addLog('SONG_PLAYED', 'Song removed from playlist by admin');
-  };
-
-  const handlePlaylistShuffle = () => {
-    // Don't shuffle if currently playing - only shuffle the remaining playlist
-    const remainingPlaylist = state.inMemoryPlaylist.slice(0); // Copy the current playlist
-    const shuffledRemaining = shuffleArray(remainingPlaylist);
-    
-    setState(prev => ({ ...prev, inMemoryPlaylist: shuffledRemaining }));
-    addLog('SONG_PLAYED', 'Playlist shuffled by admin');
-    toast({
-      title: "Playlist Shuffled",
-      description: "The playlist order has been randomized",
-    });
-  };
-
-  const getCurrentPlaylistForDisplay = () => {
-    const playlist = [];
-    
-    // Add currently playing song at top
-    if (state.currentlyPlaying && state.currentlyPlaying !== 'Loading...') {
-      playlist.push({
-        id: 'now-playing',
-        title: state.currentlyPlaying,
-        channelTitle: 'Now Playing',
-        videoId: 'current',
-        isNowPlaying: true
-      });
-    }
-    
-    // Add priority queue
-    playlist.push(...state.priorityQueue.map(req => ({
-      ...req,
-      isUserRequest: true
-    })));
-    
-    // Add next songs from in-memory playlist
-    playlist.push(...state.inMemoryPlaylist.slice(0, 20).map(song => ({
-      ...song,
-      isUserRequest: false
-    })));
-    
-    return playlist;
-  };
-
-  const currentBackground = getCurrentBackground();
+    window.addEventListener('message', handleMessage);
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [credits, mode, currentPlaylistVideos, addLog, addUserRequest]);
 
   return (
-    <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
-      <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left - Made twice as wide */}
-        <div className="absolute top-4 left-4 z-20">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
-            <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-[48rem] truncate">
-                Now Playing: {state.currentlyPlaying}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+    <div className="min-h-screen relative overflow-hidden">
+      <BackgroundManager
+        backgrounds={backgrounds}
+        selectedBackground={selectedBackground}
+        cycleBackgrounds={cycleBackgrounds}
+        bounceVideos={bounceVideos}
+      />
 
-        {/* Credits - Top Right */}
-        <div className="flex justify-end mb-8">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-amber-100 font-bold text-xl">
-                CREDIT: {state.mode === 'FREEPLAY' ? 'Free Play' : state.credits}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold text-amber-200 drop-shadow-2xl mb-4">
-            MUSIC JUKEBOX
-          </h1>
-          <p className="text-2xl text-amber-100 drop-shadow-lg mb-8">
-            Touch to Select Your Music
-          </p>
-          
-          {/* Mini Player - positioned between subtitle and search button */}
-          {state.showMiniPlayer && state.currentVideoId && (
-            <div className="flex justify-center mb-8">
-              <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
-                {/* Vignette overlay for feathered edges */}
-                <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
-                <iframe
-                  src={`https://www.youtube.com/embed/${state.currentVideoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1`}
-                  className="w-full h-full border-0"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen={false}
-                  style={{ pointerEvents: 'none' }}
-                />
-              </div>
+      <div className="absolute top-4 left-4 z-20">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Music className="w-4 h-4 text-amber-500" />
+              Jukebox
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-2">
+              <Badge variant="secondary">
+                <Coins className="w-3 h-3 mr-1" />
+                {mode === 'PAID' ? `${credits} Credits` : 'Free Play'}
+              </Badge>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => setAdminConsoleOpen(true)}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
-          )}
-        </div>
-
-        <div className="flex-1 flex items-center justify-center">
-          <Button
-            onClick={() => {
-              console.log('Search button clicked - opening search interface');
-              setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
-            }}
-            className="w-96 h-24 text-3xl font-bold bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-amber-900 shadow-2xl transform hover:scale-105 transition-all duration-200 border-4 border-amber-500"
-            style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
-          >
-            🎵 Search for Music 🎵
-          </Button>
-        </div>
-
-        {/* Coming Up Ticker - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
-          <div className="whitespace-nowrap animate-marquee">
-            <span className="text-lg font-bold">COMING UP: </span>
-            {getUpcomingTitles().map((title, index) => (
-              <span key={index} className="mx-8 text-lg">
-                {index + 1}. {title}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="absolute bottom-4 left-4">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setState(prev => ({ ...prev, isAdminOpen: true }))}
-            className="text-amber-200 hover:text-amber-100 opacity-30 hover:opacity-100"
-          >
-            <Settings className="w-4 h-4" />
-          </Button>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Skip Confirmation Dialog */}
-      <Dialog open={state.showSkipConfirmation} onOpenChange={(open) => !open && setState(prev => ({ ...prev, showSkipConfirmation: false }))}>
-        <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Skip User Selection?</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p className="text-amber-800">
-              Current song is a user selection. Are you sure you want to skip to the next song?
-            </p>
-          </div>
-          
-          <DialogFooter className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setState(prev => ({ ...prev, showSkipConfirmation: false }))}
-              className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4" />
-              No
-            </Button>
-            <Button
-              onClick={performSkip}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4" />
-              Yes, Skip
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <div className="absolute top-4 right-4 z-20">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Volume2 className="w-4 h-4 text-amber-500" />
+              Volume Control
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SerialCommunication ref={serialRef} />
+          </CardContent>
+        </Card>
+      </div>
 
-      <SearchInterface
-        isOpen={state.isSearchOpen}
-        onClose={() => {
-          console.log('Search interface closing');
-          setState(prev => ({ 
-            ...prev, 
-            isSearchOpen: false, 
-            showKeyboard: false, 
-            showSearchResults: false,
-            searchQuery: '', 
-            searchResults: [] 
-          }));
-        }}
-        searchQuery={state.searchQuery}
-        onSearchQueryChange={(query) => {
-          console.log('Search query changed:', query);
-          setState(prev => ({ ...prev, searchQuery: query }));
-        }}
-        searchResults={state.searchResults}
-        isSearching={state.isSearching}
-        showKeyboard={state.showKeyboard}
-        showSearchResults={state.showSearchResults}
-        onKeyboardInput={handleKeyboardInput}
-        onVideoSelect={handleVideoSelect}
-        onBackToSearch={() => {
-          console.log('Back to search pressed');
-          setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
-        }}
-        mode={state.mode}
-        credits={state.credits}
-        onInsufficientCredits={() => setState(prev => ({ ...prev, showInsufficientCredits: true }))}
-      />
+      <div className="container mx-auto py-24 px-4 relative z-10">
+        <Card className="max-w-3xl mx-auto">
+          <CardHeader>
+            <CardTitle>Search for a Song</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SearchInterface
+              setSearchResults={setSearchResults}
+              searchText={searchText}
+              setSearchText={setSearchText}
+              apiKey={apiKey}
+            />
+            <div className="mt-4">
+              {searchResults.map((result) => (
+                <div key={result.id.videoId} className="mb-2 p-3 bg-amber-50 border border-amber-200 rounded-md flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold">{cleanTitle(result.snippet.title)}</div>
+                    <div className="text-sm text-gray-500">{result.snippet.channelTitle}</div>
+                  </div>
+                  <Button
+                    onClick={() => {
+                      // Check if the song is already in the playlist
+                      const isDuplicate = currentPlaylistVideos.some(video => video.videoId === result.id.videoId);
+                      if (isDuplicate) {
+                        setDuplicateSongTitle(result.snippet.title);
+                        setDuplicateSongChannel(result.snippet.channelTitle);
+                        setDuplicateSongOpen(true);
+                        return;
+                      }
 
-      {/* Insufficient Credits Dialog */}
-      <InsufficientCreditsDialog
-        isOpen={state.showInsufficientCredits}
-        onClose={() => setState(prev => ({ 
-          ...prev, 
-          showInsufficientCredits: false,
-          isSearchOpen: false, 
-          showKeyboard: false, 
-          showSearchResults: false,
-          searchQuery: '', 
-          searchResults: [] 
-        }))}
-      />
+                      if (mode === 'PAID' && credits <= 0) {
+                        setInsufficientCreditsOpen(true);
+                        return;
+                      }
 
-      {/* Duplicate Song Dialog */}
-      <DuplicateSongDialog
-        isOpen={state.showDuplicateSong}
-        onClose={() => setState(prev => ({ ...prev, showDuplicateSong: false, duplicateSongTitle: '' }))}
-        songTitle={state.duplicateSongTitle}
-      />
+                      // Add the song to the priority queue
+                      const newRequest: QueuedRequest = {
+                        id: `${result.id.videoId}-${Date.now()}-${Math.random()}`,
+                        title: result.snippet.title,
+                        videoId: result.id.videoId,
+                        channelTitle: result.snippet.channelTitle,
+                        timestamp: new Date().toISOString(),
+                      };
+                      setPriorityQueue(prevQueue => [newRequest, ...prevQueue]);
 
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ isOpen: false, video: null })}>
-        <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Add song to Playlist?</DialogTitle>
-          </DialogHeader>
-          
-          {confirmDialog.video && (
-            <div className="py-4">
-              <div className="flex gap-3">
-                <img 
-                  src={confirmDialog.video.thumbnailUrl} 
-                  alt={confirmDialog.video.title}
-                  className="w-20 h-15 object-cover rounded"
-                />
-                <div>
-                  <h3 className="font-semibold text-amber-900">{confirmDialog.video.title}</h3>
-                  <p className="text-amber-700">{confirmDialog.video.channelTitle}</p>
-                  {confirmDialog.video.duration && (
-                    <p className="text-amber-600 text-sm">{confirmDialog.video.duration}</p>
-                  )}
-                  {state.mode === 'PAID' && (
-                    <p className="text-sm text-amber-600 mt-1">Cost: 1 Credit</p>
-                  )}
+                      // Add the song to the playlist with isUserRequest flag
+                      const newPlaylistItem: PlaylistItem = {
+                        id: `${result.id.videoId}-${Date.now()}-${Math.random()}`,
+                        title: result.snippet.title,
+                        videoId: result.id.videoId,
+                        channelTitle: result.snippet.channelTitle,
+                        isUserRequest: true,
+                      };
+                      setCurrentPlaylistVideos(prevVideos => [...prevVideos, newPlaylistItem]);
+
+                      // Deduct credits if in PAID mode
+                      if (mode === 'PAID') {
+                        setCredits(prevCredits => prevCredits - 1);
+                        addCreditHistory(-1, 'REMOVED', `USER REQUEST: ${result.snippet.title}`);
+                        addLog('USER_SELECTION', `User selected: ${result.snippet.title}`, result.id.videoId, -1);
+                      } else {
+                        addLog('USER_SELECTION', `User selected: ${result.snippet.title}`, result.id.videoId);
+                      }
+                      addUserRequest(result.snippet.title, result.id.videoId, result.snippet.channelTitle);
+                    }}
+                    size="sm"
+                  >
+                    Add to Playlist
+                  </Button>
                 </div>
-              </div>
+              ))}
             </div>
-          )}
-          
-          <DialogFooter className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({ isOpen: false, video: null })}
-              className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4" />
-              No
-            </Button>
-            <Button
-              onClick={confirmAddToPlaylist}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4" />
-              Yes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </CardContent>
+        </Card>
+      </div>
 
       <AdminConsole
-        isOpen={state.isAdminOpen}
-        onClose={() => setState(prev => ({ ...prev, isAdminOpen: false }))}
-        mode={state.mode}
-        onModeChange={(mode) => setState(prev => ({ ...prev, mode }))}
-        credits={state.credits}
-        onCreditsChange={(credits) => setState(prev => ({ ...prev, credits }))}
-        apiKey={state.apiKey}
-        onApiKeyChange={(apiKey) => setState(prev => ({ ...prev, apiKey }))}
-        selectedCoinAcceptor={state.selectedCoinAcceptor}
-        onCoinAcceptorChange={(device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device }))}
-        logs={state.logs}
-        userRequests={state.userRequests}
-        creditHistory={state.creditHistory}
-        backgrounds={state.backgrounds}
-        selectedBackground={state.selectedBackground}
-        onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
-        cycleBackgrounds={state.cycleBackgrounds}
-        onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
-        bounceVideos={state.bounceVideos}
-        onBounceVideosChange={(bounce) => setState(prev => ({ ...prev, bounceVideos: bounce }))}
+        isOpen={adminConsoleOpen}
+        onClose={() => setAdminConsoleOpen(false)}
+        mode={mode}
+        onModeChange={handleModeChange}
+        credits={credits}
+        onCreditsChange={handleCreditsChange}
+        apiKey={apiKey}
+        onApiKeyChange={handleApiKeyChange}
+        selectedCoinAcceptor={selectedCoinAcceptor}
+        onCoinAcceptorChange={handleCoinAcceptorChange}
+        logs={logs}
+        userRequests={userRequests}
+        creditHistory={creditHistory}
+        backgrounds={backgrounds}
+        selectedBackground={selectedBackground}
+        onBackgroundChange={handleBackgroundChange}
+        cycleBackgrounds={cycleBackgrounds}
+        onCycleBackgroundsChange={handleCycleBackgroundsChange}
+        bounceVideos={bounceVideos}
+        onBounceVideosChange={handleBounceVideosChange}
         onBackgroundUpload={handleBackgroundUpload}
         onAddLog={addLog}
         onAddUserRequest={addUserRequest}
         onAddCreditHistory={addCreditHistory}
-        playerWindow={state.playerWindow}
-        isPlayerRunning={state.isPlayerRunning}
+        playerWindow={playerWindow}
+        isPlayerRunning={isPlayerRunning}
         onPlayerToggle={handlePlayerToggle}
         onSkipSong={handleSkipSong}
-        maxSongLength={state.maxSongLength}
-        onMaxSongLengthChange={(minutes) => setState(prev => ({ ...prev, maxSongLength: minutes }))}
-        defaultPlaylist={state.defaultPlaylist}
+        maxSongLength={maxSongLength}
+        onMaxSongLengthChange={handleMaxSongLengthChange}
+        defaultPlaylist={defaultPlaylist}
         onDefaultPlaylistChange={handleDefaultPlaylistChange}
-        currentPlaylistVideos={getCurrentPlaylistForDisplay()}
+        currentPlaylistVideos={currentPlaylistVideos}
         onPlaylistReorder={handlePlaylistReorder}
         onPlaylistShuffle={handlePlaylistShuffle}
-        currentlyPlaying={state.currentlyPlaying}
-        priorityQueue={state.priorityQueue}
-        showMiniPlayer={state.showMiniPlayer}
-        onShowMiniPlayerChange={(show) => setState(prev => ({ ...prev, showMiniPlayer: show }))}
+        currentlyPlaying={currentlyPlaying}
+        priorityQueue={priorityQueue}
+        showMiniPlayer={showMiniPlayer}
+        onShowMiniPlayerChange={handleShowMiniPlayerChange}
+        onRemoveFromPlaylist={handleRemoveFromPlaylist}
       />
-    </BackgroundDisplay>
+
+      <InsufficientCreditsDialog
+        isOpen={insufficientCreditsOpen}
+        onClose={() => setInsufficientCreditsOpen(false)}
+      />
+
+      <DuplicateSongDialog
+        isOpen={duplicateSongOpen}
+        onClose={() => setDuplicateSongOpen(false)}
+        title={duplicateSongTitle}
+        channel={duplicateSongChannel}
+      />
+    </div>
   );
 };
 
