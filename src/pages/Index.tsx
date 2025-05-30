@@ -93,16 +93,23 @@ interface JukeboxState {
   showSearchResults: boolean;
   isPlayerRunning: boolean;
   currentlyPlaying: string;
+  currentVideoId: string;
   maxSongLength: number;
   showInsufficientCredits: boolean;
   showDuplicateSong: boolean;
   duplicateSongTitle: string;
   isPlayerPaused: boolean;
   showSkipConfirmation: boolean;
+  showMiniPlayer: boolean;
 }
 
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
 const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
+
+// Helper function to clean title text by removing content in brackets
+const cleanTitle = (title: string): string => {
+  return title.replace(/\([^)]*\)/g, '').trim();
+};
 
 const Index = () => {
   const { toast } = useToast();
@@ -135,12 +142,14 @@ const Index = () => {
     showSearchResults: false,
     isPlayerRunning: false,
     currentlyPlaying: 'Loading...',
+    currentVideoId: '',
     maxSongLength: 10,
     showInsufficientCredits: false,
     showDuplicateSong: false,
     duplicateSongTitle: '',
     isPlayerPaused: false,
-    showSkipConfirmation: false
+    showSkipConfirmation: false,
+    showMiniPlayer: false
   });
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -253,10 +262,21 @@ const Index = () => {
         
         // Update currently playing based on player window communication
         if (status.status === 'playing' && status.title) {
-          setState(prev => ({ ...prev, currentlyPlaying: status.title }));
+          setState(prev => ({ 
+            ...prev, 
+            currentlyPlaying: cleanTitle(status.title),
+            currentVideoId: status.videoId || prev.currentVideoId
+          }));
         }
         
         if (status.status === 'ended' || status.status === 'fadeComplete') {
+          handleVideoEnded();
+        }
+        
+        // Handle video unavailable/error - auto-skip
+        if (status.status === 'error' || status.status === 'unavailable') {
+          console.log('Video unavailable or error, auto-skipping...');
+          addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${state.currentlyPlaying}`);
           handleVideoEnded();
         }
       }
@@ -265,7 +285,11 @@ const Index = () => {
       if (event.key === 'jukeboxCommand' && event.newValue) {
         const command = JSON.parse(event.newValue);
         if (command.action === 'play' && command.title) {
-          setState(prev => ({ ...prev, currentlyPlaying: command.title }));
+          setState(prev => ({ 
+            ...prev, 
+            currentlyPlaying: cleanTitle(command.title),
+            currentVideoId: command.videoId || prev.currentVideoId
+          }));
         }
       }
     };
@@ -288,7 +312,7 @@ const Index = () => {
   function addUserRequest(title: string, videoId: string, channelTitle: string) {
     const userRequest: UserRequest = {
       timestamp: new Date().toISOString(),
-      title,
+      title: cleanTitle(title),
       videoId,
       channelTitle
     };
@@ -328,7 +352,7 @@ const Index = () => {
           })
           .map((item: any) => ({
             id: item.id,
-            title: item.snippet.title,
+            title: cleanTitle(item.snippet.title),
             channelTitle: item.snippet.channelTitle,
             videoId: item.snippet.resourceId.videoId
           }));
@@ -358,7 +382,7 @@ const Index = () => {
   };
 
   const playNextSong = () => {
-    // Check priority queue first
+    // Always check priority queue first
     if (state.priorityQueue.length > 0) {
       const nextRequest = state.priorityQueue[0];
       setState(prev => ({ 
@@ -395,7 +419,11 @@ const Index = () => {
       
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-        setState(prev => ({ ...prev, currentlyPlaying: title }));
+        setState(prev => ({ 
+          ...prev, 
+          currentlyPlaying: cleanTitle(title),
+          currentVideoId: videoId
+        }));
         
         const description = logType === 'USER_SELECTION' ? 
           `Playing user request: ${title}` : 
@@ -408,7 +436,7 @@ const Index = () => {
   };
 
   const handleVideoEnded = () => {
-    console.log('Video ended, playing next song...');
+    console.log('Video ended, checking priority queue and playing next song...');
     playNextSong();
   };
 
@@ -469,7 +497,7 @@ const Index = () => {
             const durationMinutes = durationToMinutes(duration);
             return {
               id: video.id.videoId,
-              title: video.snippet.title,
+              title: cleanTitle(video.snippet.title),
               channelTitle: video.snippet.channelTitle,
               thumbnailUrl: video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url,
               videoUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
@@ -773,12 +801,19 @@ const Index = () => {
   };
 
   const handlePlaylistShuffle = () => {
-    const shuffled = shuffleArray([...state.inMemoryPlaylist]);
-    setState(prev => ({ ...prev, inMemoryPlaylist: shuffled }));
-    addLog('SONG_PLAYED', 'Playlist shuffled by admin');
+    // Don't shuffle if currently playing - only shuffle the remaining playlist
+    const currentSong = state.inMemoryPlaylist.find(song => song.title === state.currentlyPlaying);
+    const remainingPlaylist = state.inMemoryPlaylist.filter(song => song.title !== state.currentlyPlaying);
+    const shuffledRemaining = shuffleArray(remainingPlaylist);
+    
+    // If there's a current song, keep it at the front
+    const newPlaylist = currentSong ? [currentSong, ...shuffledRemaining] : shuffledRemaining;
+    
+    setState(prev => ({ ...prev, inMemoryPlaylist: newPlaylist }));
+    addLog('SONG_PLAYED', 'Playlist shuffled by admin (excluding current song)');
     toast({
       title: "Playlist Shuffled",
-      description: "The playlist order has been randomized",
+      description: "The playlist order has been randomized (current song unchanged)",
     });
   };
 
@@ -816,11 +851,11 @@ const Index = () => {
   return (
     <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left */}
+        {/* Now Playing Ticker - Top Left - Made wider */}
         <div className="absolute top-4 left-4 z-20">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
             <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg max-w-96 truncate">
+              <div className="text-amber-100 font-bold text-lg w-96 truncate">
                 Now Playing: {state.currentlyPlaying}
               </div>
             </CardContent>
@@ -847,7 +882,24 @@ const Index = () => {
           </p>
         </div>
 
-        <div className="flex-1 flex items-center justify-center">
+        <div className="flex-1 flex items-center justify-center relative">
+          {/* Mini Player - positioned above the search button */}
+          {state.showMiniPlayer && state.currentVideoId && (
+            <div className="absolute z-30 pointer-events-none">
+              <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
+                {/* Vignette overlay for feathered edges */}
+                <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
+                <iframe
+                  src={`https://www.youtube.com/embed/${state.currentVideoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1`}
+                  className="w-full h-full border-0"
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen={false}
+                  style={{ pointerEvents: 'none' }}
+                />
+              </div>
+            </div>
+          )}
+
           <Button
             onClick={() => {
               console.log('Search button clicked - opening search interface');
@@ -1058,6 +1110,8 @@ const Index = () => {
         onPlaylistShuffle={handlePlaylistShuffle}
         currentlyPlaying={state.currentlyPlaying}
         priorityQueue={state.priorityQueue}
+        showMiniPlayer={state.showMiniPlayer}
+        onShowMiniPlayerChange={(show) => setState(prev => ({ ...prev, showMiniPlayer: show }))}
       />
     </BackgroundDisplay>
   );

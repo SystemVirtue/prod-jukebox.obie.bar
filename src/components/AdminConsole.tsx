@@ -6,7 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users, Monitor } from 'lucide-react';
+
+// Helper function to clean title text by removing content in brackets
+const cleanTitle = (title: string): string => {
+  return title.replace(/\([^)]*\)/g, '').trim();
+};
 
 interface LogEntry {
   timestamp: string;
@@ -88,6 +93,8 @@ interface AdminConsoleProps {
   onPlaylistShuffle?: () => void;
   currentlyPlaying: string;
   priorityQueue: QueuedRequest[];
+  showMiniPlayer: boolean;
+  onShowMiniPlayerChange: (show: boolean) => void;
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
@@ -135,7 +142,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onPlaylistReorder,
   onPlaylistShuffle,
   currentlyPlaying,
-  priorityQueue
+  priorityQueue,
+  showMiniPlayer,
+  onShowMiniPlayerChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
@@ -365,6 +374,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
+                Mini Player
+              </label>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="show-mini-player"
+                  checked={showMiniPlayer}
+                  onCheckedChange={onShowMiniPlayerChange}
+                />
+                <label htmlFor="show-mini-player" className="text-sm flex items-center gap-2">
+                  <Monitor className="w-4 h-4" />
+                  Show Mini-Player on Jukebox UI
+                </label>
+              </div>
+              <p className="text-xs text-slate-600 mt-1">
+                Displays a small synchronized video player on the main UI (muted)
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Maximum Song Length: {maxSongLength} minutes
               </label>
               <Slider
@@ -518,7 +547,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         {new Date(request.timestamp).toLocaleString()}
                       </span>
                       <div className="font-semibold">
-                        {request.title}
+                        {cleanTitle(request.title)}
                       </div>
                       <div className="text-gray-600">
                         by {request.channelTitle}
@@ -591,7 +620,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   <span className="text-sm font-mono text-gray-500 w-8">♪</span>
                   <div className="flex-1">
                     <div className="font-semibold text-sm text-green-700">
-                      {currentlyPlaying} (Now Playing)
+                      {cleanTitle(currentlyPlaying)} (Now Playing)
                     </div>
                     <div className="text-xs text-green-600">Currently Playing</div>
                   </div>
@@ -619,7 +648,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       </span>
                       <div className="flex-1">
                         <div className="font-semibold text-sm text-blue-700">
-                          {request.title}
+                          {cleanTitle(request.title)}
                         </div>
                         <div className="text-xs text-blue-600">{request.channelTitle}</div>
                       </div>
@@ -658,7 +687,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     </span>
                     <div className="flex-1">
                       <div className="font-semibold text-sm">
-                        {video.title}
+                        {cleanTitle(video.title)}
                       </div>
                       <div className="text-xs text-gray-600">{video.channelTitle}</div>
                     </div>
