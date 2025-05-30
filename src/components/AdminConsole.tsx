@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Upload } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward } from 'lucide-react';
 
 interface LogEntry {
   timestamp: string;
@@ -42,6 +42,10 @@ interface AdminConsoleProps {
   onCycleBackgroundsChange: (cycle: boolean) => void;
   onBackgroundUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onAddLog: (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => void;
+  playerWindow: Window | null;
+  isPlayerRunning: boolean;
+  onPlayerToggle: () => void;
+  onSkipSong: () => void;
 }
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({
@@ -62,7 +66,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   cycleBackgrounds,
   onCycleBackgroundsChange,
   onBackgroundUpload,
-  onAddLog
+  onAddLog,
+  playerWindow,
+  isPlayerRunning,
+  onPlayerToggle,
+  onSkipSong
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -146,6 +154,29 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               </div>
             </div>
           )}
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Player Controls
+            </label>
+            <div className="flex gap-2">
+              <Button
+                onClick={onPlayerToggle}
+                className={`flex items-center gap-2 ${isPlayerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+              >
+                {isPlayerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                {isPlayerRunning ? 'Stop Player' : 'Start Player'}
+              </Button>
+              <Button
+                onClick={onSkipSong}
+                disabled={!isPlayerRunning}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+              >
+                <SkipForward className="w-4 h-4" />
+                Skip Song
+              </Button>
+            </div>
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">

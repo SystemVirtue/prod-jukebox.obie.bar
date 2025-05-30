@@ -60,7 +60,8 @@ export const useBackgroundManager = ({
 
 export const BackgroundDisplay: React.FC<{
   background: BackgroundFile;
-}> = ({ background }) => {
+  children: React.ReactNode;
+}> = ({ background, children }) => {
   const backgroundVideoRef = useRef<HTMLVideoElement>(null);
 
   return (
@@ -83,6 +84,7 @@ export const BackgroundDisplay: React.FC<{
           />
         )}
         <div className="absolute inset-0 bg-black bg-opacity-40" />
+        {children}
       </div>
     </>
   );

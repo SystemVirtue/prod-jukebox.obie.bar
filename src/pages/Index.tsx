@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -63,6 +62,7 @@ interface JukeboxState {
   backgroundCycleIndex: number;
   showKeyboard: boolean;
   showSearchResults: boolean;
+  isPlayerRunning: boolean;
 }
 
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
@@ -92,7 +92,8 @@ const Index = () => {
     cycleBackgrounds: false,
     backgroundCycleIndex: 0,
     showKeyboard: false,
-    showSearchResults: false
+    showSearchResults: false,
+    isPlayerRunning: false
   });
 
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -125,7 +126,7 @@ const Index = () => {
       'width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no');
     
     if (playerWindow) {
-      setState(prev => ({ ...prev, playerWindow }));
+      setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true }));
       console.log('Player window opened successfully');
       loadPlaylistVideos(DEFAULT_PLAYLIST_ID);
     } else {
@@ -451,6 +452,50 @@ const Index = () => {
     });
   };
 
+  const getUpcomingTitles = () => {
+    if (state.currentPlaylist.length > 0) {
+      return state.currentPlaylist.slice(0, 3).map(videoId => {
+        const result = state.searchResults.find(r => r.id === videoId);
+        return result ? result.title : 'Unknown Song';
+      });
+    } else {
+      return state.defaultPlaylistVideos.slice(0, 3).map(video => video.title);
+    }
+  };
+
+  const handlePlayerToggle = () => {
+    if (state.isPlayerRunning) {
+      // Stop player
+      if (state.playerWindow && !state.playerWindow.closed) {
+        const command = { action: 'stop' };
+        try {
+          state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+          addLog('SONG_PLAYED', 'Player stopped by admin');
+        } catch (error) {
+          console.error('Error sending stop command:', error);
+        }
+      }
+      setState(prev => ({ ...prev, isPlayerRunning: false }));
+    } else {
+      // Start player
+      setState(prev => ({ ...prev, isPlayerRunning: true }));
+      playNextDefaultVideo();
+      addLog('SONG_PLAYED', 'Player started by admin');
+    }
+  };
+
+  const handleSkipSong = () => {
+    if (state.playerWindow && !state.playerWindow.closed) {
+      const command = { action: 'fadeOutAndBlack', fadeDuration: 3000 };
+      try {
+        state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+        addLog('SONG_PLAYED', 'Song skipped by admin (3s fade)');
+      } catch (error) {
+        console.error('Error sending skip command:', error);
+      }
+    }
+  };
+
   const currentBackground = getCurrentBackground();
 
   return (
@@ -482,6 +527,18 @@ const Index = () => {
           >
             🎵 Search for Music 🎵
           </Button>
+        </div>
+
+        {/* Ticker */}
+        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
+          <div className="whitespace-nowrap animate-marquee">
+            <span className="text-lg font-bold">COMING UP: </span>
+            {getUpcomingTitles().map((title, index) => (
+              <span key={index} className="mx-8 text-lg">
+                {index + 1}. {title}
+              </span>
+            ))}
+          </div>
         </div>
 
         <div className="absolute bottom-4 left-4">
@@ -581,6 +638,10 @@ const Index = () => {
         onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
         onBackgroundUpload={handleBackgroundUpload}
         onAddLog={addLog}
+        playerWindow={state.playerWindow}
+        isPlayerRunning={state.isPlayerRunning}
+        onPlayerToggle={handlePlayerToggle}
+        onSkipSong={handleSkipSong}
       />
     </BackgroundDisplay>
   );

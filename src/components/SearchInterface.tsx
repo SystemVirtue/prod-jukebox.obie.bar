@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ArrowLeft } from 'lucide-react';
 
@@ -31,17 +29,11 @@ interface SearchInterfaceProps {
   onBackToSearch: () => void;
 }
 
-const KEYBOARD_LAYOUT = [
-  ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-  ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-  ['Z', 'X', 'C', 'V', 'B', 'N', 'M'],
-  ['SPACE', 'BACKSPACE', 'SEARCH']
-];
-
 export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   isOpen,
   onClose,
   searchQuery,
+  onSearchQueryChange,
   searchResults,
   isSearching,
   showKeyboard,
@@ -50,79 +42,71 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   onVideoSelect,
   onBackToSearch
 }) => {
+  const keyboardRows = [
+    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
+    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
+    ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+  ];
+
+  const handleKeyPress = (key: string) => {
+    onKeyboardInput(key);
+  };
+
+  if (!isOpen) return null;
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-full max-h-full w-screen h-screen bg-gray-900 border-gray-700 p-0">
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="bg-slate-900 border-slate-600 max-w-[95vw] w-[1200px] max-h-[95vh] h-[900px] p-0">
         {showKeyboard && (
-          <div className="flex flex-col h-full bg-gray-900">
-            <div className="p-6">
-              <h2 className="text-3xl font-bold text-white mb-6">Search for Music</h2>
-              <div className="bg-gray-800 p-4 rounded-lg mb-6">
-                <Input
-                  value={searchQuery}
-                  readOnly
-                  placeholder="Type using the keyboard below..."
-                  className="text-2xl p-4 bg-gray-700 text-white border-gray-600"
-                />
-              </div>
-            </div>
+          <div className="h-full bg-slate-900 text-white p-6 flex flex-col">
+            <DialogHeader className="mb-6">
+              <DialogTitle className="text-3xl text-center text-amber-200">Search for Music</DialogTitle>
+            </DialogHeader>
             
-            <div className="flex-1 p-6">
-              <div className="grid grid-cols-10 gap-3 mb-4">
-                {KEYBOARD_LAYOUT[0].map((key) => (
-                  <Button
-                    key={key}
-                    onClick={() => onKeyboardInput(key)}
-                    className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    {key}
-                  </Button>
-                ))}
-              </div>
+            <div className="mb-8">
+              <Input
+                value={searchQuery}
+                onChange={(e) => onSearchQueryChange(e.target.value)}
+                placeholder="Enter song or artist..."
+                className="w-full h-16 text-2xl bg-slate-800 border-slate-600 text-white placeholder-slate-400"
+                readOnly
+              />
+            </div>
+
+            <div className="flex-1 flex flex-col justify-center space-y-4">
+              {keyboardRows.map((row, rowIndex) => (
+                <div key={rowIndex} className="flex justify-center gap-2">
+                  {row.map((key) => (
+                    <Button
+                      key={key}
+                      onClick={() => handleKeyPress(key)}
+                      className="w-20 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                    >
+                      {key}
+                    </Button>
+                  ))}
+                </div>
+              ))}
               
-              <div className="grid grid-cols-9 gap-3 mb-4 ml-8">
-                {KEYBOARD_LAYOUT[1].map((key) => (
-                  <Button
-                    key={key}
-                    onClick={() => onKeyboardInput(key)}
-                    className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    {key}
-                  </Button>
-                ))}
-              </div>
-              
-              <div className="grid grid-cols-7 gap-3 mb-4 ml-16">
-                {KEYBOARD_LAYOUT[2].map((key) => (
-                  <Button
-                    key={key}
-                    onClick={() => onKeyboardInput(key)}
-                    className="h-16 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
-                  >
-                    {key}
-                  </Button>
-                ))}
-              </div>
-              
-              <div className="flex justify-center gap-6">
+              <div className="flex justify-center gap-2 mt-4">
                 <Button
-                  onClick={() => onKeyboardInput('SPACE')}
-                  className="h-16 px-24 text-xl font-bold bg-gray-700 hover:bg-gray-600 text-white border-2 border-gray-500 shadow-lg transform active:scale-95 transition-all"
+                  onClick={() => handleKeyPress('SPACE')}
+                  className="w-40 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
                 >
                   SPACE
                 </Button>
                 <Button
-                  onClick={() => onKeyboardInput('BACKSPACE')}
-                  className="h-16 px-12 text-xl font-bold bg-red-700 hover:bg-red-600 text-white border-2 border-red-500 shadow-lg transform active:scale-95 transition-all"
+                  onClick={() => handleKeyPress('BACKSPACE')}
+                  className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-2 border-red-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
                 >
-                  ←
+                  ⌫
                 </Button>
                 <Button
-                  onClick={() => onKeyboardInput('SEARCH')}
-                  disabled={!searchQuery.trim() || isSearching}
-                  className="h-16 px-12 text-xl font-bold bg-green-700 hover:bg-green-600 text-white border-2 border-green-500 shadow-lg transform active:scale-95 transition-all"
+                  onClick={() => handleKeyPress('SEARCH')}
+                  disabled={!searchQuery.trim()}
+                  className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-2 border-green-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSearching ? '...' : 'SEARCH'}
+                  SEARCH
                 </Button>
               </div>
             </div>
@@ -130,44 +114,47 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
         )}
 
         {showSearchResults && (
-          <div className="flex flex-col h-full bg-gray-900">
-            <div className="p-4 border-b border-gray-700 flex items-center justify-between bg-gray-800">
+          <div className="h-full bg-slate-900 text-white flex flex-col">
+            <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800">
               <Button
                 onClick={onBackToSearch}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 text-lg"
+                className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 text-lg"
               >
-                <ArrowLeft className="w-5 h-5 mr-2" />
+                <ArrowLeft className="w-5 h-5" />
                 Back to Search
               </Button>
-              <h2 className="text-2xl font-bold text-white">Search Results</h2>
+              <h2 className="text-xl text-amber-200">Search Results</h2>
             </div>
-            
-            <ScrollArea className="flex-1">
-              <div className="p-6 grid grid-cols-4 gap-6">
-                {searchResults.map((video) => (
-                  <Card 
-                    key={video.id} 
-                    className="cursor-pointer hover:bg-gray-700 transition-colors bg-gray-800 border-gray-600"
-                    onClick={() => onVideoSelect(video)}
-                  >
-                    <CardContent className="p-4">
-                      <img 
-                        src={video.thumbnailUrl} 
-                        alt={video.title}
-                        className="w-full h-32 object-cover rounded mb-3"
-                      />
-                      <h3 className="font-semibold text-white text-sm line-clamp-2 mb-2">{video.title}</h3>
-                      <p className="text-gray-300 text-xs line-clamp-1">{video.channelTitle}</p>
-                      {video.officialScore && video.officialScore > 5 && (
-                        <Badge variant="secondary" className="mt-2 bg-green-600 text-white">
-                          Official
-                        </Badge>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
+
+            {isSearching ? (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-2xl text-amber-200">Searching...</div>
               </div>
-            </ScrollArea>
+            ) : (
+              <div className="flex-1 overflow-hidden">
+                <ScrollArea className="h-full [&>div>div[style]]:!pr-[50px]">
+                  <div className="p-6 grid grid-cols-4 gap-6">
+                    {searchResults.map((video) => (
+                      <div
+                        key={video.id}
+                        onClick={() => onVideoSelect(video)}
+                        className="bg-slate-800 rounded-lg overflow-hidden cursor-pointer hover:bg-slate-700 transition-colors border border-slate-600 hover:border-amber-500 transform hover:scale-105 transition-all duration-200"
+                      >
+                        <img 
+                          src={video.thumbnailUrl} 
+                          alt={video.title}
+                          className="w-full h-32 object-cover"
+                        />
+                        <div className="p-3">
+                          <h3 className="font-semibold text-white text-sm mb-1 line-clamp-2">{video.title}</h3>
+                          <p className="text-slate-400 text-xs">{video.channelTitle}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
           </div>
         )}
       </DialogContent>
