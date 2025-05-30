@@ -254,11 +254,12 @@ const Index = () => {
     }
   }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused]);
 
-  // Enhanced video end handling with proper queue management
+  // Enhanced video end handling with proper queue management and sync
   useEffect(() => {
     const handleStorageChange = (event: StorageEvent) => {
       if (event.key === 'jukeboxStatus' && event.newValue) {
         const status = JSON.parse(event.newValue);
+        console.log('DEBUG: [Jukebox] Parsed status:', status);
         
         // Update currently playing based on player window communication
         if (status.status === 'playing' && status.title) {
@@ -269,15 +270,53 @@ const Index = () => {
           }));
         }
         
-        if (status.status === 'ended' || status.status === 'fadeComplete') {
-          handleVideoEnded();
+        // Handle video ended - check priority queue first
+        if (status.status === 'ended') {
+          const statusVideoId = status.id;
+          if (statusVideoId && statusVideoId === state.currentVideoId) {
+            setState(prev => ({ 
+              ...prev, 
+              currentlyPlaying: 'Loading...',
+              currentVideoId: ''
+            }));
+            handleVideoEnded();
+          } else {
+            console.warn(`DEBUG: [Jukebox] Received 'ended' for unexpected ID: ${statusVideoId}. Ignoring.`);
+          }
         }
         
-        // Handle video unavailable/error - auto-skip
+        if (status.status === 'fadeComplete') {
+          const statusVideoId = status.id;
+          if (statusVideoId && statusVideoId === state.currentVideoId) {
+            setState(prev => ({ 
+              ...prev, 
+              currentlyPlaying: 'Loading...',
+              currentVideoId: ''
+            }));
+            handleVideoEnded();
+          }
+        }
+        
+        // Handle video unavailable/error - auto-skip with enhanced sync
         if (status.status === 'error' || status.status === 'unavailable') {
-          console.log('Video unavailable or error, auto-skipping...');
-          addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${state.currentlyPlaying}`);
-          handleVideoEnded();
+          const statusVideoId = status.id;
+          if (statusVideoId && statusVideoId === state.currentVideoId) {
+            console.log('Video unavailable or error, auto-skipping...');
+            addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${state.currentlyPlaying}`);
+            setState(prev => ({ 
+              ...prev, 
+              currentlyPlaying: 'Loading...',
+              currentVideoId: ''
+            }));
+            setTimeout(() => handleVideoEnded(), 1500);
+          } else {
+            console.warn(`DEBUG: [Jukebox] Received 'error' for unexpected ID: ${statusVideoId}. Ignoring.`);
+          }
+        }
+
+        // Handle player ready status
+        if (status.status === 'ready') {
+          console.log("DEBUG: [Jukebox] Player window ready.");
         }
       }
       
@@ -296,7 +335,7 @@ const Index = () => {
 
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [state.currentVideoId]);
 
   function addLog(type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) {
     const logEntry: LogEntry = {
@@ -414,7 +453,8 @@ const Index = () => {
         action: 'play',
         videoId: videoId,
         title: title,
-        artist: artist
+        artist: artist,
+        timestamp: Date.now()
       };
       
       try {
@@ -851,11 +891,11 @@ const Index = () => {
   return (
     <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left - Made wider */}
+        {/* Now Playing Ticker - Top Left - Made twice as wide */}
         <div className="absolute top-4 left-4 z-20">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
             <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-96 truncate">
+              <div className="text-amber-100 font-bold text-lg w-[48rem] truncate">
                 Now Playing: {state.currentlyPlaying}
               </div>
             </CardContent>
@@ -877,15 +917,13 @@ const Index = () => {
           <h1 className="text-6xl font-bold text-amber-200 drop-shadow-2xl mb-4">
             MUSIC JUKEBOX
           </h1>
-          <p className="text-2xl text-amber-100 drop-shadow-lg">
+          <p className="text-2xl text-amber-100 drop-shadow-lg mb-8">
             Touch to Select Your Music
           </p>
-        </div>
-
-        <div className="flex-1 flex items-center justify-center relative">
-          {/* Mini Player - positioned above the search button */}
+          
+          {/* Mini Player - positioned between subtitle and search button */}
           {state.showMiniPlayer && state.currentVideoId && (
-            <div className="absolute z-30 pointer-events-none">
+            <div className="flex justify-center mb-8">
               <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
                 {/* Vignette overlay for feathered edges */}
                 <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
@@ -899,7 +937,9 @@ const Index = () => {
               </div>
             </div>
           )}
+        </div>
 
+        <div className="flex-1 flex items-center justify-center">
           <Button
             onClick={() => {
               console.log('Search button clicked - opening search interface');
