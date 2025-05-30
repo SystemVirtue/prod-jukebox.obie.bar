@@ -5,6 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Check, X, Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 import { SearchInterface } from "@/components/SearchInterface";
+import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
+import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
 import { AdminConsole } from "@/components/AdminConsole";
 import { useSerialCommunication } from "@/components/SerialCommunication";
 import { useBackgroundManager, BackgroundDisplay } from "@/components/BackgroundManager";
@@ -16,6 +18,7 @@ interface SearchResult {
   thumbnailUrl: string;
   videoUrl: string;
   officialScore?: number;
+  duration?: string;
 }
 
 interface PlaylistItem {
@@ -46,6 +49,7 @@ interface JukeboxState {
   currentPlaylist: string[];
   defaultPlaylist: string;
   defaultPlaylistVideos: PlaylistItem[];
+  shuffledPlaylist: PlaylistItem[];
   currentVideoIndex: number;
   isSearchOpen: boolean;
   isAdminOpen: boolean;
@@ -63,6 +67,11 @@ interface JukeboxState {
   showKeyboard: boolean;
   showSearchResults: boolean;
   isPlayerRunning: boolean;
+  currentlyPlaying: string;
+  maxSongLength: number;
+  showInsufficientCredits: boolean;
+  showDuplicateSong: boolean;
+  duplicateSongTitle: string;
 }
 
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
@@ -77,6 +86,7 @@ const Index = () => {
     currentPlaylist: [],
     defaultPlaylist: DEFAULT_PLAYLIST_ID,
     defaultPlaylistVideos: [],
+    shuffledPlaylist: [],
     currentVideoIndex: 0,
     isSearchOpen: false,
     isAdminOpen: false,
@@ -93,13 +103,57 @@ const Index = () => {
     backgroundCycleIndex: 0,
     showKeyboard: false,
     showSearchResults: false,
-    isPlayerRunning: false
+    isPlayerRunning: false,
+    currentlyPlaying: 'Loading...',
+    maxSongLength: 10,
+    showInsufficientCredits: false,
+    showDuplicateSong: false,
+    duplicateSongTitle: ''
   });
 
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     video: SearchResult | null;
   }>({ isOpen: false, video: null });
+
+  // Helper function to shuffle array
+  const shuffleArray = <T,>(array: T[]): T[] => {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
+  };
+
+  // Helper function to convert duration string to minutes
+  const durationToMinutes = (duration: string): number => {
+    // Parse ISO 8601 duration format (PT4M33S)
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return 0;
+    
+    const hours = parseInt(match[1] || '0');
+    const minutes = parseInt(match[2] || '0');
+    const seconds = parseInt(match[3] || '0');
+    
+    return hours * 60 + minutes + (seconds > 30 ? 1 : 0); // Round up if over 30 seconds
+  };
+
+  // Helper function to format duration for display
+  const formatDuration = (duration: string): string => {
+    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return '';
+    
+    const hours = parseInt(match[1] || '0');
+    const minutes = parseInt(match[2] || '0');
+    const seconds = parseInt(match[3] || '0');
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  };
 
   // Use background manager hook
   const { getCurrentBackground } = useBackgroundManager({
@@ -146,10 +200,10 @@ const Index = () => {
 
   // Autoplay from default playlist
   useEffect(() => {
-    if (state.defaultPlaylistVideos.length > 0 && state.currentPlaylist.length === 0) {
+    if (state.shuffledPlaylist.length > 0 && state.currentPlaylist.length === 0) {
       playNextDefaultVideo();
     }
-  }, [state.defaultPlaylistVideos, state.currentPlaylist]);
+  }, [state.shuffledPlaylist, state.currentPlaylist]);
 
   // Listen for player status updates
   useEffect(() => {
@@ -193,7 +247,8 @@ const Index = () => {
         videoId: item.snippet.resourceId.videoId
       }));
 
-      setState(prev => ({ ...prev, defaultPlaylistVideos: videos }));
+      const shuffled = shuffleArray(videos);
+      setState(prev => ({ ...prev, defaultPlaylistVideos: videos, shuffledPlaylist: shuffled }));
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
@@ -205,10 +260,12 @@ const Index = () => {
   };
 
   const playNextDefaultVideo = () => {
-    if (state.defaultPlaylistVideos.length === 0) return;
+    if (state.shuffledPlaylist.length === 0) return;
     
-    const randomIndex = Math.floor(Math.random() * state.defaultPlaylistVideos.length);
-    const video = state.defaultPlaylistVideos[randomIndex];
+    const video = state.shuffledPlaylist[state.currentVideoIndex];
+    const nextIndex = (state.currentVideoIndex + 1) % state.shuffledPlaylist.length;
+    
+    setState(prev => ({ ...prev, currentVideoIndex: nextIndex, currentlyPlaying: video.title }));
     
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
@@ -230,17 +287,21 @@ const Index = () => {
   const handleVideoEnded = () => {
     if (state.currentPlaylist.length > 0) {
       const nextVideoId = state.currentPlaylist[0];
+      const video = state.searchResults.find(r => r.id === nextVideoId);
+      const title = video ? video.title : 'User Selection';
+      
       setState(prev => ({ 
         ...prev, 
-        currentPlaylist: prev.currentPlaylist.slice(1) 
+        currentPlaylist: prev.currentPlaylist.slice(1),
+        currentlyPlaying: title
       }));
       
       if (state.playerWindow && !state.playerWindow.closed) {
         const command = {
           action: 'play',
           videoId: nextVideoId,
-          title: 'User Selection',
-          artist: 'Unknown'
+          title: title,
+          artist: video ? video.channelTitle : 'Unknown'
         };
         
         try {
@@ -292,15 +353,36 @@ const Index = () => {
       console.log('YouTube API response:', data);
       
       if (data.items && data.items.length > 0) {
+        // Get video durations
+        const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
+        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${state.apiKey}`;
+        const detailsResponse = await fetch(detailsUrl);
+        const detailsData = await detailsResponse.json();
+        
+        // Create duration map
+        const durationMap = new Map();
+        detailsData.items?.forEach((item: any) => {
+          durationMap.set(item.id, item.contentDetails.duration);
+        });
+        
         const filteredResults = filterForOfficial(data.items, query);
-        const searchResults: SearchResult[] = filteredResults.slice(0, 20).map(video => ({
-          id: video.id.videoId,
-          title: video.snippet.title,
-          channelTitle: video.snippet.channelTitle,
-          thumbnailUrl: video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url,
-          videoUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
-          officialScore: video.officialScore
-        }));
+        const searchResults: SearchResult[] = filteredResults
+          .map(video => {
+            const duration = durationMap.get(video.id.videoId) || '';
+            const durationMinutes = durationToMinutes(duration);
+            return {
+              id: video.id.videoId,
+              title: video.snippet.title,
+              channelTitle: video.snippet.channelTitle,
+              thumbnailUrl: video.snippet.thumbnails.medium?.url || video.snippet.thumbnails.default?.url,
+              videoUrl: `https://www.youtube.com/watch?v=${video.id.videoId}`,
+              officialScore: video.officialScore,
+              duration: formatDuration(duration),
+              durationMinutes
+            };
+          })
+          .filter(video => video.durationMinutes <= state.maxSongLength)
+          .slice(0, 20);
         
         console.log('Filtered search results:', searchResults);
         setState(prev => ({ ...prev, searchResults }));
@@ -357,6 +439,20 @@ const Index = () => {
 
   const handleVideoSelect = (video: SearchResult) => {
     console.log('Video selected:', video);
+    
+    // Check for duplicate
+    const isDuplicate = state.currentPlaylist.includes(video.id) || 
+                       (state.currentPlaylist.length > 0 && state.currentPlaylist[state.currentPlaylist.length - 1] === video.id);
+    
+    if (isDuplicate) {
+      setState(prev => ({ 
+        ...prev, 
+        showDuplicateSong: true, 
+        duplicateSongTitle: video.title 
+      }));
+      return;
+    }
+    
     setConfirmDialog({ isOpen: true, video });
   };
 
@@ -391,6 +487,7 @@ const Index = () => {
       
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+        setState(prev => ({ ...prev, currentlyPlaying: confirmDialog.video!.title }));
       } catch (error) {
         console.error('Error sending command to player:', error);
       }
@@ -473,14 +570,29 @@ const Index = () => {
   };
 
   const getUpcomingTitles = () => {
-    if (state.currentPlaylist.length > 0) {
-      return state.currentPlaylist.slice(0, 3).map(videoId => {
-        const result = state.searchResults.find(r => r.id === videoId);
-        return result ? result.title : 'Unknown Song';
-      });
-    } else {
-      return state.defaultPlaylistVideos.slice(0, 3).map(video => video.title);
+    const upcoming = [];
+    
+    // Add user requests first
+    for (let i = 0; i < Math.min(3, state.currentPlaylist.length); i++) {
+      const result = state.searchResults.find(r => r.id === state.currentPlaylist[i]);
+      if (result) {
+        upcoming.push(result.title);
+      }
     }
+    
+    // Fill remaining slots with shuffled playlist
+    if (upcoming.length < 3 && state.shuffledPlaylist.length > 0) {
+      let playlistIndex = state.currentVideoIndex;
+      while (upcoming.length < 3 && playlistIndex < state.shuffledPlaylist.length) {
+        upcoming.push(state.shuffledPlaylist[playlistIndex].title);
+        playlistIndex++;
+        if (playlistIndex >= state.shuffledPlaylist.length) {
+          playlistIndex = 0; // Loop back to start
+        }
+      }
+    }
+    
+    return upcoming;
   };
 
   const handlePlayerToggle = () => {
@@ -495,7 +607,7 @@ const Index = () => {
           console.error('Error sending stop command:', error);
         }
       }
-      setState(prev => ({ ...prev, isPlayerRunning: false }));
+      setState(prev => ({ ...prev, isPlayerRunning: false, currentlyPlaying: 'Stopped' }));
     } else {
       // Start player
       setState(prev => ({ ...prev, isPlayerRunning: true }));
@@ -509,7 +621,7 @@ const Index = () => {
       const command = { action: 'fadeOutAndBlack', fadeDuration: 3000 };
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
-        addLog('SONG_PLAYED', 'Song skipped by admin (3s fade)');
+        addLog('SONG_PLAYED', `SKIPPING: ${state.currentlyPlaying}`);
       } catch (error) {
         console.error('Error sending skip command:', error);
       }
@@ -521,6 +633,18 @@ const Index = () => {
   return (
     <BackgroundDisplay background={currentBackground}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
+        {/* Now Playing Ticker - Top Left */}
+        <div className="absolute top-4 left-4 z-20">
+          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
+            <CardContent className="p-3">
+              <div className="text-amber-100 font-bold text-lg max-w-96 truncate">
+                Now Playing: {state.currentlyPlaying}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Credits - Top Right */}
         <div className="flex justify-end mb-8">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
             <CardContent className="p-4">
@@ -547,12 +671,13 @@ const Index = () => {
               setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
             }}
             className="w-96 h-24 text-3xl font-bold bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-amber-900 shadow-2xl transform hover:scale-105 transition-all duration-200 border-4 border-amber-500"
+            style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
           >
             🎵 Search for Music 🎵
           </Button>
         </div>
 
-        {/* Ticker */}
+        {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
           <div className="whitespace-nowrap animate-marquee">
             <span className="text-lg font-bold">COMING UP: </span>
@@ -604,6 +729,30 @@ const Index = () => {
           console.log('Back to search pressed');
           setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
         }}
+        mode={state.mode}
+        credits={state.credits}
+        onInsufficientCredits={() => setState(prev => ({ ...prev, showInsufficientCredits: true }))}
+      />
+
+      {/* Insufficient Credits Dialog */}
+      <InsufficientCreditsDialog
+        isOpen={state.showInsufficientCredits}
+        onClose={() => setState(prev => ({ 
+          ...prev, 
+          showInsufficientCredits: false,
+          isSearchOpen: false, 
+          showKeyboard: false, 
+          showSearchResults: false,
+          searchQuery: '', 
+          searchResults: [] 
+        }))}
+      />
+
+      {/* Duplicate Song Dialog */}
+      <DuplicateSongDialog
+        isOpen={state.showDuplicateSong}
+        onClose={() => setState(prev => ({ ...prev, showDuplicateSong: false, duplicateSongTitle: '' }))}
+        songTitle={state.duplicateSongTitle}
       />
 
       {/* Confirmation Dialog */}
@@ -624,6 +773,9 @@ const Index = () => {
                 <div>
                   <h3 className="font-semibold text-amber-900">{confirmDialog.video.title}</h3>
                   <p className="text-amber-700">{confirmDialog.video.channelTitle}</p>
+                  {confirmDialog.video.duration && (
+                    <p className="text-amber-600 text-sm">{confirmDialog.video.duration}</p>
+                  )}
                   {state.mode === 'PAID' && (
                     <p className="text-sm text-amber-600 mt-1">Cost: 1 Credit</p>
                   )}
@@ -675,6 +827,8 @@ const Index = () => {
         isPlayerRunning={state.isPlayerRunning}
         onPlayerToggle={handlePlayerToggle}
         onSkipSong={handleSkipSong}
+        maxSongLength={state.maxSongLength}
+        onMaxSongLengthChange={(minutes) => setState(prev => ({ ...prev, maxSongLength: minutes }))}
       />
     </BackgroundDisplay>
   );

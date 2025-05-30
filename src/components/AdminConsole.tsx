@@ -1,4 +1,3 @@
-
 import React, { useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import { Upload, Play, Pause, SkipForward } from 'lucide-react';
 
 interface LogEntry {
@@ -46,6 +46,8 @@ interface AdminConsoleProps {
   isPlayerRunning: boolean;
   onPlayerToggle: () => void;
   onSkipSong: () => void;
+  maxSongLength: number;
+  onMaxSongLengthChange: (minutes: number) => void;
 }
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({
@@ -70,7 +72,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   playerWindow,
   isPlayerRunning,
   onPlayerToggle,
-  onSkipSong
+  onSkipSong,
+  maxSongLength,
+  onMaxSongLengthChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -175,6 +179,24 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 <SkipForward className="w-4 h-4" />
                 Skip Song
               </Button>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Maximum Song Length: {maxSongLength} minutes
+            </label>
+            <Slider
+              value={[maxSongLength]}
+              onValueChange={(value) => onMaxSongLengthChange(value[0])}
+              min={6}
+              max={15}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-slate-500 mt-1">
+              <span>6 min</span>
+              <span>15 min</span>
             </div>
           </div>
 

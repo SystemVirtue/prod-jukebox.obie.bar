@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 interface SearchResult {
   id: string;
@@ -13,6 +13,7 @@ interface SearchResult {
   thumbnailUrl: string;
   videoUrl: string;
   officialScore?: number;
+  duration?: string;
 }
 
 interface SearchInterfaceProps {
@@ -27,6 +28,9 @@ interface SearchInterfaceProps {
   onKeyboardInput: (key: string) => void;
   onVideoSelect: (video: SearchResult) => void;
   onBackToSearch: () => void;
+  mode: 'FREEPLAY' | 'PAID';
+  credits: number;
+  onInsufficientCredits: () => void;
 }
 
 export const SearchInterface: React.FC<SearchInterfaceProps> = ({
@@ -40,9 +44,13 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   showSearchResults,
   onKeyboardInput,
   onVideoSelect,
-  onBackToSearch
+  onBackToSearch,
+  mode,
+  credits,
+  onInsufficientCredits
 }) => {
   const keyboardRows = [
+    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
     ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
     ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
@@ -52,13 +60,30 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
     onKeyboardInput(key);
   };
 
+  const handleVideoSelect = (video: SearchResult) => {
+    if (mode === 'PAID' && credits === 0) {
+      onInsufficientCredits();
+      return;
+    }
+    onVideoSelect(video);
+  };
+
   if (!isOpen) return null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900 border-slate-600 max-w-[95vw] w-[1200px] max-h-[95vh] h-[900px] p-0">
+      <DialogContent className="bg-slate-900/20 backdrop-blur-sm border-slate-600 max-w-[95vw] w-[1200px] h-[calc(100vh-200px)] top-[100px] translate-y-0 p-0">
+        {/* Close button */}
+        <Button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-50 w-12 h-12 bg-red-600/80 hover:bg-red-700/80 border-2 border-red-500 shadow-lg"
+          style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+        >
+          <X className="w-6 h-6" />
+        </Button>
+
         {showKeyboard && (
-          <div className="h-full bg-slate-900 text-white p-6 flex flex-col">
+          <div className="h-full bg-slate-900/20 backdrop-blur-sm text-white p-6 flex flex-col">
             <DialogHeader className="mb-6">
               <DialogTitle className="text-3xl text-center text-amber-200">Search for Music</DialogTitle>
             </DialogHeader>
@@ -68,7 +93,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
                 placeholder="Enter song or artist..."
-                className="w-full h-16 text-2xl bg-slate-800 border-slate-600 text-white placeholder-slate-400"
+                className="w-full h-16 text-2xl bg-slate-800/60 backdrop-blur border-slate-600 text-white placeholder-slate-400"
                 readOnly
               />
             </div>
@@ -81,6 +106,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                       key={key}
                       onClick={() => handleKeyPress(key)}
                       className="w-20 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                      style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
                     >
                       {key}
                     </Button>
@@ -92,12 +118,14 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <Button
                   onClick={() => handleKeyPress('SPACE')}
                   className="w-40 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
                 >
                   SPACE
                 </Button>
                 <Button
                   onClick={() => handleKeyPress('BACKSPACE')}
                   className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-2 border-red-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
                 >
                   ⌫
                 </Button>
@@ -105,6 +133,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                   onClick={() => handleKeyPress('SEARCH')}
                   disabled={!searchQuery.trim()}
                   className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-2 border-green-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
                 >
                   SEARCH
                 </Button>
@@ -114,11 +143,12 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
         )}
 
         {showSearchResults && (
-          <div className="h-full bg-slate-900 text-white flex flex-col">
-            <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800">
+          <div className="h-full bg-slate-900/20 backdrop-blur-sm text-white flex flex-col">
+            <div className="p-4 border-b border-slate-700 flex items-center justify-between bg-slate-800/60 backdrop-blur">
               <Button
                 onClick={onBackToSearch}
                 className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 text-lg"
+                style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
               >
                 <ArrowLeft className="w-5 h-5" />
                 Back to Search
@@ -132,13 +162,14 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               </div>
             ) : (
               <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full [&>div>div[style]]:!pr-[50px]">
-                  <div className="p-6 grid grid-cols-4 gap-6">
+                <ScrollArea className="h-full">
+                  <div className="p-6 grid grid-cols-4 gap-6" style={{ scrollbarWidth: 'auto', scrollbarColor: '#64748b #334155' }}>
                     {searchResults.map((video) => (
                       <div
                         key={video.id}
-                        onClick={() => onVideoSelect(video)}
-                        className="bg-slate-800 rounded-lg overflow-hidden cursor-pointer hover:bg-slate-700 transition-colors border border-slate-600 hover:border-amber-500 transform hover:scale-105 transition-all duration-200"
+                        onClick={() => handleVideoSelect(video)}
+                        className="bg-slate-800/80 backdrop-blur rounded-lg overflow-hidden cursor-pointer hover:bg-slate-700/80 transition-colors border border-slate-600 hover:border-amber-500 transform hover:scale-105 transition-all duration-200"
+                        style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.6))' }}
                       >
                         <img 
                           src={video.thumbnailUrl} 
@@ -148,6 +179,9 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                         <div className="p-3">
                           <h3 className="font-semibold text-white text-sm mb-1 line-clamp-2">{video.title}</h3>
                           <p className="text-slate-400 text-xs">{video.channelTitle}</p>
+                          {video.duration && (
+                            <p className="text-slate-300 text-xs mt-1">{video.duration}</p>
+                          )}
                         </div>
                       </div>
                     ))}
