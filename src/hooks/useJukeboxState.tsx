@@ -244,8 +244,8 @@ export const useJukeboxState = () => {
       isUserRequest: true
     })));
     
-    // Add next songs from in-memory playlist
-    playlist.push(...state.inMemoryPlaylist.map(song => ({
+    // Add next songs from in-memory playlist, but skip if it's the currently playing song
+    playlist.push(...state.inMemoryPlaylist.filter(song => song.title !== state.currentlyPlaying).map(song => ({
       ...song,
       isUserRequest: false
     })));

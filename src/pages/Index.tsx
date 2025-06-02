@@ -108,20 +108,27 @@ const Index = () => {
   }, [state.defaultPlaylistVideos.length, state.playerWindow, state.isPlayerRunning]);
 
   // Enhanced autoplay logic - only start when player is ready and playlist has songs
+  const hasStartedFirstSongRef = useRef(false);
   useEffect(() => {
-    if (state.inMemoryPlaylist.length > 0 && 
-        state.priorityQueue.length === 0 && 
-        state.isPlayerRunning && 
-        !state.isPlayerPaused &&
-        state.playerWindow &&
-        !state.playerWindow.closed) {
-      // Only auto-start if nothing is currently playing
-      if (state.currentlyPlaying === 'Loading...' || state.currentlyPlaying === '') {
+    if (
+      state.inMemoryPlaylist.length > 0 &&
+      state.priorityQueue.length === 0 &&
+      state.isPlayerRunning &&
+      !state.isPlayerPaused &&
+      state.playerWindow &&
+      !state.playerWindow.closed
+    ) {
+      // Only auto-start if nothing is currently playing and not already started
+      if ((state.currentlyPlaying === 'Loading...' || state.currentlyPlaying === '') && !hasStartedFirstSongRef.current) {
+        hasStartedFirstSongRef.current = true;
         console.log('Auto-starting first song from playlist...');
         playNextSong();
       }
+    } else {
+      // Reset flag if player or playlist is not ready
+      hasStartedFirstSongRef.current = false;
     }
-  }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused, state.playerWindow]);
+  }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused, state.playerWindow, state.currentlyPlaying]);
 
   // Enhanced video end handling with proper queue management and improved sync
   const handleStorageChange = useCallback((event: StorageEvent) => {

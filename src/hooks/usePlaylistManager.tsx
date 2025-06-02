@@ -44,15 +44,16 @@ export const usePlaylistManager = (
         console.log(`[LoadPlaylist] Loaded ${videos.length} videos this batch, total so far: ${allVideos.length}`);
       } while (nextPageToken);
 
-      // DO NOT shuffle by default - keep original order
+      // Shuffle playlist ONCE after loading
+      const shuffled = shuffleArray(allVideos);
       setState(prev => ({ 
         ...prev, 
-        defaultPlaylistVideos: allVideos, 
-        inMemoryPlaylist: [...allVideos], // Keep original order with ALL videos
+        defaultPlaylistVideos: allVideos, // keep original for reference
+        inMemoryPlaylist: [...shuffled], // shuffle for playback
         currentVideoIndex: 0
       }));
       
-      console.log(`[LoadPlaylist] Loaded ALL ${allVideos.length} videos from playlist (maintaining original order)`);
+      console.log(`[LoadPlaylist] Loaded ALL ${allVideos.length} videos from playlist (shuffled order)`);
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
