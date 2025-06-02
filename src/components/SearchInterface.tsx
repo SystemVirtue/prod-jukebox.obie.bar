@@ -165,7 +165,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <div 
                   className="h-full overflow-y-auto p-6"
                   style={{
-                    scrollbarWidth: '20px',
+                    scrollbarWidth: 'thick',
                     scrollbarColor: '#f59e0b #374151'
                   }}
                 >
