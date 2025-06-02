@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -236,11 +237,11 @@ const Index = () => {
   return (
     <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left - Made twice as wide */}
+        {/* Now Playing Ticker - Top Left - Reduced width by 20% (from 48rem to 38.4rem) */}
         <div className="absolute top-4 left-4 z-20">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
             <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-[48rem] truncate">
+              <div className="text-amber-100 font-bold text-lg w-[38.4rem] truncate">
                 Now Playing: {state.currentlyPlaying}
               </div>
             </CardContent>
@@ -296,6 +297,19 @@ const Index = () => {
             🎵 Search for Music 🎵
           </Button>
         </div>
+
+        {/* Test Mode Indicator - positioned above Coming Up ticker */}
+        {state.testMode && (
+          <div className="fixed bottom-16 left-0 right-0 flex justify-center z-30">
+            <Card className="bg-yellow-600/90 border-yellow-400 backdrop-blur-sm">
+              <CardContent className="p-2 px-4">
+                <div className="text-yellow-100 font-bold text-lg">
+                  TEST MODE ON - 20 Second Videos
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">

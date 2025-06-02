@@ -138,7 +138,7 @@ export const useJukeboxState = () => {
     isPlayerPaused: false,
     showSkipConfirmation: false,
     showMiniPlayer: false,
-    testMode: false,
+    testMode: true,
     coinValueA: 1,
     coinValueB: 3
   });

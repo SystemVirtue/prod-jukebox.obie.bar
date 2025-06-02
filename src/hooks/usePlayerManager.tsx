@@ -87,7 +87,7 @@ export const usePlayerManager = (
     if (state.isPlayerRunning && !state.isPlayerPaused) {
       // Pause player
       if (state.playerWindow && !state.playerWindow.closed) {
-        const command = { action: 'pause' };
+        const command = { action: 'pause', timestamp: Date.now() };
         try {
           state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
           addLog('SONG_PLAYED', 'Player paused by admin');
@@ -99,12 +99,12 @@ export const usePlayerManager = (
     } else if (state.isPlayerRunning && state.isPlayerPaused) {
       // Resume player
       if (state.playerWindow && !state.playerWindow.closed) {
-        const command = { action: 'play' };
+        const command = { action: 'resume', timestamp: Date.now() };
         try {
           state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
           addLog('SONG_PLAYED', 'Player resumed by admin');
         } catch (error) {
-          console.error('Error sending play command:', error);
+          console.error('Error sending resume command:', error);
         }
       }
       setState(prev => ({ ...prev, isPlayerPaused: false }));
@@ -132,7 +132,7 @@ export const usePlayerManager = (
     console.log(`[PerformSkip] Skipping current video: ${state.currentVideoId}`);
     
     if (state.playerWindow && !state.playerWindow.closed) {
-      const command = { action: 'fadeOutAndBlack', fadeDuration: 3000 };
+      const command = { action: 'fadeOutAndBlack', fadeDuration: 3000, timestamp: Date.now() };
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
         addLog('SONG_PLAYED', `SKIPPING: ${state.currentlyPlaying}`);
