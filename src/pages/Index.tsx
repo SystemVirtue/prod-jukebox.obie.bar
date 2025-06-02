@@ -14,6 +14,8 @@ import { useJukeboxState } from "@/hooks/useJukeboxState";
 import { usePlayerManager } from "@/hooks/usePlayerManager";
 import { usePlaylistManager } from "@/hooks/usePlaylistManager";
 import { useVideoSearch } from "@/hooks/useVideoSearch";
+import { LoadingIndicator } from "@/components/LoadingIndicator";
+import { CreditsDisplay } from "@/components/CreditsDisplay";
 
 const Index = () => {
   const { toast } = useToast();
@@ -258,12 +260,29 @@ const Index = () => {
 
   const currentBackground = getCurrentBackground();
 
+  // Determine when to show the loading indicator
+  const isLoading = (
+    // When the application is initializing
+    (state.defaultPlaylistVideos.length === 0) ||
+    // When playlist is loading
+    (state.currentlyPlaying === 'Loading...') ||
+    // When searching for videos
+    (state.isSearching) ||
+    // When player is not running yet
+    (!state.isPlayerRunning && state.defaultPlaylistVideos.length > 0)
+  );
+
   return (
-    <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
+    <BackgroundDisplay
+      background={currentBackground}
+      bounceVideos={state.bounceVideos}
+    >
+      <LoadingIndicator isVisible={isLoading} />
+      <CreditsDisplay credits={state.credits} mode={state.mode} />
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
         {/* Now Playing Ticker - Top Left - Reduced width by 20% (from 48rem to 38.4rem) */}
         <div className="absolute top-4 left-4 z-20">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
+          <Card className="bg-black/60 border-yellow-400 shadow-lg backdrop-blur-sm">
             <CardContent className="p-3">
               <div className="text-amber-100 font-bold text-lg w-[30.7rem] truncate">
                 Now Playing: {state.currentlyPlaying}
@@ -272,24 +291,10 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Credits - Top Right */}
-        <div className="flex justify-end mb-8">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-amber-100 font-bold text-xl">
-                CREDIT: {state.mode === 'FREEPLAY' ? 'Free Play' : state.credits}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* Credits display has been moved to the CreditsDisplay component */}
 
         <div className="text-center mb-8">
-          <h1 className="text-6xl font-bold text-amber-200 drop-shadow-2xl mb-4">
-            MUSIC JUKEBOX
-          </h1>
-          <p className="text-2xl text-amber-100 drop-shadow-lg mb-8">
-            Touch to Select Your Music
-          </p>
+          {/* Main UI text has been hidden as requested */}
           
           {/* Mini Player - positioned between subtitle and search button */}
           {state.showMiniPlayer && state.currentVideoId && (
@@ -309,16 +314,23 @@ const Index = () => {
           )}
         </div>
 
+        {/* Search button positioned above footer with 50px margin */}
         <div className="flex-1 flex items-center justify-center">
+          {/* This div keeps the original centering in the flex-1 space */}
+        </div>
+        
+        {/* Absolutely positioned search button */}
+        <div className="fixed bottom-[calc(2rem+50px)] left-0 right-0 flex justify-center z-20">
           <Button
             onClick={() => {
               console.log('Search button clicked - opening search interface');
               setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
             }}
-            className="w-96 h-24 text-3xl font-bold bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-amber-900 shadow-2xl transform hover:scale-105 transition-all duration-200 border-4 border-amber-500"
+            className="w-96 h-24 text-3xl font-bold bg-black/60 text-white shadow-lg border-4 border-yellow-400 rounded-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
             style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
           >
-            🎵 Search for Music 🎵
+            <span className="absolute inset-0 bg-black/60 pointer-events-none" style={{zIndex:0}}></span>
+            <span className="relative z-10">🎵 Search for Music 🎵</span>
           </Button>
         </div>
 

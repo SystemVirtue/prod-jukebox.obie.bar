@@ -323,7 +323,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         type="number"
                         min="1"
                         max="10"
-                        value={coinValueA}
+                        value={coinValueA ?? 3}
                         onChange={(e) => onCoinValueAChange(parseInt(e.target.value) || 1)}
                         className="w-full"
                       />
@@ -337,7 +337,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         type="number"
                         min="1"
                         max="10"
-                        value={coinValueB}
+                        value={coinValueB ?? 1}
                         onChange={(e) => onCoinValueBChange(parseInt(e.target.value) || 3)}
                         className="w-full"
                       />
@@ -371,7 +371,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   size="sm"
                 >
                   <List className="w-4 h-4" />
-                  Show Queue ({getTotalPlaylistLength()} songs)
+                  Show Queue ({currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length} songs)
                 </Button>
                 <Button
                   onClick={onPlaylistShuffle}
@@ -745,12 +745,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <List className="w-4 h-4 text-gray-600" />
                 <h3 className="font-semibold text-gray-700">
-                  Default Playlist: Next {Math.min(10, currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length)} songs
+                  Default Playlist: {currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length} songs
                 </h3>
               </div>
               {currentPlaylistVideos
                 .filter(video => !video.isUserRequest && !video.isNowPlaying)
-                .slice(0, 10)
                 .map((video, index) => (
                   <div
                     key={`default-${video.id}-${index}`}

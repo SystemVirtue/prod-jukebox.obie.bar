@@ -103,7 +103,7 @@ const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
 
 export const useJukeboxState = () => {
   const [state, setState] = useState<JukeboxState>({
-    mode: 'FREEPLAY',
+    mode: 'PAID',
     credits: 0,
     priorityQueue: [],
     defaultPlaylist: DEFAULT_PLAYLIST_ID,
@@ -121,9 +121,15 @@ export const useJukeboxState = () => {
     logs: [],
     userRequests: [],
     creditHistory: [],
-    backgrounds: [{ id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' }],
-    selectedBackground: 'default',
-    cycleBackgrounds: false,
+    backgrounds: [
+      { id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' },
+      { id: 'neon1', name: 'Neon 1', url: '/backgrounds/Obie_NEON1.png', type: 'image' },
+      { id: 'neon2', name: 'Neon 2', url: '/backgrounds/Obie_NEON2.png', type: 'image' },
+      { id: 'crest1', name: 'Shield Crest 1', url: '/backgrounds/Obie_Shield_Crest_Animation1.mp4', type: 'video' },
+      { id: 'crest2', name: 'Shield Crest 2', url: '/backgrounds/Obie_Shield_Crest_Animation2.mp4', type: 'video' }
+    ],
+    selectedBackground: 'neon1',
+    cycleBackgrounds: true,
     bounceVideos: false,
     backgroundCycleIndex: 0,
     showKeyboard: false,
@@ -138,9 +144,9 @@ export const useJukeboxState = () => {
     isPlayerPaused: false,
     showSkipConfirmation: false,
     showMiniPlayer: false,
-    testMode: true,
-    coinValueA: 1,
-    coinValueB: 3
+    testMode: false,
+    coinValueA: 3,
+    coinValueB: 1
   });
 
   const addLog = (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => {
@@ -239,7 +245,7 @@ export const useJukeboxState = () => {
     })));
     
     // Add next songs from in-memory playlist
-    playlist.push(...state.inMemoryPlaylist.slice(0, 20).map(song => ({
+    playlist.push(...state.inMemoryPlaylist.map(song => ({
       ...song,
       isUserRequest: false
     })));

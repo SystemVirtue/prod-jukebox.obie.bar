@@ -112,7 +112,7 @@ export const useVideoSearch = (
             };
           })
           .filter(video => video.durationMinutes <= state.maxSongLength)
-          .slice(0, 20);
+          
         
         console.log('Filtered search results:', searchResults);
         setState(prev => ({ ...prev, searchResults }));

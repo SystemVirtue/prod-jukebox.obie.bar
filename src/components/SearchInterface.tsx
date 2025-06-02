@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,6 +49,19 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   credits,
   onInsufficientCredits
 }) => {
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8; // 4 columns x 2 rows
+
+  // Calculate pagination
+  const totalPages = Math.max(1, Math.ceil(searchResults.length / itemsPerPage));
+  const paginatedResults = searchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Reset to page 1 when new search results come in
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchResults]);
+
   const keyboardRows = [
     ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
     ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
@@ -153,7 +166,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <ArrowLeft className="w-5 h-5" />
                 Back to Search
               </Button>
-              <h2 className="text-xl text-amber-200">Search Results</h2>
+              
             </div>
 
             {isSearching ? (
@@ -191,7 +204,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                     }
                   `}</style>
                   <div className="grid grid-cols-4 gap-6">
-                    {searchResults.map((video) => (
+                    {paginatedResults.map((video) => (
                       <div
                         key={video.id}
                         onClick={() => handleVideoSelect(video)}
@@ -212,6 +225,26 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                         </div>
                       </div>
                     ))}
+                  </div>
+                  {/* Pagination Controls */}
+                  <div className="flex justify-center items-center gap-4 mt-6">
+                    <Button
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                      className="px-6 py-2 text-lg font-bold bg-black/60 text-white border-2 border-yellow-400 rounded shadow disabled:opacity-50"
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-white text-lg font-bold">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-6 py-2 text-lg font-bold bg-black/60 text-white border-2 border-yellow-400 rounded shadow disabled:opacity-50"
+                    >
+                      Next
+                    </Button>
                   </div>
                 </div>
               </div>
