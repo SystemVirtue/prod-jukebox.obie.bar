@@ -1,19 +1,20 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+
+import React, { useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Check, X, Settings } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
-import { SearchInterface } from "@/components/SearchInterface";
-import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
-import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
-import { AdminConsole } from "@/components/AdminConsole";
 import { useSerialCommunication } from "@/components/SerialCommunication";
 import { useBackgroundManager, BackgroundDisplay } from "@/components/BackgroundManager";
 import { useJukeboxState } from "@/hooks/useJukeboxState";
 import { usePlayerManager } from "@/hooks/usePlayerManager";
 import { usePlaylistManager } from "@/hooks/usePlaylistManager";
 import { useVideoSearch } from "@/hooks/useVideoSearch";
+import { useStorageEventHandler } from "@/hooks/useStorageEventHandler";
+import { StatusDisplay } from "@/components/StatusDisplay";
+import { MainSearchButton } from "@/components/MainSearchButton";
+import { ComingUpTicker } from "@/components/ComingUpTicker";
+import { MiniPlayerDisplay } from "@/components/MiniPlayerDisplay";
+import { DialogsContainer } from "@/components/DialogsContainer";
 
 const Index = () => {
   const { toast } = useToast();
@@ -25,7 +26,6 @@ const Index = () => {
     addCreditHistory,
     handleBackgroundUpload,
     getUpcomingTitles,
-    isCurrentSongUserRequest,
     getCurrentPlaylistForDisplay
   } = useJukeboxState();
 
@@ -56,18 +56,13 @@ const Index = () => {
     setConfirmDialog
   } = useVideoSearch(state, setState, addLog, addUserRequest, addCreditHistory, toast);
 
-  // Use refs to store latest values for the storage event handler
-  const stateRef = useRef(state);
-  const handleVideoEndedRef = useRef(handleVideoEnded);
-
-  // Update refs whenever values change
-  useEffect(() => {
-    stateRef.current = state;
-  }, [state]);
-
-  useEffect(() => {
-    handleVideoEndedRef.current = handleVideoEnded;
-  }, [handleVideoEnded]);
+  // Use storage event handler hook
+  useStorageEventHandler({
+    state,
+    setState,
+    handleVideoEnded,
+    addLog
+  });
 
   // Use background manager hook
   const { getCurrentBackground } = useBackgroundManager({
@@ -119,138 +114,38 @@ const Index = () => {
     }
   }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused, state.playerWindow]);
 
-  // Fixed video end handling with proper queue management and sync - using useCallback to prevent stale closures
-  const handleStorageChange = useCallback((event: StorageEvent) => {
-    if (event.key === 'jukeboxStatus' && event.newValue) {
-      const status = JSON.parse(event.newValue);
-      const currentState = stateRef.current;
-      console.log('[StorageEvent] Parsed status:', status);
-      console.log('[StorageEvent] Current video ID in state:', currentState.currentVideoId);
-      
-      // Update currently playing based on player window communication
-      if (status.status === 'playing' && status.title) {
-        setState(prev => ({ 
-          ...prev, 
-          currentlyPlaying: status.title.replace(/\([^)]*\)/g, '').trim(),
-          currentVideoId: status.videoId || prev.currentVideoId
-        }));
-      }
-      
-      // Handle video ended - check priority queue first
-      if (status.status === 'ended') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Video ended. Status video ID:', statusVideoId);
-        console.log('[StorageEvent] Current state video ID:', currentState.currentVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Video IDs match, processing end event');
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
-          }));
-          
-          // Use timeout to ensure state update completes before playing next song
-          setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded');
-            handleVideoEndedRef.current();
-          }, 100);
-        } else {
-          console.log('[StorageEvent] Video ID mismatch, ignoring end event');
-        }
-      }
-      
-      if (status.status === 'fadeComplete') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Fade complete. Status video ID:', statusVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Fade complete for current video, processing');
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
-          }));
-          
-          setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded after fade');
-            handleVideoEndedRef.current();
-          }, 100);
-        }
-      }
-      
-      // Handle video unavailable/error - auto-skip with enhanced sync
-      if (status.status === 'error' || status.status === 'unavailable') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Video error/unavailable. Status video ID:', statusVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Auto-skipping unavailable video');
-          addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${currentState.currentlyPlaying}`);
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
-          }));
-          
-          setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded after error');
-            handleVideoEndedRef.current();
-          }, 1500);
-        }
-      }
+  const handleSearchClick = () => {
+    console.log('Search button clicked - opening search interface');
+    setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
+  };
 
-      // Handle player ready status
-      if (status.status === 'ready') {
-        console.log("[StorageEvent] Player window ready.");
-      }
-    }
-    
-    // Listen for player window commands to track what's playing
-    if (event.key === 'jukeboxCommand' && event.newValue) {
-      const command = JSON.parse(event.newValue);
-      if (command.action === 'play' && command.title && command.videoId) {
-        console.log('[StorageEvent] Play command detected:', command.videoId, command.title);
-        setState(prev => ({ 
-          ...prev, 
-          currentlyPlaying: command.title.replace(/\([^)]*\)/g, '').trim(),
-          currentVideoId: command.videoId
-        }));
-      }
-    }
-  }, [setState, addLog]);
+  const handleSearchClose = () => {
+    console.log('Search interface closing');
+    setState(prev => ({ 
+      ...prev, 
+      isSearchOpen: false, 
+      showKeyboard: false, 
+      showSearchResults: false,
+      searchQuery: '', 
+      searchResults: [] 
+    }));
+  };
 
-  useEffect(() => {
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, [handleStorageChange]);
+  const handleBackToSearch = () => {
+    console.log('Back to search pressed');
+    setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
+  };
 
   const currentBackground = getCurrentBackground();
 
   return (
     <BackgroundDisplay background={currentBackground} bounceVideos={state.bounceVideos}>
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left - Made twice as wide */}
-        <div className="absolute top-4 left-4 z-20">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
-            <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-[48rem] truncate">
-                Now Playing: {state.currentlyPlaying}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Credits - Top Right */}
-        <div className="flex justify-end mb-8">
-          <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="text-amber-100 font-bold text-xl">
-                CREDIT: {state.mode === 'FREEPLAY' ? 'Free Play' : state.credits}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <StatusDisplay
+          currentlyPlaying={state.currentlyPlaying}
+          mode={state.mode}
+          credits={state.credits}
+        />
 
         <div className="text-center mb-8">
           <h1 className="text-6xl font-bold text-amber-200 drop-shadow-2xl mb-4">
@@ -260,48 +155,15 @@ const Index = () => {
             Touch to Select Your Music
           </p>
           
-          {/* Mini Player - positioned between subtitle and search button */}
-          {state.showMiniPlayer && state.currentVideoId && (
-            <div className="flex justify-center mb-8">
-              <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
-                {/* Vignette overlay for feathered edges */}
-                <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
-                <iframe
-                  src={`https://www.youtube.com/embed/${state.currentVideoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1`}
-                  className="w-full h-full border-0"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen={false}
-                  style={{ pointerEvents: 'none' }}
-                />
-              </div>
-            </div>
-          )}
+          <MiniPlayerDisplay
+            showMiniPlayer={state.showMiniPlayer}
+            currentVideoId={state.currentVideoId}
+          />
         </div>
 
-        <div className="flex-1 flex items-center justify-center">
-          <Button
-            onClick={() => {
-              console.log('Search button clicked - opening search interface');
-              setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
-            }}
-            className="w-96 h-24 text-3xl font-bold bg-gradient-to-b from-amber-400 to-amber-600 hover:from-amber-500 hover:to-amber-700 text-amber-900 shadow-2xl transform hover:scale-105 transition-all duration-200 border-4 border-amber-500"
-            style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
-          >
-            🎵 Search for Music 🎵
-          </Button>
-        </div>
+        <MainSearchButton onSearchClick={handleSearchClick} />
 
-        {/* Coming Up Ticker - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
-          <div className="whitespace-nowrap animate-marquee">
-            <span className="text-lg font-bold">COMING UP: </span>
-            {getUpcomingTitles().map((title, index) => (
-              <span key={index} className="mx-8 text-lg">
-                {index + 1}. {title}
-              </span>
-            ))}
-          </div>
-        </div>
+        <ComingUpTicker upcomingTitles={getUpcomingTitles()} />
 
         <div className="absolute bottom-4 left-4">
           <Button
@@ -315,76 +177,26 @@ const Index = () => {
         </div>
       </div>
 
-      {/* Skip Confirmation Dialog */}
-      <Dialog open={state.showSkipConfirmation} onOpenChange={(open) => !open && setState(prev => ({ ...prev, showSkipConfirmation: false }))}>
-        <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Skip User Selection?</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            <p className="text-amber-800">
-              Current song is a user selection. Are you sure you want to skip to the next song?
-            </p>
-          </div>
-          
-          <DialogFooter className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setState(prev => ({ ...prev, showSkipConfirmation: false }))}
-              className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4" />
-              No
-            </Button>
-            <Button
-              onClick={performSkip}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4" />
-              Yes, Skip
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <SearchInterface
-        isOpen={state.isSearchOpen}
-        onClose={() => {
-          console.log('Search interface closing');
-          setState(prev => ({ 
-            ...prev, 
-            isSearchOpen: false, 
-            showKeyboard: false, 
-            showSearchResults: false,
-            searchQuery: '', 
-            searchResults: [] 
-          }));
-        }}
+      <DialogsContainer
+        showSkipConfirmation={state.showSkipConfirmation}
+        onSkipConfirmationClose={() => setState(prev => ({ ...prev, showSkipConfirmation: false }))}
+        onPerformSkip={performSkip}
+        isSearchOpen={state.isSearchOpen}
+        onSearchClose={handleSearchClose}
         searchQuery={state.searchQuery}
-        onSearchQueryChange={(query) => {
-          console.log('Search query changed:', query);
-          setState(prev => ({ ...prev, searchQuery: query }));
-        }}
+        onSearchQueryChange={(query) => setState(prev => ({ ...prev, searchQuery: query }))}
         searchResults={state.searchResults}
         isSearching={state.isSearching}
         showKeyboard={state.showKeyboard}
         showSearchResults={state.showSearchResults}
         onKeyboardInput={handleKeyboardInput}
         onVideoSelect={handleVideoSelect}
-        onBackToSearch={() => {
-          console.log('Back to search pressed');
-          setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
-        }}
+        onBackToSearch={handleBackToSearch}
         mode={state.mode}
         credits={state.credits}
         onInsufficientCredits={() => setState(prev => ({ ...prev, showInsufficientCredits: true }))}
-      />
-
-      {/* Insufficient Credits Dialog */}
-      <InsufficientCreditsDialog
-        isOpen={state.showInsufficientCredits}
-        onClose={() => setState(prev => ({ 
+        showInsufficientCredits={state.showInsufficientCredits}
+        onInsufficientCreditsClose={() => setState(prev => ({ 
           ...prev, 
           showInsufficientCredits: false,
           isSearchOpen: false, 
@@ -393,104 +205,53 @@ const Index = () => {
           searchQuery: '', 
           searchResults: [] 
         }))}
-      />
-
-      {/* Duplicate Song Dialog */}
-      <DuplicateSongDialog
-        isOpen={state.showDuplicateSong}
-        onClose={() => setState(prev => ({ ...prev, showDuplicateSong: false, duplicateSongTitle: '' }))}
-        songTitle={state.duplicateSongTitle}
-      />
-
-      {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ isOpen: false, video: null })}>
-        <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
-          <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Add song to Playlist?</DialogTitle>
-          </DialogHeader>
-          
-          {confirmDialog.video && (
-            <div className="py-4">
-              <div className="flex gap-3">
-                <img 
-                  src={confirmDialog.video.thumbnailUrl} 
-                  alt={confirmDialog.video.title}
-                  className="w-20 h-15 object-cover rounded"
-                />
-                <div>
-                  <h3 className="font-semibold text-amber-900">{confirmDialog.video.title}</h3>
-                  <p className="text-amber-700">{confirmDialog.video.channelTitle}</p>
-                  {confirmDialog.video.duration && (
-                    <p className="text-amber-600 text-sm">{confirmDialog.video.duration}</p>
-                  )}
-                  {state.mode === 'PAID' && (
-                    <p className="text-sm text-amber-600 mt-1">Cost: 1 Credit</p>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter className="flex gap-4">
-            <Button
-              variant="outline"
-              onClick={() => setConfirmDialog({ isOpen: false, video: null })}
-              className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
-            >
-              <X className="w-4 h-4" />
-              No
-            </Button>
-            <Button
-              onClick={confirmAddToPlaylist}
-              className="flex items-center gap-2 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="w-4 h-4" />
-              Yes
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AdminConsole
-        isOpen={state.isAdminOpen}
-        onClose={() => setState(prev => ({ ...prev, isAdminOpen: false }))}
-        mode={state.mode}
-        onModeChange={(mode) => setState(prev => ({ ...prev, mode }))}
-        credits={state.credits}
-        onCreditsChange={(credits) => setState(prev => ({ ...prev, credits }))}
-        apiKey={state.apiKey}
-        onApiKeyChange={(apiKey) => setState(prev => ({ ...prev, apiKey }))}
-        selectedCoinAcceptor={state.selectedCoinAcceptor}
-        onCoinAcceptorChange={(device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device }))}
-        logs={state.logs}
-        userRequests={state.userRequests}
-        creditHistory={state.creditHistory}
-        backgrounds={state.backgrounds}
-        selectedBackground={state.selectedBackground}
-        onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
-        cycleBackgrounds={state.cycleBackgrounds}
-        onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
-        bounceVideos={state.bounceVideos}
-        onBounceVideosChange={(bounce) => setState(prev => ({ ...prev, bounceVideos: bounce }))}
-        onBackgroundUpload={handleBackgroundUpload}
-        onAddLog={addLog}
-        onAddUserRequest={addUserRequest}
-        onAddCreditHistory={addCreditHistory}
-        playerWindow={state.playerWindow}
-        isPlayerRunning={state.isPlayerRunning}
-        onPlayerToggle={handlePlayerToggle}
-        onSkipSong={handleSkipSong}
-        maxSongLength={state.maxSongLength}
-        onMaxSongLengthChange={(minutes) => setState(prev => ({ ...prev, maxSongLength: minutes }))}
-        defaultPlaylist={state.defaultPlaylist}
-        onDefaultPlaylistChange={handleDefaultPlaylistChange}
-        currentPlaylistVideos={getCurrentPlaylistForDisplay()}
-        onPlaylistReorder={handlePlaylistReorder}
-        onPlaylistShuffle={handlePlaylistShuffle}
-        currentlyPlaying={state.currentlyPlaying}
-        priorityQueue={state.priorityQueue}
-        showMiniPlayer={state.showMiniPlayer}
-        onShowMiniPlayerChange={(show) => setState(prev => ({ ...prev, showMiniPlayer: show }))}
+        showDuplicateSong={state.showDuplicateSong}
+        onDuplicateSongClose={() => setState(prev => ({ ...prev, showDuplicateSong: false, duplicateSongTitle: '' }))}
+        duplicateSongTitle={state.duplicateSongTitle}
+        confirmDialog={confirmDialog}
+        onConfirmDialogClose={() => setConfirmDialog({ isOpen: false, video: null })}
+        onConfirmAddToPlaylist={confirmAddToPlaylist}
+        isAdminOpen={state.isAdminOpen}
+        onAdminClose={() => setState(prev => ({ ...prev, isAdminOpen: false }))}
+        adminProps={{
+          mode: state.mode,
+          onModeChange: (mode) => setState(prev => ({ ...prev, mode })),
+          credits: state.credits,
+          onCreditsChange: (credits) => setState(prev => ({ ...prev, credits })),
+          apiKey: state.apiKey,
+          onApiKeyChange: (apiKey) => setState(prev => ({ ...prev, apiKey })),
+          selectedCoinAcceptor: state.selectedCoinAcceptor,
+          onCoinAcceptorChange: (device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device })),
+          logs: state.logs,
+          userRequests: state.userRequests,
+          creditHistory: state.creditHistory,
+          backgrounds: state.backgrounds,
+          selectedBackground: state.selectedBackground,
+          onBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id })),
+          cycleBackgrounds: state.cycleBackgrounds,
+          onCycleBackgroundsChange: (cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle })),
+          bounceVideos: state.bounceVideos,
+          onBounceVideosChange: (bounce) => setState(prev => ({ ...prev, bounceVideos: bounce })),
+          onBackgroundUpload: handleBackgroundUpload,
+          onAddLog: addLog,
+          onAddUserRequest: addUserRequest,
+          onAddCreditHistory: addCreditHistory,
+          playerWindow: state.playerWindow,
+          isPlayerRunning: state.isPlayerRunning,
+          onPlayerToggle: handlePlayerToggle,
+          onSkipSong: handleSkipSong,
+          maxSongLength: state.maxSongLength,
+          onMaxSongLengthChange: (minutes) => setState(prev => ({ ...prev, maxSongLength: minutes })),
+          defaultPlaylist: state.defaultPlaylist,
+          onDefaultPlaylistChange: handleDefaultPlaylistChange,
+          currentPlaylistVideos: getCurrentPlaylistForDisplay(),
+          onPlaylistReorder: handlePlaylistReorder,
+          onPlaylistShuffle: handlePlaylistShuffle,
+          currentlyPlaying: state.currentlyPlaying,
+          priorityQueue: state.priorityQueue,
+          showMiniPlayer: state.showMiniPlayer,
+          onShowMiniPlayerChange: (show) => setState(prev => ({ ...prev, showMiniPlayer: show }))
+        }}
       />
     </BackgroundDisplay>
   );
