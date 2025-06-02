@@ -31,6 +31,8 @@ export const usePlayerManager = (
   };
 
   const playSong = (videoId: string, title: string, artist: string, logType: 'SONG_PLAYED' | 'USER_SELECTION') => {
+    console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist}`);
+    
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
         action: 'play',
@@ -42,19 +44,25 @@ export const usePlayerManager = (
       
       try {
         state.playerWindow.localStorage.setItem('jukeboxCommand', JSON.stringify(command));
+        
+        // Update state immediately with the new video info
         setState(prev => ({ 
           ...prev, 
           currentlyPlaying: title.replace(/\([^)]*\)/g, '').trim(),
           currentVideoId: videoId
         }));
         
+        console.log(`[PlaySong] Command sent and state updated. VideoID: ${videoId}`);
+        
         const description = logType === 'USER_SELECTION' ? 
           `Playing user request: ${title}` : 
           `Autoplay: ${title}`;
         addLog(logType, description, videoId);
       } catch (error) {
-        console.error('Error sending command to player:', error);
+        console.error('[PlaySong] Error sending command to player:', error);
       }
+    } else {
+      console.error('[PlaySong] Player window not available');
     }
   };
 
@@ -120,6 +128,8 @@ export const usePlayerManager = (
   };
 
   const performSkip = () => {
+    console.log(`[PerformSkip] Skipping current video: ${state.currentVideoId}`);
+    
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = { action: 'fadeOutAndBlack', fadeDuration: 3000 };
       try {

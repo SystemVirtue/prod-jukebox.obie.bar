@@ -1,3 +1,4 @@
+
 import { JukeboxState, PlaylistItem, LogEntry } from "./useJukeboxState";
 
 export const usePlaylistManager = (
@@ -48,7 +49,7 @@ export const usePlaylistManager = (
         currentVideoIndex: 0
       }));
       
-      console.log(`Loaded ${allVideos.length} videos from playlist (maintaining original order)`);
+      console.log(`[LoadPlaylist] Loaded ${allVideos.length} videos from playlist (maintaining original order)`);
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({
@@ -69,12 +70,16 @@ export const usePlaylistManager = (
   };
 
   const playNextSong = () => {
-    console.log('playNextSong called - checking priority queue first...');
+    console.log('[PlayNext] playNextSong called - checking priority queue first...');
+    console.log('[PlayNext] Priority queue length:', state.priorityQueue.length);
+    console.log('[PlayNext] In-memory playlist length:', state.inMemoryPlaylist.length);
     
     // Always check priority queue first
     if (state.priorityQueue.length > 0) {
-      console.log('Playing next song from priority queue');
+      console.log('[PlayNext] Playing next song from priority queue');
       const nextRequest = state.priorityQueue[0];
+      console.log('[PlayNext] Next priority song:', nextRequest.title, 'VideoID:', nextRequest.videoId);
+      
       setState(prev => ({ 
         ...prev, 
         priorityQueue: prev.priorityQueue.slice(1) 
@@ -86,8 +91,9 @@ export const usePlaylistManager = (
     
     // Play from in-memory playlist - SEQUENTIAL ORDER
     if (state.inMemoryPlaylist.length > 0) {
-      console.log('Playing next song from in-memory playlist (sequential order)');
+      console.log('[PlayNext] Playing next song from in-memory playlist (sequential order)');
       const nextVideo = state.inMemoryPlaylist[0];
+      console.log('[PlayNext] Next playlist song:', nextVideo.title, 'VideoID:', nextVideo.videoId);
       
       // Move played song to end of playlist (circular playlist)
       setState(prev => ({ 
@@ -96,11 +102,13 @@ export const usePlaylistManager = (
       }));
       
       playSong(nextVideo.videoId, nextVideo.title, nextVideo.channelTitle, 'SONG_PLAYED');
+    } else {
+      console.warn('[PlayNext] No songs available in playlist or priority queue!');
     }
   };
 
   const handleVideoEnded = () => {
-    console.log('Video ended, checking priority queue and playing next song...');
+    console.log('[VideoEnded] Video ended, triggering playNextSong...');
     playNextSong();
   };
 
@@ -114,7 +122,7 @@ export const usePlaylistManager = (
   };
 
   const handlePlaylistShuffle = () => {
-    console.log('Manual shuffle requested by user');
+    console.log('[Shuffle] Manual shuffle requested by user');
     // Don't shuffle if currently playing - only shuffle the remaining playlist
     const currentSong = state.inMemoryPlaylist.find(song => song.title === state.currentlyPlaying);
     const remainingPlaylist = state.inMemoryPlaylist.filter(song => song.title !== state.currentlyPlaying);

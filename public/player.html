@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -205,7 +206,7 @@
             console.log("DEBUG: [PlayerWin] State Change:", newState, `(${ YT.PlayerState[newState] || 'Unknown' })`);
 
             if (newState === YT.PlayerState.ENDED && !isFadingOut) {
-                console.log("DEBUG: [PlayerWin] Video Ended naturally. Sending 'ended' status.");
+                console.log("DEBUG: [PlayerWin] Video Ended naturally. Current video ID:", currentPlayerVideoId);
                 sendPlayerStatus('ended', { id: currentPlayerVideoId });
                 currentPlayerVideoId = null;
             } else if (newState === YT.PlayerState.PLAYING) {
@@ -214,6 +215,14 @@
                      const videoData = event.target?.getVideoData?.();
                      if (videoData?.video_id) {
                          currentPlayerVideoId = videoData.video_id;
+                         console.log("DEBUG: [PlayerWin] Updated currentPlayerVideoId to:", currentPlayerVideoId);
+                         
+                         // Send playing status with video info
+                         sendPlayerStatus('playing', { 
+                           id: currentPlayerVideoId,
+                           title: videoData.title,
+                           videoId: currentPlayerVideoId
+                         });
                      }
                  } catch(e){ 
                      console.warn("Could not get video data on play state change:", e); 
@@ -356,6 +365,8 @@
                         if (commandData.videoId && typeof player.loadVideoById === 'function') {
                             console.log(`DEBUG: [PlayerWin] Loading Video: ${commandData.videoId} (${commandData.artist || '?'} - ${commandData.title || '?'})`);
                             currentPlayerVideoId = commandData.videoId;
+                            console.log(`DEBUG: [PlayerWin] Set currentPlayerVideoId to: ${currentPlayerVideoId}`);
+                            
                             player.loadVideoById(commandData.videoId);
                             player.playVideo();
                             
@@ -391,7 +402,7 @@
 
                     case 'fadeOutAndBlack':
                          const fadeDuration = commandData.fadeDuration || 5000;
-                         console.log(`DEBUG: [PlayerWin] Initiating fadeOutAndBlack over ${fadeDuration}ms`);
+                         console.log(`DEBUG: [PlayerWin] Initiating fadeOutAndBlack over ${fadeDuration}ms for video: ${currentPlayerVideoId}`);
                          startVisualAndAudioFade(fadeDuration);
                          break;
 
@@ -412,8 +423,8 @@
                     timestamp: Date.now(),
                     ...data
                 };
-                console.log(`%c DEBUG: [PlayerWin] >>> Sending status >>> Key: ${STATUS_STORAGE_KEY}, Data: ${JSON.stringify(statusData)}`, "color: orange;");
-                localStorage.setItem(STATUS_STORAGE_KEY, JSON.stringify(statusData));
+                console.log(`DEBUG: [PlayerWin] >>> Sending status >>> Type: ${statusType}, VideoID: ${currentPlayerVideoId}, Data: ${JSON.stringify(statusData)}`);
+                localStorage.setItem('jukeboxStatus', JSON.stringify(statusData));
              } catch (e) {
                  console.error("DEBUG: [PlayerWin] Failed to send status update via localStorage.", e);
              }
