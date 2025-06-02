@@ -162,8 +162,34 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               </div>
             ) : (
               <div className="flex-1 overflow-hidden">
-                <ScrollArea className="h-full">
-                  <div className="p-6 grid grid-cols-4 gap-6" style={{ scrollbarWidth: 'auto', scrollbarColor: '#64748b #334155' }}>
+                <div 
+                  className="h-full overflow-y-auto p-6"
+                  style={{
+                    scrollbarWidth: '20px',
+                    scrollbarColor: '#f59e0b #374151'
+                  }}
+                >
+                  <style>{`
+                    .search-results-container::-webkit-scrollbar {
+                      width: 20px;
+                    }
+                    
+                    .search-results-container::-webkit-scrollbar-track {
+                      background: #374151;
+                      border-radius: 10px;
+                    }
+                    
+                    .search-results-container::-webkit-scrollbar-thumb {
+                      background: #f59e0b;
+                      border-radius: 10px;
+                      border: 2px solid #374151;
+                    }
+                    
+                    .search-results-container::-webkit-scrollbar-thumb:hover {
+                      background: #d97706;
+                    }
+                  `}</style>
+                  <div className="grid grid-cols-4 gap-6 search-results-container">
                     {searchResults.map((video) => (
                       <div
                         key={video.id}
@@ -186,7 +212,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             )}
           </div>

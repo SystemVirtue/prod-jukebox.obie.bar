@@ -21,6 +21,15 @@ export const usePlayerManager = (
     if (playerWindow) {
       setState(prev => ({ ...prev, playerWindow, isPlayerRunning: true }));
       console.log('Player window opened successfully');
+      
+      // Start first song after a delay to allow player to initialize
+      setTimeout(() => {
+        if (state.inMemoryPlaylist.length > 0) {
+          const firstSong = state.inMemoryPlaylist[0];
+          console.log('Auto-starting first song after player initialization:', firstSong.title);
+          playSong(firstSong.videoId, firstSong.title, firstSong.channelTitle, 'SONG_PLAYED');
+        }
+      }, 3000);
     } else {
       toast({
         title: "Error",
@@ -71,15 +80,6 @@ export const usePlayerManager = (
     if (!state.playerWindow || state.playerWindow.closed) {
       console.log('Player window is closed, reopening...');
       initializePlayer();
-      
-      // Start playing the first song in the playlist after a short delay
-      setTimeout(() => {
-        if (state.inMemoryPlaylist.length > 0) {
-          const firstSong = state.inMemoryPlaylist[0];
-          playSong(firstSong.videoId, firstSong.title, firstSong.channelTitle, 'SONG_PLAYED');
-        }
-      }, 2000);
-      
       addLog('SONG_PLAYED', 'Player window reopened and started');
       return;
     }

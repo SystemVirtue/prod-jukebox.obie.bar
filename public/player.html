@@ -57,7 +57,8 @@
                     'modestbranding': 1,
                     'iv_load_policy': 3,
                     'fs': 0,
-                    'disablekb': 1
+                    'disablekb': 1,
+                    'mute': 0
                 },
                 events: {
                     'onReady': onPlayerReady,
@@ -144,6 +145,14 @@
                 clearTestModeTimer();
             } else if (event.data == YT.PlayerState.BUFFERING) {
                 updateStatus('Buffering...');
+            } else if (event.data == YT.PlayerState.CUED) {
+                console.log('[Player] Video cued, attempting autoplay...');
+                // Ensure video starts playing when cued
+                if (player && player.playVideo) {
+                    setTimeout(() => {
+                        player.playVideo();
+                    }, 100);
+                }
             }
         }
 
@@ -228,6 +237,13 @@
                         if (isPlayerReady && player && player.loadVideoById) {
                             player.loadVideoById(command.videoId);
                             updateStatus(`Loading: ${command.title || command.videoId}${isTestMode ? ' (TEST MODE)' : ''}`);
+                            
+                            // Ensure autoplay after a short delay
+                            setTimeout(() => {
+                                if (player && player.playVideo) {
+                                    player.playVideo();
+                                }
+                            }, 1000);
                         }
                         
                         // Clear the command
