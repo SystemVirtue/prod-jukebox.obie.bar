@@ -14,6 +14,7 @@ export const usePlaylistManager = (
       let allVideos: PlaylistItem[] = [];
       let nextPageToken = '';
       
+      // Load ALL videos without any limits
       do {
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
         const response = await fetch(url);
@@ -39,17 +40,19 @@ export const usePlaylistManager = (
         
         allVideos = [...allVideos, ...videos];
         nextPageToken = data.nextPageToken || '';
+        
+        console.log(`[LoadPlaylist] Loaded ${videos.length} videos this batch, total so far: ${allVideos.length}`);
       } while (nextPageToken);
 
       // DO NOT shuffle by default - keep original order
       setState(prev => ({ 
         ...prev, 
         defaultPlaylistVideos: allVideos, 
-        inMemoryPlaylist: [...allVideos], // Keep original order
+        inMemoryPlaylist: [...allVideos], // Keep original order with ALL videos
         currentVideoIndex: 0
       }));
       
-      console.log(`[LoadPlaylist] Loaded ${allVideos.length} videos from playlist (maintaining original order)`);
+      console.log(`[LoadPlaylist] Loaded ALL ${allVideos.length} videos from playlist (maintaining original order)`);
     } catch (error) {
       console.error('Error loading playlist:', error);
       toast({

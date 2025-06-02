@@ -161,35 +161,36 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <div className="text-2xl text-amber-200">Searching...</div>
               </div>
             ) : (
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 flex flex-col overflow-hidden">
                 <div 
-                  className="h-full overflow-y-auto p-6"
+                  className="flex-1 overflow-y-auto p-6 search-results-scrollable"
                   style={{
                     scrollbarWidth: 'auto',
                     scrollbarColor: '#f59e0b #374151'
                   }}
                 >
                   <style>{`
-                    .search-results-container::-webkit-scrollbar {
+                    .search-results-scrollable::-webkit-scrollbar {
                       width: 20px;
+                      display: block;
                     }
                     
-                    .search-results-container::-webkit-scrollbar-track {
+                    .search-results-scrollable::-webkit-scrollbar-track {
                       background: #374151;
                       border-radius: 10px;
                     }
                     
-                    .search-results-container::-webkit-scrollbar-thumb {
+                    .search-results-scrollable::-webkit-scrollbar-thumb {
                       background: #f59e0b;
                       border-radius: 10px;
                       border: 2px solid #374151;
                     }
                     
-                    .search-results-container::-webkit-scrollbar-thumb:hover {
+                    .search-results-scrollable::-webkit-scrollbar-thumb:hover {
                       background: #d97706;
                     }
                   `}</style>
-                  <div className="grid grid-cols-4 gap-6 search-results-container">
+                  <div className="grid grid-cols-4 gap-6">
                     {searchResults.map((video) => (
                       <div
                         key={video.id}
