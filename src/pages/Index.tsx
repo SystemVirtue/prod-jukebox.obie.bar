@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -133,12 +132,17 @@ const Index = () => {
       // Update currently playing based on player window communication - ensure proper sync
       if (status.status === 'playing' && status.title && status.videoId) {
         const cleanTitle = status.title.replace(/\([^)]*\)/g, '').trim();
+        console.log('[StorageEvent] Updating currently playing to:', cleanTitle, 'VideoID:', status.videoId);
         setState(prev => ({ 
           ...prev, 
           currentlyPlaying: cleanTitle,
           currentVideoId: status.videoId
         }));
-        console.log('[StorageEvent] Updated currently playing to:', cleanTitle, 'VideoID:', status.videoId);
+        
+        // Force update of coming up titles by triggering a state refresh
+        setTimeout(() => {
+          setState(prev => ({ ...prev }));
+        }, 100);
       }
       
       // Handle video ended - ensure proper progression to next song
@@ -159,6 +163,11 @@ const Index = () => {
           setTimeout(() => {
             console.log('[StorageEvent] Triggering handleVideoEnded for autoplay');
             handleVideoEndedRef.current();
+            
+            // Force update of coming up titles after video change
+            setTimeout(() => {
+              setState(prev => ({ ...prev }));
+            }, 500);
           }, 500);
         } else {
           console.log('[StorageEvent] Video ID mismatch, ignoring end event');
@@ -181,6 +190,11 @@ const Index = () => {
           setTimeout(() => {
             console.log('[StorageEvent] Triggering handleVideoEnded after fade');
             handleVideoEndedRef.current();
+            
+            // Force update of coming up titles after skip
+            setTimeout(() => {
+              setState(prev => ({ ...prev }));
+            }, 500);
           }, 500);
         }
       }
@@ -202,6 +216,11 @@ const Index = () => {
           setTimeout(() => {
             console.log('[StorageEvent] Triggering handleVideoEnded after error');
             handleVideoEndedRef.current();
+            
+            // Force update of coming up titles after error skip
+            setTimeout(() => {
+              setState(prev => ({ ...prev }));
+            }, 500);
           }, 1000);
         }
       }
@@ -223,6 +242,11 @@ const Index = () => {
           currentlyPlaying: cleanTitle,
           currentVideoId: command.videoId
         }));
+        
+        // Force update of coming up titles when new song starts
+        setTimeout(() => {
+          setState(prev => ({ ...prev }));
+        }, 100);
       }
     }
   }, [setState, addLog]);
@@ -241,7 +265,7 @@ const Index = () => {
         <div className="absolute top-4 left-4 z-20">
           <Card className="bg-amber-900/90 border-amber-600 backdrop-blur-sm">
             <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-[38.4rem] truncate">
+              <div className="text-amber-100 font-bold text-lg w-[30.7rem] truncate">
                 Now Playing: {state.currentlyPlaying}
               </div>
             </CardContent>
@@ -313,10 +337,10 @@ const Index = () => {
 
         {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
-          <div className="whitespace-nowrap animate-marquee">
+          <div className="whitespace-nowrap animate-marquee" key={`${state.currentlyPlaying}-${state.priorityQueue.length}-${state.inMemoryPlaylist.length}`}>
             <span className="text-lg font-bold">COMING UP: </span>
             {getUpcomingTitles().map((title, index) => (
-              <span key={index} className="mx-8 text-lg">
+              <span key={`${index}-${title}`} className="mx-8 text-lg">
                 {index + 1}. {title}
               </span>
             ))}
