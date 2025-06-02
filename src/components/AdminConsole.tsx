@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users, Monitor } from 'lucide-react';
+import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users, Monitor, Timer, Coins } from 'lucide-react';
 
 // Helper function to clean title text by removing content in brackets
 const cleanTitle = (title: string): string => {
@@ -95,6 +95,12 @@ interface AdminConsoleProps {
   priorityQueue: QueuedRequest[];
   showMiniPlayer: boolean;
   onShowMiniPlayerChange: (show: boolean) => void;
+  testMode: boolean;
+  onTestModeChange: (testMode: boolean) => void;
+  coinValueA: number;
+  onCoinValueAChange: (value: number) => void;
+  coinValueB: number;
+  onCoinValueBChange: (value: number) => void;
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
@@ -144,7 +150,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   currentlyPlaying,
   priorityQueue,
   showMiniPlayer,
-  onShowMiniPlayerChange
+  onShowMiniPlayerChange,
+  testMode,
+  onTestModeChange,
+  coinValueA,
+  onCoinValueAChange,
+  coinValueB,
+  onCoinValueBChange
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
@@ -244,6 +256,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
           </DialogHeader>
           
           <div className="space-y-6">
+            {/* Test Mode - At the top */}
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Timer className="w-5 h-5 text-yellow-600" />
+                <label className="text-sm font-medium text-yellow-800">
+                  Test Mode
+                </label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="test-mode"
+                  checked={testMode}
+                  onCheckedChange={onTestModeChange}
+                />
+                <label htmlFor="test-mode" className="text-sm text-yellow-700">
+                  TEST_MODE - 20 sec videos (Videos play for only 20 seconds before auto-advancing)
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Play Mode
@@ -257,6 +289,63 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   <SelectItem value="PAID">Credit Mode</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Coin Acceptor Configuration */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Coin Acceptor Device
+              </label>
+              <Select value={selectedCoinAcceptor} onValueChange={onCoinAcceptorChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select device..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No Device</SelectItem>
+                  <SelectItem value="usbserial-1420">USB Serial Device (usbserial-1420)</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && (
+                <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Coins className="w-5 h-5 text-blue-600" />
+                    <label className="text-sm font-medium text-blue-800">
+                      Coin Values Configuration
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700 mb-1">
+                        "a" character adds:
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={coinValueA}
+                        onChange={(e) => onCoinValueAChange(parseInt(e.target.value) || 1)}
+                        className="w-full"
+                      />
+                      <span className="text-xs text-blue-600">credit(s)</span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-blue-700 mb-1">
+                        "b" character adds:
+                      </label>
+                      <Input
+                        type="number"
+                        min="1"
+                        max="10"
+                        value={coinValueB}
+                        onChange={(e) => onCoinValueBChange(parseInt(e.target.value) || 3)}
+                        className="w-full"
+                      />
+                      <span className="text-xs text-blue-600">credit(s)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
@@ -475,21 +564,6 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 style={{ display: 'none' }}
                 onChange={onBackgroundUpload}
               />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
-                Coin Acceptor Device
-              </label>
-              <Select value={selectedCoinAcceptor} onValueChange={onCoinAcceptorChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select device..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No Device</SelectItem>
-                  <SelectItem value="usbserial-1420">USB Serial Device (usbserial-1420)</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

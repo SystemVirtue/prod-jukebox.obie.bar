@@ -16,6 +16,8 @@ interface SerialCommunicationProps {
   onCreditsChange: (credits: number) => void;
   credits: number;
   onAddLog: (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => void;
+  coinValueA: number;
+  coinValueB: number;
 }
 
 export const useSerialCommunication = ({
@@ -23,7 +25,9 @@ export const useSerialCommunication = ({
   selectedCoinAcceptor,
   onCreditsChange,
   credits,
-  onAddLog
+  onAddLog,
+  coinValueA,
+  coinValueB
 }: SerialCommunicationProps) => {
   const { toast } = useToast();
 
@@ -31,7 +35,7 @@ export const useSerialCommunication = ({
     if (mode === 'PAID' && selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && 'serial' in navigator) {
       setupSerialConnection();
     }
-  }, [mode, selectedCoinAcceptor]);
+  }, [mode, selectedCoinAcceptor, coinValueA, coinValueB]);
 
   const setupSerialConnection = async () => {
     try {
@@ -59,13 +63,13 @@ export const useSerialCommunication = ({
               
               const text = decoder.decode(value);
               if (text.includes('a')) {
-                onCreditsChange(credits + 1);
-                onAddLog('CREDIT_ADDED', 'COIN DEPOSITED - $1 ("a")', undefined, 1);
-                toast({ title: "Credit Added", description: "+1 Credit from coin acceptor" });
+                onCreditsChange(credits + coinValueA);
+                onAddLog('CREDIT_ADDED', `COIN DEPOSITED - $${coinValueA} ("a")`, undefined, coinValueA);
+                toast({ title: "Credit Added", description: `+${coinValueA} Credit${coinValueA > 1 ? 's' : ''} from coin acceptor` });
               } else if (text.includes('b')) {
-                onCreditsChange(credits + 3);
-                onAddLog('CREDIT_ADDED', 'COIN DEPOSITED - $3 ("b")', undefined, 3);
-                toast({ title: "Credits Added", description: "+3 Credits from coin acceptor" });
+                onCreditsChange(credits + coinValueB);
+                onAddLog('CREDIT_ADDED', `COIN DEPOSITED - $${coinValueB} ("b")`, undefined, coinValueB);
+                toast({ title: "Credits Added", description: `+${coinValueB} Credits from coin acceptor` });
               }
             }
           } catch (error) {

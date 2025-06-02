@@ -39,7 +39,8 @@ export const usePlayerManager = (
         videoId: videoId,
         title: title,
         artist: artist,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        testMode: state.testMode
       };
       
       try {
@@ -52,11 +53,11 @@ export const usePlayerManager = (
           currentVideoId: videoId
         }));
         
-        console.log(`[PlaySong] Command sent and state updated. VideoID: ${videoId}`);
+        console.log(`[PlaySong] Command sent and state updated. VideoID: ${videoId}, TestMode: ${state.testMode}`);
         
         const description = logType === 'USER_SELECTION' ? 
-          `Playing user request: ${title}` : 
-          `Autoplay: ${title}`;
+          `Playing user request: ${title}${state.testMode ? ' (TEST MODE - 20s)' : ''}` : 
+          `Autoplay: ${title}${state.testMode ? ' (TEST MODE - 20s)' : ''}`;
         addLog(logType, description, videoId);
       } catch (error) {
         console.error('[PlaySong] Error sending command to player:', error);

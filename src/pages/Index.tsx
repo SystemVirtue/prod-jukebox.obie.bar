@@ -80,13 +80,15 @@ const Index = () => {
     onSelectedBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id }))
   });
 
-  // Use serial communication hook
+  // Use serial communication hook with new props
   useSerialCommunication({
     mode: state.mode,
     selectedCoinAcceptor: state.selectedCoinAcceptor,
     onCreditsChange: (credits) => setState(prev => ({ ...prev, credits })),
     credits: state.credits,
-    onAddLog: addLog
+    onAddLog: addLog,
+    coinValueA: state.coinValueA,
+    coinValueB: state.coinValueB
   });
 
   // Initialize playlist first, then player when playlist is ready and has songs
@@ -119,7 +121,7 @@ const Index = () => {
     }
   }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused, state.playerWindow]);
 
-  // Fixed video end handling with proper queue management and sync - using useCallback to prevent stale closures
+  // Enhanced video end handling with proper queue management and improved sync
   const handleStorageChange = useCallback((event: StorageEvent) => {
     if (event.key === 'jukeboxStatus' && event.newValue) {
       const status = JSON.parse(event.newValue);
@@ -127,19 +129,21 @@ const Index = () => {
       console.log('[StorageEvent] Parsed status:', status);
       console.log('[StorageEvent] Current video ID in state:', currentState.currentVideoId);
       
-      // Update currently playing based on player window communication
-      if (status.status === 'playing' && status.title) {
+      // Update currently playing based on player window communication - ensure proper sync
+      if (status.status === 'playing' && status.title && status.videoId) {
+        const cleanTitle = status.title.replace(/\([^)]*\)/g, '').trim();
         setState(prev => ({ 
           ...prev, 
-          currentlyPlaying: status.title.replace(/\([^)]*\)/g, '').trim(),
-          currentVideoId: status.videoId || prev.currentVideoId
+          currentlyPlaying: cleanTitle,
+          currentVideoId: status.videoId
         }));
+        console.log('[StorageEvent] Updated currently playing to:', cleanTitle, 'VideoID:', status.videoId);
       }
       
-      // Handle video ended - check priority queue first
-      if (status.status === 'ended') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Video ended. Status video ID:', statusVideoId);
+      // Handle video ended - ensure proper progression to next song
+      if (status.status === 'ended' || status.status === 'testModeComplete') {
+        const statusVideoId = status.id || status.videoId;
+        console.log('[StorageEvent] Video ended/testModeComplete. Status video ID:', statusVideoId);
         console.log('[StorageEvent] Current state video ID:', currentState.currentVideoId);
         
         if (statusVideoId && statusVideoId === currentState.currentVideoId) {
@@ -150,22 +154,23 @@ const Index = () => {
             currentVideoId: ''
           }));
           
-          // Use timeout to ensure state update completes before playing next song
+          // Ensure autoplay of next song
           setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded');
+            console.log('[StorageEvent] Triggering handleVideoEnded for autoplay');
             handleVideoEndedRef.current();
-          }, 100);
+          }, 500);
         } else {
           console.log('[StorageEvent] Video ID mismatch, ignoring end event');
         }
       }
       
+      // Handle fade complete
       if (status.status === 'fadeComplete') {
         const statusVideoId = status.id;
         console.log('[StorageEvent] Fade complete. Status video ID:', statusVideoId);
         
         if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Fade complete for current video, processing');
+          console.log('[StorageEvent] Fade complete for current video, processing autoplay');
           setState(prev => ({ 
             ...prev, 
             currentlyPlaying: 'Loading...',
@@ -175,7 +180,7 @@ const Index = () => {
           setTimeout(() => {
             console.log('[StorageEvent] Triggering handleVideoEnded after fade');
             handleVideoEndedRef.current();
-          }, 100);
+          }, 500);
         }
       }
       
@@ -196,7 +201,7 @@ const Index = () => {
           setTimeout(() => {
             console.log('[StorageEvent] Triggering handleVideoEnded after error');
             handleVideoEndedRef.current();
-          }, 1500);
+          }, 1000);
         }
       }
 
@@ -206,14 +211,15 @@ const Index = () => {
       }
     }
     
-    // Listen for player window commands to track what's playing
+    // Listen for player window commands to track what's playing - prevent duplication
     if (event.key === 'jukeboxCommand' && event.newValue) {
       const command = JSON.parse(event.newValue);
       if (command.action === 'play' && command.title && command.videoId) {
         console.log('[StorageEvent] Play command detected:', command.videoId, command.title);
+        const cleanTitle = command.title.replace(/\([^)]*\)/g, '').trim();
         setState(prev => ({ 
           ...prev, 
-          currentlyPlaying: command.title.replace(/\([^)]*\)/g, '').trim(),
+          currentlyPlaying: cleanTitle,
           currentVideoId: command.videoId
         }));
       }
@@ -491,6 +497,12 @@ const Index = () => {
         priorityQueue={state.priorityQueue}
         showMiniPlayer={state.showMiniPlayer}
         onShowMiniPlayerChange={(show) => setState(prev => ({ ...prev, showMiniPlayer: show }))}
+        testMode={state.testMode}
+        onTestModeChange={(testMode) => setState(prev => ({ ...prev, testMode }))}
+        coinValueA={state.coinValueA}
+        onCoinValueAChange={(value) => setState(prev => ({ ...prev, coinValueA: value }))}
+        coinValueB={state.coinValueB}
+        onCoinValueBChange={(value) => setState(prev => ({ ...prev, coinValueB: value }))}
       />
     </BackgroundDisplay>
   );

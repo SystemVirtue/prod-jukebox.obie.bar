@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 
 export interface SearchResult {
@@ -94,6 +93,9 @@ export interface JukeboxState {
   isPlayerPaused: boolean;
   showSkipConfirmation: boolean;
   showMiniPlayer: boolean;
+  testMode: boolean;
+  coinValueA: number;
+  coinValueB: number;
 }
 
 const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
@@ -135,7 +137,10 @@ export const useJukeboxState = () => {
     duplicateSongTitle: '',
     isPlayerPaused: false,
     showSkipConfirmation: false,
-    showMiniPlayer: false
+    showMiniPlayer: false,
+    testMode: false,
+    coinValueA: 1,
+    coinValueB: 3
   });
 
   const addLog = (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => {
