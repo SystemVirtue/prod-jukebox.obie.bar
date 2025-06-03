@@ -19,6 +19,8 @@ interface SerialCommunicationProps {
   coinValueB: number;
 }
 
+import { useRef } from 'react';
+
 export const useSerialCommunication = ({
   mode,
   selectedCoinAcceptor,
@@ -33,17 +35,24 @@ export const useSerialCommunication = ({
   // Track connection status
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connected' | 'connecting' | 'error'>('disconnected');
   
+  // Track if user cancelled port selection to avoid repeated toasts
+  const hasCancelledPortSelection = useRef(false);
+
   useEffect(() => {
-    if (mode === 'PAID' && selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && 'serial' in navigator) {
+    hasCancelledPortSelection.current = false; // Reset if mode or selectedCoinAcceptor changes
+  }, [mode, selectedCoinAcceptor]);
+
+  useEffect(() => {
+    if (mode === 'PAID' && selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && 'serial' in navigator && !hasCancelledPortSelection.current) {
       setConnectionStatus('connecting');
       setupSerialConnection();
     } else {
       setConnectionStatus('disconnected');
     }
     
-    // Attempt reconnection every 30 seconds if in error state
+    // Attempt reconnection every 30 seconds if in error state and not cancelled
     const reconnectionInterval = setInterval(() => {
-      if (connectionStatus === 'error' && mode === 'PAID' && selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && 'serial' in navigator) {
+      if (connectionStatus === 'error' && mode === 'PAID' && selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && 'serial' in navigator && !hasCancelledPortSelection.current) {
         console.log('Attempting to reconnect to coin acceptor...');
         setConnectionStatus('connecting');
         setupSerialConnection();
@@ -89,17 +98,23 @@ export const useSerialCommunication = ({
       );
 
       if (!targetPort) {
-        try {
-          console.log('No previous connection found, requesting port selection...');
-          targetPort = await (navigator as any).serial.requestPort();
-        } catch (portError) {
-          console.error('User cancelled port selection or no ports available:', portError);
+        if (!hasCancelledPortSelection.current) {
+          try {
+            console.log('No previous connection found, requesting port selection...');
+            targetPort = await (navigator as any).serial.requestPort();
+          } catch (portError) {
+            console.error('User cancelled port selection or no ports available:', portError);
+            setConnectionStatus('error');
+            toast({
+              title: "Port Selection Cancelled",
+              description: "No coin acceptor was selected",
+              variant: "destructive"
+            });
+            hasCancelledPortSelection.current = true;
+            return;
+          }
+        } else {
           setConnectionStatus('error');
-          toast({
-            title: "Port Selection Cancelled",
-            description: "No coin acceptor was selected",
-            variant: "destructive"
-          });
           return;
         }
       }
