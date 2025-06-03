@@ -86,7 +86,8 @@ const Index = () => {
   useSerialCommunication({
     mode: state.mode,
     selectedCoinAcceptor: state.selectedCoinAcceptor,
-    onCreditsChange: (credits) => setState(prev => ({ ...prev, credits })),
+    onCreditsChange: (delta) => setState(prev => ({ ...prev, credits: prev.credits + delta })),
+
     credits: state.credits,
     onAddLog: addLog,
     coinValueA: state.coinValueA,

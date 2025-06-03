@@ -12,7 +12,7 @@ interface LogEntry {
 interface SerialCommunicationProps {
   mode: 'FREEPLAY' | 'PAID';
   selectedCoinAcceptor: string;
-  onCreditsChange: (credits: number) => void;
+  onCreditsChange: (delta: number) => void;
   credits: number;
   onAddLog: (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => void;
   coinValueA: number;
@@ -142,14 +142,14 @@ export const useSerialCommunication = ({
               console.log('Received data from coin acceptor:', text);
               
               if (text.includes('a')) {
-                onCreditsChange(credits + coinValueA);
+                onCreditsChange(coinValueA);
                 onAddLog('CREDIT_ADDED', `COIN DEPOSITED - $${coinValueA} ("a")`, undefined, coinValueA);
                 toast({ 
                   title: "Credit Added", 
                   description: `+${coinValueA} Credit${coinValueA > 1 ? 's' : ''} from coin acceptor` 
                 });
               } else if (text.includes('b')) {
-                onCreditsChange(credits + coinValueB);
+                onCreditsChange(coinValueB);
                 onAddLog('CREDIT_ADDED', `COIN DEPOSITED - $${coinValueB} ("b")`, undefined, coinValueB);
                 toast({ 
                   title: "Credits Added", 
