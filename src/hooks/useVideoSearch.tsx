@@ -72,7 +72,7 @@ export const useVideoSearch = (
 
     try {
       console.log('Starting YouTube search for:', query);
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=50&key=${state.apiKey}`;
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=48&key=${state.apiKey}`;
       
       const response = await fetch(searchUrl);
       if (!response.ok) {
@@ -152,18 +152,19 @@ export const useVideoSearch = (
         
         for (const keyword of officialKeywords) {
           if (titleLower.includes(keyword)) {
-            score += 5;
+            score += 3;
             break;
           }
         }
         
         if (channelTitleLower.includes("official")) score += 3;
         if (titleLower.includes("cover") || titleLower.includes("remix")) score -= 5;
+        if (titleLower.includes("karaoke")) score += 3;
         
         video.officialScore = score;
         return video;
       })
-      .filter(video => video.officialScore > 0)
+      .filter(video => video.officialScore >= 0)
       .sort((a, b) => b.officialScore - a.officialScore);
   };
 
