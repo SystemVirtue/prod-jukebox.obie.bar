@@ -85,20 +85,30 @@ export const useVideoSearch = (
       if (data.items && data.items.length > 0) {
         // Get video durations
         const videoIds = data.items.map((item: any) => item.id.videoId).join(',');
-        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails&id=${videoIds}&key=${state.apiKey}`;
+        // Fetch both contentDetails and status for embeddability filtering
+        const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${videoIds}&key=${state.apiKey}`;
         const detailsResponse = await fetch(detailsUrl);
         const detailsData = await detailsResponse.json();
-        
-        // Create duration map
-        const durationMap = new Map();
-        detailsData.items?.forEach((item: any) => {
-          durationMap.set(item.id, item.contentDetails.duration);
-        });
-        
-        const filteredResults = filterForOfficial(data.items, query);
+        // Merge details into videos
+        const detailsMap: Record<string, any> = {};
+        for (const item of detailsData.items) {
+          detailsMap[item.id] = item;
+        }
+        // Filter out videos that are not embeddable
+        const mergedVideos = data.items
+          .map((video: any) => {
+            const details = detailsMap[video.id.videoId];
+            return {
+              ...video,
+              contentDetails: details ? details.contentDetails : {},
+              status: details ? details.status : {},
+            };
+          })
+          .filter((video: any) => video.status && video.status.embeddable !== false);
+        const filteredResults = filterForOfficial(mergedVideos, query);
         const searchResults: SearchResult[] = filteredResults
           .map(video => {
-            const duration = durationMap.get(video.id.videoId) || '';
+            const duration = video.contentDetails.duration || '';
             const durationMinutes = durationToMinutes(duration);
             return {
               id: video.id.videoId,
