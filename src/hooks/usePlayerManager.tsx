@@ -19,6 +19,7 @@ export const usePlayerManager = (
       return;
     }
 
+    console.log("Attempting to open player window...");
     const playerWindow = window.open(
       "/player.html",
       "JukeboxPlayer",
