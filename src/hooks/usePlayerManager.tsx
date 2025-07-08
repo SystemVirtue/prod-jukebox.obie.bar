@@ -164,6 +164,10 @@ export const usePlayerManager = (
           );
         }
       }, 1000);
+
+      console.log(
+        "[InitializePlayer] Mock player setup complete - exiting without popup",
+      );
       return;
     }
 
