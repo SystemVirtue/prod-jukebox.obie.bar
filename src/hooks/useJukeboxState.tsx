@@ -183,6 +183,7 @@ export const useJukeboxState = () => {
     showMiniPlayer: false,
     testMode: false,
     devMode: false,
+    showDevModeAtStartup: true,
     showDevModePrompt: true,
     coinValueA: 3,
     coinValueB: 1,
