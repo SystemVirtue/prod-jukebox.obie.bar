@@ -94,7 +94,9 @@ export const usePlayerManager = (
             "Auto-starting first song with mock player:",
             firstSong.title,
           );
-          playSong(
+          // Call playSong directly with the mock player we just created
+          playMockSong(
+            mockPlayerWindow,
             firstSong.videoId,
             firstSong.title,
             firstSong.channelTitle,
