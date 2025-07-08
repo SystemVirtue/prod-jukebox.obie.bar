@@ -198,6 +198,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onShowMiniPlayerChange,
   testMode,
   onTestModeChange,
+  devMode,
+  onDevModeChange,
   coinValueA,
   onCoinValueAChange,
   coinValueB,
