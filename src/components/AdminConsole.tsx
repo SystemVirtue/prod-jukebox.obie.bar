@@ -32,6 +32,7 @@ import {
   Monitor,
   Timer,
   Coins,
+  Settings,
 } from "lucide-react";
 
 // Helper function to clean title text by removing content in brackets
