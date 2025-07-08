@@ -13,6 +13,55 @@ export const usePlayerManager = (
 ) => {
   const { toast } = useToast();
 
+  // Helper function to play songs with mock player
+  const playMockSong = (
+    mockPlayerWindow: any,
+    videoId: string,
+    title: string,
+    artist: string,
+    logType: "SONG_PLAYED" | "USER_SELECTION",
+  ) => {
+    console.log(`[PlayMockSong] Starting: ${videoId} - ${title} by ${artist}`);
+
+    const command = {
+      action: "play",
+      videoId: videoId,
+      title: title,
+      artist: artist,
+      timestamp: Date.now(),
+      testMode: state.testMode,
+    };
+
+    try {
+      mockPlayerWindow.localStorage.setItem(
+        "jukeboxCommand",
+        JSON.stringify(command),
+      );
+
+      // Update state immediately with the new video info
+      setState((prev) => ({
+        ...prev,
+        currentlyPlaying: title.replace(/\([^)]*\)/g, "").trim(),
+        currentVideoId: videoId,
+      }));
+
+      console.log(
+        `[PlayMockSong] Command sent and state updated. VideoID: ${videoId}, TestMode: ${state.testMode}`,
+      );
+
+      const description =
+        logType === "USER_SELECTION"
+          ? `Playing user request: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`
+          : `Autoplay: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`;
+      addLog(logType, description, videoId);
+    } catch (error) {
+      console.error(
+        "[PlayMockSong] Error sending command to mock player:",
+        error,
+      );
+    }
+  };
+
   const initializePlayer = () => {
     if (state.playerWindow && !state.playerWindow.closed) {
       console.log("Player window already exists");
