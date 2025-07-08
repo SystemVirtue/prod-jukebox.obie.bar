@@ -136,13 +136,17 @@ const Index = () => {
     loadPlaylistVideos(state.defaultPlaylist);
   }, []);
 
-  // Hide DevMode prompt when playlist loads
+  // Hide DevMode prompt after 3 seconds
   useEffect(() => {
-    if (state.defaultPlaylistVideos.length > 0 && state.showDevModePrompt) {
-      console.log("Playlist loaded - hiding DevMode prompt");
-      setState((prev) => ({ ...prev, showDevModePrompt: false }));
-    }
-  }, [state.defaultPlaylistVideos.length, state.showDevModePrompt]);
+    const timer = setTimeout(() => {
+      if (state.showDevModePrompt) {
+        console.log("3 seconds elapsed - hiding DevMode prompt");
+        setState((prev) => ({ ...prev, showDevModePrompt: false }));
+      }
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
