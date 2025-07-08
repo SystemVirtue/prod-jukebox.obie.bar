@@ -73,6 +73,7 @@ const Index = () => {
     addUserRequest,
     addCreditHistory,
     toast,
+    cycleToNextApiKey,
   );
 
   // Use refs to store latest values for the storage event handler
