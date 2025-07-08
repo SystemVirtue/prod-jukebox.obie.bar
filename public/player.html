@@ -340,6 +340,14 @@
               isTestMode = command.testMode || false;
               clearTestModeTimer();
 
+              // Update mock player display if in development mode
+              if (isDevelopmentMode && command.title) {
+                const mockTitleEl = document.getElementById("mock-video-title");
+                if (mockTitleEl) {
+                  mockTitleEl.textContent = `Playing: ${command.title}`;
+                }
+              }
+
               if (isPlayerReady && player && player.loadVideoById) {
                 player.loadVideoById(command.videoId);
                 updateStatus(
