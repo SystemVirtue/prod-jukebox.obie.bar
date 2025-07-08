@@ -381,14 +381,16 @@ const Index = () => {
 
   // Determine when to show the loading indicator
   const isLoading =
+    // Don't show loading while DevMode prompt is visible
+    !state.showDevModePrompt &&
     // When the application is initializing
-    state.defaultPlaylistVideos.length === 0 ||
-    // When playlist is loading
-    state.currentlyPlaying === "Loading..." ||
-    // When searching for videos
-    state.isSearching ||
-    // When player is not running yet
-    (!state.isPlayerRunning && state.defaultPlaylistVideos.length > 0);
+    (state.defaultPlaylistVideos.length === 0 ||
+      // When playlist is loading
+      state.currentlyPlaying === "Loading..." ||
+      // When searching for videos
+      state.isSearching ||
+      // When player is not running yet
+      (!state.isPlayerRunning && state.defaultPlaylistVideos.length > 0));
 
   return (
     <BackgroundDisplay
