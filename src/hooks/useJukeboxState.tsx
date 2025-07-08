@@ -320,6 +320,22 @@ export const useJukeboxState = () => {
     return playlist;
   };
 
+  const cycleToNextApiKey = () => {
+    setState((prev) => {
+      const nextIndex = (prev.currentApiKeyIndex + 1) % prev.apiKeys.length;
+      const nextKey = prev.apiKeys[nextIndex];
+      console.log(
+        `[API Key Cycling] Switching from key ${prev.currentApiKeyIndex + 1} to key ${nextIndex + 1}`,
+      );
+
+      return {
+        ...prev,
+        currentApiKeyIndex: nextIndex,
+        apiKey: nextKey,
+      };
+    });
+  };
+
   return {
     state,
     setState,
@@ -330,5 +346,6 @@ export const useJukeboxState = () => {
     getUpcomingTitles,
     isCurrentSongUserRequest,
     getCurrentPlaylistForDisplay,
+    cycleToNextApiKey,
   };
 };
