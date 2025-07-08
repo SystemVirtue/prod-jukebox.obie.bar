@@ -138,6 +138,8 @@ interface AdminConsoleProps {
   onShowMiniPlayerChange: (show: boolean) => void;
   testMode: boolean;
   onTestModeChange: (testMode: boolean) => void;
+  devMode: boolean;
+  onDevModeChange: (devMode: boolean) => void;
   coinValueA: number;
   onCoinValueAChange: (value: number) => void;
   coinValueB: number;
