@@ -800,9 +800,9 @@ const Index = () => {
         onTestModeChange={(testMode) =>
           setState((prev) => ({ ...prev, testMode }))
         }
-        devMode={state.devMode}
-        onDevModeChange={(devMode) =>
-          setState((prev) => ({ ...prev, devMode }))
+        showDevModeAtStartup={state.showDevModeAtStartup}
+        onShowDevModeAtStartupChange={(show) =>
+          setState((prev) => ({ ...prev, showDevModeAtStartup: show }))
         }
         coinValueA={state.coinValueA}
         onCoinValueAChange={(value) =>
