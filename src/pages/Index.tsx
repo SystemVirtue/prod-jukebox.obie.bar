@@ -115,6 +115,14 @@ const Index = () => {
     coinValueB: state.coinValueB,
   });
 
+  // Set initial showDevModePrompt based on showDevModeAtStartup setting
+  useEffect(() => {
+    setState((prev) => ({
+      ...prev,
+      showDevModePrompt: prev.showDevModeAtStartup,
+    }));
+  }, []);
+
   // Check if running on localhost and show development notice
   useEffect(() => {
     const isLocalhost =
