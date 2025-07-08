@@ -183,7 +183,7 @@ export const useJukeboxState = () => {
     showMiniPlayer: false,
     testMode: false,
     devMode: false,
-    showDevModeAtStartup: true,
+    showDevModeAtStartup: true, // Set to false in production
     showDevModePrompt: true, // Will be set based on showDevModeAtStartup in Index.tsx
     coinValueA: 3,
     coinValueB: 1,
