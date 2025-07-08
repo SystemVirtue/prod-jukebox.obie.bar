@@ -180,6 +180,7 @@ export const useJukeboxState = () => {
     showSkipConfirmation: false,
     showMiniPlayer: false,
     testMode: false,
+    devMode: false,
     coinValueA: 3,
     coinValueB: 1,
   });
