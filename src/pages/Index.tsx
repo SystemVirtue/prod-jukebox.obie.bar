@@ -404,13 +404,24 @@ const Index = () => {
               <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
                 {/* Vignette overlay for feathered edges */}
                 <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
-                <iframe
-                  src={`https://www.youtube.com/embed/${state.currentVideoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1`}
-                  className="w-full h-full border-0"
-                  allow="autoplay; encrypted-media"
-                  allowFullScreen={false}
-                  style={{ pointerEvents: "none" }}
-                />
+                {window.location.hostname === "localhost" ||
+                window.location.hostname === "127.0.0.1" ? (
+                  <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center text-white">
+                    <div className="text-center">
+                      <div className="text-2xl mb-2">🎵</div>
+                      <div className="text-xs opacity-75">Mini Player</div>
+                      <div className="text-xs opacity-50">Dev Mode</div>
+                    </div>
+                  </div>
+                ) : (
+                  <iframe
+                    src={`https://www.youtube.com/embed/${state.currentVideoId}?autoplay=1&mute=1&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&fs=0&disablekb=1`}
+                    className="w-full h-full border-0"
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen={false}
+                    style={{ pointerEvents: "none" }}
+                  />
+                )}
               </div>
             </div>
           )}
