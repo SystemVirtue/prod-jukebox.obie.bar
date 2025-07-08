@@ -470,6 +470,19 @@ const Index = () => {
           </div>
         )}
 
+        {/* Dev Mode Indicator - positioned above Test Mode indicator */}
+        {state.devMode && (
+          <div className="fixed bottom-28 left-0 right-0 flex justify-center z-30">
+            <Card className="bg-red-600/90 border-red-400 backdrop-blur-sm">
+              <CardContent className="p-2 px-4">
+                <div className="text-red-100 font-bold text-lg">
+                  🔧 DEV MODE - No Video Playback
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
         {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
           <div
