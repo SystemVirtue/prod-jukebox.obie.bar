@@ -269,15 +269,70 @@ export const usePlayerManager = (
 
       if (isLocalhost) {
         console.log(
-          "[PlaySong] Localhost detected - attempting to reinitialize mock player",
+          "[PlaySong] Localhost detected - creating mock player directly",
         );
-        initializePlayer();
-        // Retry the song after a short delay
+
+        // Create mock player directly instead of going through initializePlayer
+        const mockPlayerWindow = {
+          closed: false,
+          localStorage: {
+            setItem: (key: string, value: string) => {
+              console.log(`[MockPlayer] Setting ${key}:`, value);
+              if (key === "jukeboxCommand") {
+                const command = JSON.parse(value);
+                if (command.action === "play") {
+                  console.log(`[MockPlayer] Playing video: ${command.title}`);
+                  setTimeout(() => {
+                    const playingStatus = {
+                      status: "playing",
+                      id: command.videoId,
+                      videoId: command.videoId,
+                      title: command.title,
+                      timestamp: Date.now(),
+                    };
+                    localStorage.setItem(
+                      "jukeboxStatus",
+                      JSON.stringify(playingStatus),
+                    );
+                    console.log(
+                      `[MockPlayer] Simulated playing status for: ${command.title}`,
+                    );
+
+                    const duration = command.testMode ? 5000 : 15000;
+                    setTimeout(() => {
+                      const endedStatus = {
+                        status: command.testMode ? "testModeComplete" : "ended",
+                        id: command.videoId,
+                        videoId: command.videoId,
+                        timestamp: Date.now(),
+                      };
+                      localStorage.setItem(
+                        "jukeboxStatus",
+                        JSON.stringify(endedStatus),
+                      );
+                      console.log(
+                        `[MockPlayer] Simulated song ended for: ${command.title}`,
+                      );
+                    }, duration);
+                  }, 1000);
+                }
+              }
+            },
+            getItem: (key: string) => localStorage.getItem(key),
+            removeItem: (key: string) => localStorage.removeItem(key),
+          },
+        } as any;
+
+        setState((prev) => ({
+          ...prev,
+          playerWindow: mockPlayerWindow,
+          isPlayerRunning: true,
+        }));
+
+        // Now call playMockSong directly
         setTimeout(() => {
-          if (state.playerWindow) {
-            playSong(videoId, title, artist, logType);
-          }
-        }, 500);
+          playMockSong(mockPlayerWindow, videoId, title, artist, logType);
+        }, 100);
       } else {
         toast({
           title: "Player Not Available",
