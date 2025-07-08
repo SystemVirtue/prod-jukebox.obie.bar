@@ -70,7 +70,13 @@ export const usePlayerManager = (
 
     const isLocalhost =
       window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname.includes(".local") ||
+      window.location.protocol === "file:";
+
+    console.log(
+      `[InitializePlayer] Hostname: ${window.location.hostname}, Protocol: ${window.location.protocol}, IsLocalhost: ${isLocalhost}`,
+    );
 
     if (isLocalhost) {
       // For localhost, create a mock player window object instead of actual popup
