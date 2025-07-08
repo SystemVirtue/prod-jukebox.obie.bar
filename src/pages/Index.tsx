@@ -684,6 +684,8 @@ const Index = () => {
         }
         apiKey={state.apiKey}
         onApiKeyChange={(apiKey) => setState((prev) => ({ ...prev, apiKey }))}
+        apiKeys={state.apiKeys}
+        currentApiKeyIndex={state.currentApiKeyIndex}
         selectedCoinAcceptor={state.selectedCoinAcceptor}
         onCoinAcceptorChange={(device) =>
           setState((prev) => ({ ...prev, selectedCoinAcceptor: device }))
