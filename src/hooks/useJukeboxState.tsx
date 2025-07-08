@@ -328,10 +328,18 @@ export const useJukeboxState = () => {
         `[API Key Cycling] Switching from key ${prev.currentApiKeyIndex + 1} to key ${nextIndex + 1}`,
       );
 
+      // Add log entry for the cycling
+      const logEntry: LogEntry = {
+        timestamp: new Date().toISOString(),
+        type: "SONG_PLAYED",
+        description: `API key cycled to key ${nextIndex + 1}/${prev.apiKeys.length} due to quota exceeded`,
+      };
+
       return {
         ...prev,
         currentApiKeyIndex: nextIndex,
         apiKey: nextKey,
+        logs: [logEntry, ...prev.logs],
       };
     });
   };
