@@ -97,6 +97,7 @@ export interface JukeboxState {
   showMiniPlayer: boolean;
   testMode: boolean;
   devMode: boolean;
+  showDevModePrompt: boolean;
   coinValueA: number;
   coinValueB: number;
 }
