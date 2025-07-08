@@ -526,7 +526,7 @@ const Index = () => {
                   Real video playback will be disabled
                 </div>
                 <div className="text-sm text-red-300 mt-4 opacity-75">
-                  This popup will auto-hide when the playlist loads
+                  This popup will auto-hide in 3 seconds
                 </div>
               </div>
             </div>
