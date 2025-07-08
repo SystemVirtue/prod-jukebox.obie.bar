@@ -612,14 +612,66 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
-                YouTube API Key
+                YouTube API Keys
               </label>
-              <Input
-                value={apiKey}
-                onChange={(e) => onApiKeyChange(e.target.value)}
-                placeholder="Enter YouTube API Key"
-                className="font-mono text-sm"
-              />
+
+              {/* Current API Key Status */}
+              <div className="mb-3 p-3 bg-slate-100 rounded-lg">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-sm font-medium">
+                    Current Active Key:
+                  </span>
+                  <span className="text-sm bg-green-100 text-green-800 px-2 py-1 rounded">
+                    Key {currentApiKeyIndex + 1} of {apiKeys.length}
+                  </span>
+                </div>
+                <div className="text-xs font-mono text-slate-600 truncate">
+                  {apiKey.slice(0, 20)}...{apiKey.slice(-8)}
+                </div>
+              </div>
+
+              {/* All API Keys Overview */}
+              <div className="mb-3">
+                <span className="text-sm font-medium text-slate-600 mb-2 block">
+                  All Keys Status:
+                </span>
+                <div className="grid gap-2">
+                  {apiKeys.map((key, index) => (
+                    <div
+                      key={index}
+                      className={`p-2 rounded border text-xs ${
+                        index === currentApiKeyIndex
+                          ? "border-green-300 bg-green-50"
+                          : "border-slate-200 bg-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-slate-600">
+                          Key {index + 1}: {key.slice(0, 15)}...{key.slice(-6)}
+                        </span>
+                        {index === currentApiKeyIndex && (
+                          <span className="text-green-600 font-semibold">
+                            ACTIVE
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Manual API Key Input (for editing) */}
+              <div>
+                <label className="block text-sm font-medium text-slate-600 mb-1">
+                  Edit Current Key:
+                </label>
+                <Input
+                  value={apiKey}
+                  onChange={(e) => onApiKeyChange(e.target.value)}
+                  placeholder="Enter YouTube API Key"
+                  className="font-mono text-sm"
+                />
+              </div>
             </div>
 
             <div>
