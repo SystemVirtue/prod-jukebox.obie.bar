@@ -79,6 +79,66 @@
         }
       }
 
+      function setupMockPlayer() {
+        console.log("[Player] Setting up mock player for development");
+        const playerDiv = document.getElementById("player");
+        playerDiv.innerHTML = `
+                <div style="
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(45deg, #333, #666);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 24px;
+                    text-align: center;
+                    font-family: Arial, sans-serif;
+                ">
+                    <div>
+                        <div style="font-size: 48px; margin-bottom: 20px;">🎵</div>
+                        <div>Development Mode</div>
+                        <div style="font-size: 16px; margin-top: 10px; opacity: 0.8;">YouTube videos simulated</div>
+                        <div id="mock-video-title" style="font-size: 18px; margin-top: 20px; color: #ffd700;"></div>
+                    </div>
+                </div>
+            `;
+
+        // Mock player object
+        player = {
+          loadVideoById: function (videoId) {
+            console.log("[MockPlayer] Loading video:", videoId);
+            currentVideoId = videoId;
+            setTimeout(() => {
+              onPlayerStateChange({ data: 1 }); // Playing state
+            }, 1000);
+          },
+          playVideo: function () {
+            console.log("[MockPlayer] Play video");
+            onPlayerStateChange({ data: 1 }); // Playing state
+          },
+          pauseVideo: function () {
+            console.log("[MockPlayer] Pause video");
+            onPlayerStateChange({ data: 2 }); // Paused state
+          },
+          stopVideo: function () {
+            console.log("[MockPlayer] Stop video");
+            onPlayerStateChange({ data: 0 }); // Ended state
+          },
+          getVideoData: function () {
+            return {
+              title: currentVideoId
+                ? `Mock Video ${currentVideoId}`
+                : "Mock Video",
+              video_id: currentVideoId,
+            };
+          },
+        };
+
+        isPlayerReady = true;
+        onPlayerReady({ target: player });
+      }
+
       function onPlayerReady(event) {
         console.log("[Player] Player ready");
         isPlayerReady = true;
