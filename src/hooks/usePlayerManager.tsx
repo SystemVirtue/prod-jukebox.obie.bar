@@ -162,6 +162,20 @@ export const usePlayerManager = (
       return;
     }
 
+    // Double-check localhost before attempting popup (safety check)
+    const isLocalhostDoubleCheck =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname.includes(".local") ||
+      window.location.protocol === "file:";
+
+    if (isLocalhostDoubleCheck) {
+      console.error(
+        "[InitializePlayer] ERROR: This should not happen - localhost detected but reaching popup code!",
+      );
+      return;
+    }
+
     console.log("Attempting to open player window...");
     const playerWindow = window.open(
       "/player.html",
