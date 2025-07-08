@@ -136,6 +136,14 @@ const Index = () => {
     loadPlaylistVideos(state.defaultPlaylist);
   }, []);
 
+  // Hide DevMode prompt when playlist loads
+  useEffect(() => {
+    if (state.defaultPlaylistVideos.length > 0 && state.showDevModePrompt) {
+      console.log("Playlist loaded - hiding DevMode prompt");
+      setState((prev) => ({ ...prev, showDevModePrompt: false }));
+    }
+  }, [state.defaultPlaylistVideos.length, state.showDevModePrompt]);
+
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
     if (
