@@ -483,6 +483,44 @@ const Index = () => {
           </div>
         )}
 
+        {/* DevMode Activation Prompt - Full Screen Overlay */}
+        {state.showDevModePrompt && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div
+              className="bg-gradient-to-br from-red-600 to-red-800 border-4 border-red-400 rounded-2xl p-12 m-8 max-w-2xl text-center shadow-2xl cursor-pointer hover:scale-105 transition-transform duration-200"
+              onClick={() => {
+                setState((prev) => ({
+                  ...prev,
+                  devMode: true,
+                  showDevModePrompt: false,
+                }));
+                toast({
+                  title: "Development Mode Enabled",
+                  description:
+                    "Video player is now offline. Use admin settings to disable.",
+                  variant: "default",
+                });
+              }}
+            >
+              <div className="text-white space-y-6">
+                <div className="text-6xl mb-4">🔧</div>
+                <h2 className="text-4xl font-bold mb-4">
+                  Click Here to Enable DEVMODE
+                </h2>
+                <p className="text-2xl text-red-100">(Video Player OFFLINE)</p>
+                <div className="text-lg text-red-200 mt-6">
+                  ⚠️ For development purposes only
+                  <br />
+                  Real video playback will be disabled
+                </div>
+                <div className="text-sm text-red-300 mt-4 opacity-75">
+                  This popup will auto-hide when the playlist loads
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
           <div
