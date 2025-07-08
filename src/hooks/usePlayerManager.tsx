@@ -193,16 +193,34 @@ export const usePlayerManager = (
       }
     } else {
       console.error("[PlaySong] Player window not available");
-      toast({
-        title: "Player Not Available",
-        description:
-          "Player window is not open. Please allow popups and restart the player.",
-        variant: "destructive",
-      });
-      // Try to reinitialize player if playlist is available
-      if (state.inMemoryPlaylist.length > 0) {
-        console.log("[PlaySong] Attempting to reinitialize player...");
-        setTimeout(() => initializePlayer(), 1000);
+
+      const isLocalhost =
+        window.location.hostname === "localhost" ||
+        window.location.hostname === "127.0.0.1";
+
+      if (isLocalhost) {
+        console.log(
+          "[PlaySong] Localhost detected - attempting to reinitialize mock player",
+        );
+        initializePlayer();
+        // Retry the song after a short delay
+        setTimeout(() => {
+          if (state.playerWindow) {
+            playSong(videoId, title, artist, logType);
+          }
+        }, 500);
+      } else {
+        toast({
+          title: "Player Not Available",
+          description:
+            "Player window is not open. Please allow popups and restart the player.",
+          variant: "destructive",
+        });
+        // Try to reinitialize player if playlist is available
+        if (state.inMemoryPlaylist.length > 0) {
+          console.log("[PlaySong] Attempting to reinitialize player...");
+          setTimeout(() => initializePlayer(), 1000);
+        }
       }
     }
   };
