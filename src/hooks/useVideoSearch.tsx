@@ -62,10 +62,15 @@ export const useVideoSearch = (
     }
   };
 
-  const performSearch = async (query: string) => {
+  const performSearch = async (query: string, retryCount = 0) => {
     if (!query.trim()) return;
 
-    console.log("performSearch called with query:", query);
+    console.log(
+      "performSearch called with query:",
+      query,
+      "retry count:",
+      retryCount,
+    );
 
     if (query.toUpperCase() === "ADMIN") {
       setState((prev) => ({
@@ -88,15 +93,39 @@ export const useVideoSearch = (
     }));
 
     try {
-      console.log("Starting YouTube search for:", query);
+      console.log(
+        `[Search] Using API key ${state.currentApiKeyIndex + 1}/${state.apiKeys.length} for search:`,
+        query,
+      );
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=48&key=${state.apiKey}`;
 
       const response = await fetch(searchUrl);
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+      const data = await response.json();
+
+      // Check for quota exceeded error
+      if (
+        !response.ok ||
+        (data.error &&
+          data.error.errors?.some((e: any) => e.reason === "quotaExceeded"))
+      ) {
+        console.error(
+          `[Search] API quota exceeded for key ${state.currentApiKeyIndex + 1}`,
+        );
+
+        // If we haven't tried all keys yet, cycle and retry
+        if (retryCount < state.apiKeys.length - 1) {
+          console.log(
+            `[Search] Cycling to next API key and retrying... (attempt ${retryCount + 1})`,
+          );
+          cycleToNextApiKey();
+          // Wait a moment for state to update, then retry
+          setTimeout(() => performSearch(query, retryCount + 1), 100);
+          return;
+        } else {
+          throw new Error(`All API keys exhausted. Status: ${response.status}`);
+        }
       }
 
-      const data = await response.json();
       console.log("YouTube API response:", data);
 
       if (data.items && data.items.length > 0) {
@@ -108,6 +137,33 @@ export const useVideoSearch = (
         const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${videoIds}&key=${state.apiKey}`;
         const detailsResponse = await fetch(detailsUrl);
         const detailsData = await detailsResponse.json();
+
+        // Check for quota exceeded on details request too
+        if (
+          !detailsResponse.ok ||
+          (detailsData.error &&
+            detailsData.error.errors?.some(
+              (e: any) => e.reason === "quotaExceeded",
+            ))
+        ) {
+          console.error(
+            `[Search] API quota exceeded on details request for key ${state.currentApiKeyIndex + 1}`,
+          );
+
+          if (retryCount < state.apiKeys.length - 1) {
+            console.log(
+              `[Search] Cycling to next API key and retrying details... (attempt ${retryCount + 1})`,
+            );
+            cycleToNextApiKey();
+            setTimeout(() => performSearch(query, retryCount + 1), 100);
+            return;
+          } else {
+            throw new Error(
+              `All API keys exhausted on details request. Status: ${detailsResponse.status}`,
+            );
+          }
+        }
+
         // Merge details into videos
         const detailsMap: Record<string, any> = {};
         for (const item of detailsData.items) {
@@ -146,7 +202,9 @@ export const useVideoSearch = (
           })
           .filter((video) => video.durationMinutes <= state.maxSongLength);
 
-        console.log("Filtered search results:", searchResults);
+        console.log(
+          `[Search] Found ${searchResults.length} filtered results using API key ${state.currentApiKeyIndex + 1}`,
+        );
         setState((prev) => ({ ...prev, searchResults }));
       } else {
         console.log("No search results found");
@@ -158,11 +216,20 @@ export const useVideoSearch = (
       }
     } catch (error) {
       console.error("Search error:", error);
+      const isQuotaError =
+        error instanceof Error && error.message.includes("quota");
+
       toast({
         title: "Search Error",
-        description: "Failed to search for music videos.",
+        description: isQuotaError
+          ? "All API keys have reached their quota limit. Please try again later."
+          : "Failed to search for music videos.",
         variant: "destructive",
       });
+
+      if (isQuotaError) {
+        addLog("SONG_PLAYED", "All YouTube API keys exhausted for quota");
+      }
     } finally {
       setState((prev) => ({ ...prev, isSearching: false }));
     }
