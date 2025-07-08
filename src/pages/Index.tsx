@@ -497,7 +497,7 @@ const Index = () => {
 
         {/* DevMode Activation Prompt - Full Screen Overlay */}
         {state.showDevModePrompt && (
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-center justify-center">
+          <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[100] flex items-center justify-center">
             <div
               className="bg-gradient-to-br from-red-600 to-red-800 border-4 border-red-400 rounded-2xl p-12 m-8 max-w-2xl text-center shadow-2xl cursor-pointer hover:scale-105 transition-transform duration-200"
               onClick={() => {
