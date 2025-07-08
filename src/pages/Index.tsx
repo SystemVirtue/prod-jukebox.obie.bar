@@ -733,6 +733,10 @@ const Index = () => {
         onTestModeChange={(testMode) =>
           setState((prev) => ({ ...prev, testMode }))
         }
+        devMode={state.devMode}
+        onDevModeChange={(devMode) =>
+          setState((prev) => ({ ...prev, devMode }))
+        }
         coinValueA={state.coinValueA}
         onCoinValueAChange={(value) =>
           setState((prev) => ({ ...prev, coinValueA: value }))
