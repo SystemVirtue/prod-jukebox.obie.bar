@@ -130,11 +130,13 @@ const Index = () => {
     }
   }, []);
 
-  // Initialize playlist first, then player when playlist is ready and has songs
+  // Initialize playlist only after DevMode prompt is dismissed
   useEffect(() => {
-    console.log("Loading initial playlist...");
-    loadPlaylistVideos(state.defaultPlaylist);
-  }, []);
+    if (!state.showDevModePrompt) {
+      console.log("DevMode prompt dismissed - Loading initial playlist...");
+      loadPlaylistVideos(state.defaultPlaylist);
+    }
+  }, [state.showDevModePrompt]);
 
   // Hide DevMode prompt after 3 seconds
   useEffect(() => {
