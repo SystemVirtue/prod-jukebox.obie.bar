@@ -13,199 +13,37 @@ export const usePlayerManager = (
 ) => {
   const { toast } = useToast();
 
-  // Helper function to play songs with mock player
-  const playMockSong = (
-    mockPlayerWindow: any,
-    videoId: string,
-    title: string,
-    artist: string,
-    logType: "SONG_PLAYED" | "USER_SELECTION",
-  ) => {
-    console.log(`[PlayMockSong] Starting: ${videoId} - ${title} by ${artist}`);
-
-    const command = {
-      action: "play",
-      videoId: videoId,
-      title: title,
-      artist: artist,
-      timestamp: Date.now(),
-      testMode: state.testMode,
-    };
-
-    try {
-      mockPlayerWindow.localStorage.setItem(
-        "jukeboxCommand",
-        JSON.stringify(command),
-      );
-
-      // Update state immediately with the new video info
-      setState((prev) => ({
-        ...prev,
-        currentlyPlaying: title.replace(/\([^)]*\)/g, "").trim(),
-        currentVideoId: videoId,
-      }));
-
-      console.log(
-        `[PlayMockSong] Command sent and state updated. VideoID: ${videoId}, TestMode: ${state.testMode}`,
-      );
-
-      const description =
-        logType === "USER_SELECTION"
-          ? `Playing user request: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`
-          : `Autoplay: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`;
-      addLog(logType, description, videoId);
-    } catch (error) {
-      console.error(
-        "[PlayMockSong] Error sending command to mock player:",
-        error,
-      );
-    }
-  };
-
   const initializePlayer = () => {
     if (state.playerWindow && !state.playerWindow.closed) {
       console.log("Player window already exists");
       return;
     }
 
-    const isLocalhost =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.hostname.includes(".local") ||
-      window.location.protocol === "file:";
-
-    console.log(
-      `[InitializePlayer] Hostname: ${window.location.hostname}, Protocol: ${window.location.protocol}, IsLocalhost: ${isLocalhost}`,
-    );
-
-    if (isLocalhost) {
-      // For localhost, create a mock player window object instead of actual popup
-      console.log(
-        "[InitializePlayer] LOCALHOST DETECTED - Creating mock player",
-      );
+    // Check if we're in dev mode - if so, create a simple mock player
+    if (state.devMode) {
+      console.log("[InitializePlayer] DEV MODE - Creating mock player");
 
       const mockPlayerWindow = {
         closed: false,
         localStorage: {
-          setItem: (key: string, value: string) => {
-            console.log(`[MockPlayer] localStorage.setItem(${key}):`, value);
-            if (key === "jukeboxCommand") {
-              const command = JSON.parse(value);
-              if (command.action === "play") {
-                console.log(
-                  `[MockPlayer] Processing PLAY command for: ${command.title}`,
-                );
-
-                // Immediately simulate playing status
-                setTimeout(() => {
-                  const playingStatus = {
-                    status: "playing",
-                    id: command.videoId,
-                    videoId: command.videoId,
-                    title: command.title,
-                    timestamp: Date.now(),
-                  };
-                  window.localStorage.setItem(
-                    "jukeboxStatus",
-                    JSON.stringify(playingStatus),
-                  );
-                  console.log(
-                    `[MockPlayer] ✅ Set playing status for: ${command.title}`,
-                  );
-
-                  // Trigger storage event manually for localhost
-                  window.dispatchEvent(
-                    new StorageEvent("storage", {
-                      key: "jukeboxStatus",
-                      newValue: JSON.stringify(playingStatus),
-                      oldValue: null,
-                      storageArea: window.localStorage,
-                    }),
-                  );
-
-                  // Simulate song ending
-                  const duration = command.testMode ? 5000 : 15000;
-                  setTimeout(() => {
-                    const endedStatus = {
-                      status: command.testMode ? "testModeComplete" : "ended",
-                      id: command.videoId,
-                      videoId: command.videoId,
-                      timestamp: Date.now(),
-                    };
-                    window.localStorage.setItem(
-                      "jukeboxStatus",
-                      JSON.stringify(endedStatus),
-                    );
-                    console.log(
-                      `[MockPlayer] ✅ Set ended status for: ${command.title}`,
-                    );
-
-                    // Trigger storage event for ending
-                    window.dispatchEvent(
-                      new StorageEvent("storage", {
-                        key: "jukeboxStatus",
-                        newValue: JSON.stringify(endedStatus),
-                        oldValue: JSON.stringify(playingStatus),
-                        storageArea: window.localStorage,
-                      }),
-                    );
-                  }, duration);
-                }, 500);
-              }
-            }
-          },
-          getItem: (key: string) => window.localStorage.getItem(key),
-          removeItem: (key: string) => window.localStorage.removeItem(key),
+          setItem: () => console.log("[DevMode] Mock player command received"),
+          getItem: () => null,
+          removeItem: () => {},
         },
       } as any;
 
-      // Set state immediately
       setState((prev) => ({
         ...prev,
         playerWindow: mockPlayerWindow,
         isPlayerRunning: true,
+        currentlyPlaying: "Dev Mode - No Video Playback",
       }));
 
-      console.log("✅ Mock player window created and state updated");
-
-      // Start first song immediately if playlist is available
-      if (state.inMemoryPlaylist.length > 0) {
-        const firstSong = state.inMemoryPlaylist[0];
-        console.log(
-          `[InitializePlayer] Starting first song: ${firstSong.title}`,
-        );
-
-        setTimeout(() => {
-          playMockSong(
-            mockPlayerWindow,
-            firstSong.videoId,
-            firstSong.title,
-            firstSong.channelTitle,
-            "SONG_PLAYED",
-          );
-        }, 500);
-      } else {
-        console.log("[InitializePlayer] No songs in playlist yet");
-      }
-
-      console.log("[InitializePlayer] ✅ Mock player setup complete");
+      console.log("✅ Dev mode mock player created");
       return;
     }
 
-    // Double-check localhost before attempting popup (safety check)
-    const isLocalhostDoubleCheck =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1" ||
-      window.location.hostname.includes(".local") ||
-      window.location.protocol === "file:";
-
-    if (isLocalhostDoubleCheck) {
-      console.error(
-        "[InitializePlayer] ERROR: This should not happen - localhost detected but reaching popup code!",
-      );
-      return;
-    }
-
+    // For production, attempt to open real player window
     console.log("Attempting to open player window...");
     const playerWindow = window.open(
       "/player.html",
@@ -275,6 +113,35 @@ export const usePlayerManager = (
   ) => {
     console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist}`);
 
+    // In dev mode, just simulate playing without any actual player
+    if (state.devMode) {
+      console.log("[PlaySong] DEV MODE - Simulating song play");
+      setState((prev) => ({
+        ...prev,
+        currentlyPlaying: `${title} (DEV MODE)`,
+        currentVideoId: videoId,
+      }));
+
+      const description =
+        logType === "USER_SELECTION"
+          ? `DEV MODE - User request: ${title}`
+          : `DEV MODE - Autoplay: ${title}`;
+      addLog(logType, description, videoId);
+
+      // Auto-advance after 5 seconds in dev mode
+      setTimeout(() => {
+        console.log("[PlaySong] DEV MODE - Auto-advancing to next song");
+        setState((prev) => ({
+          ...prev,
+          currentlyPlaying: "Dev Mode - Loading Next...",
+          currentVideoId: "",
+        }));
+      }, 5000);
+
+      return;
+    }
+
+    // Normal player logic
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
         action: "play",
@@ -313,95 +180,19 @@ export const usePlayerManager = (
     } else {
       console.error("[PlaySong] Player window not available");
 
-      const isLocalhost =
-        window.location.hostname === "localhost" ||
-        window.location.hostname === "127.0.0.1" ||
-        window.location.hostname.includes(".local") ||
-        window.location.protocol === "file:";
-
-      console.log(
-        `[PlaySong] Hostname: ${window.location.hostname}, Protocol: ${window.location.protocol}, IsLocalhost: ${isLocalhost}`,
-      );
-
-      if (isLocalhost) {
-        console.log(
-          "[PlaySong] Localhost detected - creating mock player directly",
-        );
-
-        // Create mock player directly instead of going through initializePlayer
-        const mockPlayerWindow = {
-          closed: false,
-          localStorage: {
-            setItem: (key: string, value: string) => {
-              console.log(`[MockPlayer] Setting ${key}:`, value);
-              if (key === "jukeboxCommand") {
-                const command = JSON.parse(value);
-                if (command.action === "play") {
-                  console.log(`[MockPlayer] Playing video: ${command.title}`);
-                  setTimeout(() => {
-                    const playingStatus = {
-                      status: "playing",
-                      id: command.videoId,
-                      videoId: command.videoId,
-                      title: command.title,
-                      timestamp: Date.now(),
-                    };
-                    localStorage.setItem(
-                      "jukeboxStatus",
-                      JSON.stringify(playingStatus),
-                    );
-                    console.log(
-                      `[MockPlayer] Simulated playing status for: ${command.title}`,
-                    );
-
-                    const duration = command.testMode ? 5000 : 15000;
-                    setTimeout(() => {
-                      const endedStatus = {
-                        status: command.testMode ? "testModeComplete" : "ended",
-                        id: command.videoId,
-                        videoId: command.videoId,
-                        timestamp: Date.now(),
-                      };
-                      localStorage.setItem(
-                        "jukeboxStatus",
-                        JSON.stringify(endedStatus),
-                      );
-                      console.log(
-                        `[MockPlayer] Simulated song ended for: ${command.title}`,
-                      );
-                    }, duration);
-                  }, 1000);
-                }
-              }
-            },
-            getItem: (key: string) => localStorage.getItem(key),
-            removeItem: (key: string) => localStorage.removeItem(key),
-          },
-        } as any;
-
-        setState((prev) => ({
-          ...prev,
-          playerWindow: mockPlayerWindow,
-          isPlayerRunning: true,
-        }));
-
-        // Now call playMockSong directly
-        setTimeout(() => {
-          playMockSong(mockPlayerWindow, videoId, title, artist, logType);
-        }, 100);
-      } else {
+      // If not in dev mode, show error
+      if (!state.devMode) {
         toast({
           title: "Player Not Available",
           description:
             "Player window is not open. Please allow popups and restart the player.",
           variant: "destructive",
         });
-        // Try to reinitialize player if playlist is available
-        if (state.inMemoryPlaylist.length > 0) {
-          console.log("[PlaySong] Attempting to reinitialize player...");
-          setTimeout(() => initializePlayer(), 1000);
-        }
       }
+
+      // Try to reinitialize player
+      console.log("[PlaySong] Attempting to reinitialize player...");
+      setTimeout(() => initializePlayer(), 1000);
     }
   };
 
@@ -415,7 +206,7 @@ export const usePlayerManager = (
 
     if (state.isPlayerRunning && !state.isPlayerPaused) {
       // Pause player
-      if (state.playerWindow && !state.playerWindow.closed) {
+      if (state.playerWindow && !state.playerWindow.closed && !state.devMode) {
         const command = { action: "pause", timestamp: Date.now() };
         try {
           state.playerWindow.localStorage.setItem(
@@ -430,7 +221,7 @@ export const usePlayerManager = (
       setState((prev) => ({ ...prev, isPlayerPaused: true }));
     } else if (state.isPlayerRunning && state.isPlayerPaused) {
       // Resume player
-      if (state.playerWindow && !state.playerWindow.closed) {
+      if (state.playerWindow && !state.playerWindow.closed && !state.devMode) {
         const command = { action: "resume", timestamp: Date.now() };
         try {
           state.playerWindow.localStorage.setItem(
@@ -478,6 +269,18 @@ export const usePlayerManager = (
     console.log(
       `[PerformSkip] Skipping current video: ${state.currentVideoId}`,
     );
+
+    if (state.devMode) {
+      console.log("[PerformSkip] DEV MODE - Simulating skip");
+      setState((prev) => ({
+        ...prev,
+        currentlyPlaying: "Dev Mode - Loading Next...",
+        currentVideoId: "",
+        showSkipConfirmation: false,
+      }));
+      addLog("SONG_PLAYED", `DEV MODE - SKIPPED: ${state.currentlyPlaying}`);
+      return;
+    }
 
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
