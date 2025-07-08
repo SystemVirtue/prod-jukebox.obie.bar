@@ -184,7 +184,7 @@ export const useJukeboxState = () => {
     testMode: false,
     devMode: false,
     showDevModeAtStartup: true,
-    showDevModePrompt: true,
+    showDevModePrompt: true, // Will be set based on showDevModeAtStartup in Index.tsx
     coinValueA: 3,
     coinValueB: 1,
   });
