@@ -80,7 +80,12 @@ export const usePlayerManager = (
 
     if (isLocalhost) {
       // For localhost, create a mock player window object instead of actual popup
-      console.log("Creating mock player window for localhost development");
+      console.log(
+        "[InitializePlayer] Creating mock player window for localhost development",
+      );
+      console.log(
+        "[InitializePlayer] This will bypass any popup window creation",
+      );
       const mockPlayerWindow = {
         closed: false,
         localStorage: {
