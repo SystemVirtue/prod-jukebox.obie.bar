@@ -52,6 +52,24 @@ export const usePlayerManager = (
                   console.log(
                     `[MockPlayer] Simulated playing status for: ${command.title}`,
                   );
+
+                  // Simulate song ending after test mode duration or longer
+                  const duration = command.testMode ? 5000 : 15000; // 5s for test mode, 15s for normal
+                  setTimeout(() => {
+                    const endedStatus = {
+                      status: command.testMode ? "testModeComplete" : "ended",
+                      id: command.videoId,
+                      videoId: command.videoId,
+                      timestamp: Date.now(),
+                    };
+                    localStorage.setItem(
+                      "jukeboxStatus",
+                      JSON.stringify(endedStatus),
+                    );
+                    console.log(
+                      `[MockPlayer] Simulated song ended for: ${command.title}`,
+                    );
+                  }, duration);
                 }, 1000);
               }
             }
