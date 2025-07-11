@@ -19,8 +19,11 @@ class MusicSearchService {
   private isYtMusicInitialized = false;
 
   constructor() {
-    // Initialize ytmusic-api lazily
-    this.initYtMusic();
+    // YtMusic API is not compatible with browser environments due to CORS restrictions
+    // Skip initialization to avoid console warnings
+    console.log(
+      "MusicSearchService initialized - YtMusic API disabled for browser compatibility",
+    );
   }
 
   private async initYtMusic() {
