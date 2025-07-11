@@ -31,14 +31,48 @@ export const usePlaylistManager = (
     console.log("Loading playlist videos for:", playlistId);
 
     if (!state.apiKey) {
-      console.error("No API key available");
-      toast({
-        title: "Configuration Error",
-        description:
-          "No YouTube API key configured. Please check admin settings.",
-        variant: "destructive",
-      });
-      return;
+      console.log(
+        "No API key available - using HTML parser fallback immediately",
+      );
+
+      try {
+        // Use HTML parser directly when no API key is available
+        const fallbackVideos =
+          await youtubeHtmlParserService.parsePlaylist(playlistId);
+
+        console.log(
+          `[LoadPlaylist] HTML parser generated ${fallbackVideos.length} fallback videos`,
+        );
+
+        setState((prev) => ({
+          ...prev,
+          defaultPlaylistVideos: fallbackVideos,
+          inMemoryPlaylist: [...fallbackVideos],
+          currentVideoIndex: 0,
+        }));
+
+        toast({
+          title: "Fallback Mode Active",
+          description: `Loaded ${fallbackVideos.length} popular songs using fallback mode.`,
+          variant: "default",
+        });
+
+        addLog(
+          "SONG_PLAYED",
+          `Loaded HTML parser playlist with ${fallbackVideos.length} songs - no API key available`,
+        );
+
+        return;
+      } catch (error) {
+        console.error("HTML parser fallback failed:", error);
+        toast({
+          title: "Fallback Failed",
+          description:
+            "Unable to load fallback playlist. Please check your connection.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     // Validate API key format
