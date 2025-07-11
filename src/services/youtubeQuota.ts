@@ -39,6 +39,9 @@ class YouTubeQuotaService {
       const response = await fetch(testUrl);
 
       if (!response.ok) {
+        // Clone response to avoid "body stream already read" errors
+        const responseClone = response.clone();
+
         if (response.status === 403) {
           try {
             const errorData = await response.json();
@@ -65,7 +68,7 @@ class YouTubeQuotaService {
         }
         // For other errors, try to get more specific error information
         try {
-          const errorData = await response.json();
+          const errorData = await responseClone.json();
           const errorMessage =
             errorData.error?.message || `HTTP ${response.status}`;
           throw new Error(`API Error: ${response.status} - ${errorMessage}`);
@@ -76,7 +79,8 @@ class YouTubeQuotaService {
 
       // Consume the response to prevent body stream issues
       try {
-        await response.json();
+        const data = await response.json();
+        // Successfully read JSON response, use it if needed
       } catch (jsonError) {
         // If response is not JSON, that's okay for quota checking
         console.log("Response is not JSON, continuing with quota estimation");
