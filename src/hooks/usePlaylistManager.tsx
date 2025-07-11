@@ -182,6 +182,12 @@ export const usePlaylistManager = (
         );
       } while (nextPageToken);
 
+      // Check if we got any videos, if not, use fallback
+      if (allVideos.length === 0) {
+        console.log("No videos loaded, using fallback playlist");
+        throw new Error("No videos available: Using fallback playlist");
+      }
+
       // Shuffle playlist ONCE after loading
       const shuffled = shuffleArray(allVideos);
       setState((prev) => ({
