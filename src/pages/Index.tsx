@@ -244,33 +244,26 @@ const Index = () => {
     coinValueB: state.coinValueB,
   });
 
-  // Initialize playlist first, then player when playlist is ready and has songs
+  // Initialize playlist ONLY when defaultPlaylist changes or on initial load
+  const [hasInitialized, setHasInitialized] = useState(false);
   useEffect(() => {
-    console.log("Loading initial playlist...");
+    // Only run once on initial load or when playlist ID changes
+    if (hasInitialized && state.defaultPlaylist === state.defaultPlaylist) {
+      return;
+    }
+
+    console.log("Loading initial playlist...", state.defaultPlaylist);
+    setHasInitialized(true);
+
+    // Don't load playlist if API key test dialog is open
+    if (state.showApiKeyTestDialog) {
+      console.log("Skipping playlist load - API key test dialog is open");
+      return;
+    }
 
     // Check if we have a valid API key before attempting to load
     if (!state.apiKey || state.apiKey.length < 20) {
-      console.log("No valid API key found, auto-opening admin panel");
-
-      // Set a default API key to key1 when none is configured
-      const defaultKey = "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4";
-      setState((prev) => ({
-        ...prev,
-        apiKey: defaultKey,
-        selectedApiKeyOption: "key1",
-      }));
-
-      toast({
-        title: "Configuration Required",
-        description:
-          "YouTube API key was missing. Set to default key1. Configure in admin panel if needed.",
-        variant: "default",
-      });
-
-      setTimeout(() => {
-        setState((prev) => ({ ...prev, isAdminOpen: true }));
-      }, 2000);
-
+      console.log("No valid API key found during playlist load");
       return;
     }
 
@@ -279,32 +272,15 @@ const Index = () => {
     const quotaExhaustedTime = localStorage.getItem(quotaExhaustedKey);
     if (quotaExhaustedTime) {
       const timeSinceExhaustion = Date.now() - parseInt(quotaExhaustedTime);
-      // If quota was exhausted recently (within 1 hour), auto-open admin panel
+      // If quota was exhausted recently (within 1 hour), skip loading
       if (timeSinceExhaustion < 3600000) {
-        console.log("API key quota exhausted, auto-opening admin panel");
-        toast({
-          title: "Quota Exhausted - Admin Required",
-          description:
-            "YouTube API quota exceeded. Opening admin panel for configuration.",
-          variant: "default",
-        });
-
-        setTimeout(() => {
-          setState((prev) => ({ ...prev, isAdminOpen: true }));
-        }, 2000);
-
+        console.log("API key quota exhausted, skipping playlist load");
         return;
       }
     }
 
     loadPlaylistVideos(state.defaultPlaylist);
-  }, [
-    state.defaultPlaylist,
-    state.apiKey,
-    loadPlaylistVideos,
-    toast,
-    setState,
-  ]);
+  }, [state.defaultPlaylist]); // ONLY depend on playlist ID, not API key
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
