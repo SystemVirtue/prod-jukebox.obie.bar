@@ -195,13 +195,30 @@ export const usePlayerManager = (
     title: string,
     artist: string,
     logType: "SONG_PLAYED" | "USER_SELECTION",
+    retryCount: number = 0,
   ) => {
-    console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist}`);
+    const MAX_RETRIES = 2;
+
+    console.log(
+      `[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`,
+    );
     console.log(`[PlaySong] Player window state:`, {
       exists: !!state.playerWindow,
       closed: state.playerWindow?.closed,
       isPlayerRunning: state.isPlayerRunning,
     });
+
+    // Prevent infinite loops by limiting retries
+    if (retryCount >= MAX_RETRIES) {
+      console.error("[PlaySong] Maximum retry attempts reached, stopping");
+      toast({
+        title: "Player Error",
+        description:
+          "Unable to play song after multiple attempts. Please open player manually.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // If no player window exists, try to create one immediately
     if (!state.playerWindow || state.playerWindow.closed) {
@@ -227,7 +244,7 @@ export const usePlayerManager = (
         // Wait a moment for the window to load, then play the song
         setTimeout(() => {
           console.log("[PlaySong] Retrying song play with emergency window");
-          playSong(videoId, title, artist, logType);
+          playSong(videoId, title, artist, logType, retryCount + 1);
         }, 2000);
 
         return;
