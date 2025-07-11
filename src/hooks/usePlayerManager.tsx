@@ -301,6 +301,10 @@ export const usePlayerManager = (
 
   const openBasicPlayerWindow = () => {
     console.log("Opening basic player window as fallback");
+
+    // Clear any previous close state since user is explicitly opening
+    localStorage.removeItem("jukeboxPlayerWindowState");
+
     const playerWindow = window.open(
       "/player.html",
       "JukeboxPlayer",
