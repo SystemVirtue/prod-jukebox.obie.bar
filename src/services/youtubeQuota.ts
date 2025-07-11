@@ -76,7 +76,7 @@ class YouTubeQuotaService {
       const response = await fetch(testUrl);
 
       if (!response.ok) {
-        // Clone response to avoid "body stream already read" errors
+        // Clone response BEFORE reading to avoid "body stream already read" errors
         const responseClone = response.clone();
 
         if (response.status === 403) {
@@ -103,7 +103,7 @@ class YouTubeQuotaService {
             };
           }
         }
-        // For other errors, try to get more specific error information
+        // For other errors, try to get more specific error information using the clone
         try {
           const errorData = await responseClone.json();
           const errorMessage =
