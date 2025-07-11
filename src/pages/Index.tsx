@@ -198,12 +198,51 @@ const Index = () => {
           variant: "default",
         });
 
-        // Immediately load playlist using HTML parser
+        // Immediately load playlist using HTML parser - bypass API key requirement
         console.log(
-          "[Init] Triggering HTML parser playlist load for default playlist:",
+          "[Init] Loading fallback playlist using HTML parser for:",
           state.defaultPlaylist,
         );
-        loadPlaylistVideos(state.defaultPlaylist);
+
+        // Import and use HTML parser directly since we have no working API keys
+        import("@/services/youtubeHtmlParser").then(
+          ({ youtubeHtmlParserService }) => {
+            youtubeHtmlParserService
+              .parsePlaylist(state.defaultPlaylist)
+              .then((fallbackVideos) => {
+                console.log(
+                  `[Init] HTML parser generated ${fallbackVideos.length} fallback videos`,
+                );
+
+                setState((prev) => ({
+                  ...prev,
+                  defaultPlaylistVideos: fallbackVideos,
+                  inMemoryPlaylist: [...fallbackVideos],
+                  currentVideoIndex: 0,
+                }));
+
+                addLog(
+                  "SONG_PLAYED",
+                  `Loaded HTML parser playlist with ${fallbackVideos.length} songs due to quota exhaustion`,
+                );
+
+                toast({
+                  title: "Playlist Loaded",
+                  description: `Loaded ${fallbackVideos.length} popular songs using fallback mode.`,
+                  variant: "default",
+                });
+              })
+              .catch((error) => {
+                console.error("[Init] HTML parser failed:", error);
+                toast({
+                  title: "Fallback Failed",
+                  description:
+                    "Unable to load fallback playlist. Please refresh the page.",
+                  variant: "destructive",
+                });
+              });
+          },
+        );
       }
     },
     [setState, toast],
