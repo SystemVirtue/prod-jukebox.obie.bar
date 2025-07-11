@@ -64,6 +64,7 @@ export const usePlayerManager = (
               firstSong.title,
               firstSong.channelTitle,
               "SONG_PLAYED",
+              0,
             );
           }
         }, 3000);
@@ -135,6 +136,7 @@ export const usePlayerManager = (
             firstSong.title,
             firstSong.channelTitle,
             "SONG_PLAYED",
+            0,
           );
         }
       }, 3000);
@@ -178,6 +180,7 @@ export const usePlayerManager = (
             firstSong.title,
             firstSong.channelTitle,
             "SONG_PLAYED",
+            0,
           );
         }
       }, 3000);
@@ -447,6 +450,7 @@ export const usePlayerManager = (
           firstSong.title,
           firstSong.channelTitle,
           "SONG_PLAYED",
+          0,
         );
       }
       addLog("SONG_PLAYED", "Player started by admin");
