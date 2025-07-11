@@ -22,7 +22,8 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
 
   try {
     // Test with a simple search query (lowest quota cost)
-    const testUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${apiKey}`;
+    // Use proper URL encoding and a more specific query
+    const testUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent("music")}&type=video&maxResults=1&key=${encodeURIComponent(apiKey)}`;
 
     console.log("Testing API key with search endpoint...");
     const response = await fetch(testUrl);
