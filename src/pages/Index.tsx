@@ -29,6 +29,7 @@ import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
 import { DisplayConfirmationDialog } from "@/components/DisplayConfirmationDialog";
 import { QuotaExhaustedDialog } from "@/components/QuotaExhaustedDialog";
+import { ApiKeyTestDialog } from "@/components/ApiKeyTestDialog";
 import { DisplayInfo } from "@/services/displayManager";
 import { youtubeQuotaService } from "@/services/youtubeQuota";
 
