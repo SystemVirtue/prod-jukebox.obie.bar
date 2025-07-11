@@ -1042,6 +1042,8 @@ const Index = () => {
             console.log("Iframe search query changed:", query);
             setState((prev) => ({ ...prev, searchQuery: query }));
           }}
+          searchResults={state.searchResults}
+          isSearching={state.isSearching}
           showKeyboard={state.showKeyboard}
           showSearchResults={state.showSearchResults}
           onKeyboardInput={handleKeyboardInput}
