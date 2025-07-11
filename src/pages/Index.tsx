@@ -631,6 +631,20 @@ const Index = () => {
                 setState((prev) => ({ ...prev }));
               }, 500);
             }, 500);
+
+            // Safety timeout: if still loading after 10 seconds, force next song
+            setTimeout(() => {
+              setState((currentState) => {
+                if (currentState.currentlyPlaying === "Loading...") {
+                  console.warn(
+                    "[StorageEvent] Still loading after 10s, forcing next song",
+                  );
+                  handleVideoEndedRef.current();
+                  return { ...currentState, currentlyPlaying: "Recovering..." };
+                }
+                return currentState;
+              });
+            }, 10000);
           } else {
             console.log("[StorageEvent] Video ID mismatch, ignoring end event");
           }
