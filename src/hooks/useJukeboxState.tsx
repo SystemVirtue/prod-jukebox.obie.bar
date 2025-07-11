@@ -74,6 +74,8 @@ export interface JukeboxState {
   selectedCoinAcceptor: string;
   playerWindow: Window | null;
   apiKey: string;
+  selectedApiKeyOption: string;
+  customApiKey: string;
   searchMethod: SearchMethod;
   logs: LogEntry[];
   userRequests: UserRequest[];
