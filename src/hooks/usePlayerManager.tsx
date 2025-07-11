@@ -478,6 +478,8 @@ export const usePlayerManager = (
   const handlePlayerToggle = () => {
     if (!state.playerWindow || state.playerWindow.closed) {
       console.log("Player window is closed, reopening...");
+      // Clear any previous close state since user is explicitly opening
+      localStorage.removeItem("jukeboxPlayerWindowState");
       initializePlayer();
       addLog("SONG_PLAYED", "Player window reopened and started");
       return;
