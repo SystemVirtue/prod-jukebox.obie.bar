@@ -205,11 +205,6 @@ export const usePlayerManager = (
     console.log(
       `[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`,
     );
-    console.log(`[PlaySong] Player window state:`, {
-      exists: !!state.playerWindow,
-      closed: state.playerWindow?.closed,
-      isPlayerRunning: state.isPlayerRunning,
-    });
 
     // Prevent infinite loops by limiting retries
     if (retryCount >= MAX_RETRIES) {
@@ -223,179 +218,122 @@ export const usePlayerManager = (
       return;
     }
 
-    // If no player window exists, try to create one immediately
-    if (!state.playerWindow || state.playerWindow.closed) {
-      console.warn(
-        "[PlaySong] No player window available, creating one now...",
-      );
-
-      // Try to open player window immediately
-      const emergencyPlayerWindow = window.open(
-        "/player.html",
-        "JukeboxPlayer",
-        "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
-      );
-
-      if (emergencyPlayerWindow) {
-        console.log("[PlaySong] Emergency player window created successfully");
-        setState((prev) => ({
-          ...prev,
-          playerWindow: emergencyPlayerWindow,
-          isPlayerRunning: true,
-        }));
-
-        // Wait a moment for the window to load, then play the song
-        setTimeout(() => {
-          console.log("[PlaySong] Retrying song play with emergency window");
-          playSong(videoId, title, artist, logType, retryCount + 1);
-        }, 2000);
-
-        return;
-      } else {
-        console.error("[PlaySong] Could not create emergency player window");
-        toast({
-          title: "Player Window Required",
-          description:
-            "Please click 'Open Player' in the admin panel to start the video player.",
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    if (state.playerWindow && !state.playerWindow.closed) {
-      const command = {
-        action: "play",
-        videoId: videoId,
-        title: title,
-        artist: artist,
-        timestamp: Date.now(),
-        testMode: state.testMode,
-      };
-
-      try {
-        state.playerWindow.localStorage.setItem(
-          "jukeboxCommand",
-          JSON.stringify(command),
-        );
-
-        // Update state immediately with the new video info
-        setState((prev) => ({
-          ...prev,
-          currentlyPlaying: title.replace(/\([^)]*\)/g, "").trim(),
-          currentVideoId: videoId,
-        }));
-
-        console.log(
-          `[PlaySong] Command sent and state updated. VideoID: ${videoId}, TestMode: ${state.testMode}`,
-        );
-
-        const description =
-          logType === "USER_SELECTION"
-            ? `Playing user request: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`
-            : `Autoplay: ${title}${state.testMode ? " (TEST MODE - 20s)" : ""}`;
-        addLog(logType, description, videoId);
-      } catch (error) {
-        console.error("[PlaySong] Error sending command to player:", error);
-      }
-    } else {
-      console.error("[PlaySong] Player window not available");
-      console.log("[PlaySong] Current state details:", {
-        playerWindow: state.playerWindow,
-        isPlayerRunning: state.isPlayerRunning,
-        windowClosed: state.playerWindow?.closed,
-        windowExists: !!state.playerWindow,
+    // Use setState callback to get current state and avoid stale closures
+    setState((currentState) => {
+      console.log(`[PlaySong] Current player window state:`, {
+        exists: !!currentState.playerWindow,
+        closed: currentState.playerWindow?.closed,
+        isPlayerRunning: currentState.isPlayerRunning,
       });
 
-      toast({
-        title: "Player Window Missing",
-        description: "Player window not available. Opening player window...",
-        variant: "default",
-      });
+      // If no player window exists, try to create one immediately
+      if (!currentState.playerWindow || currentState.playerWindow.closed) {
+        console.warn(
+          "[PlaySong] No player window available, creating one now...",
+        );
 
-      // Only attempt recovery if we haven't exceeded retry limit
-      if (retryCount < MAX_RETRIES) {
-        console.log("[PlaySong] Attempting to reinitialize player window");
-        try {
-          // Force player window state to false to trigger reinitialization
-          setState((prev) => ({
-            ...prev,
-            playerWindow: null,
-            isPlayerRunning: false,
-          }));
+        // Try to open player window immediately
+        const emergencyPlayerWindow = window.open(
+          "/player.html",
+          "JukeboxPlayer",
+          "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
+        );
 
-          // Initialize player and retry song
-          const retryWithRecovery = async () => {
-            await initializePlayer();
+        if (emergencyPlayerWindow) {
+          console.log(
+            "[PlaySong] Emergency player window created successfully",
+          );
 
-            // Wait for window to be ready, then retry
-            setTimeout(() => {
-              // Use setState callback to get latest state
-              setState((currentState) => {
-                console.log("[PlaySong] Checking recovery status:", {
-                  hasWindow: !!currentState.playerWindow,
-                  windowClosed: currentState.playerWindow?.closed,
-                  isRunning: currentState.isPlayerRunning,
-                });
-
-                if (
-                  currentState.playerWindow &&
-                  !currentState.playerWindow.closed
-                ) {
-                  console.log(
-                    "[PlaySong] Player recovered successfully, retrying song",
-                  );
-                  // Retry the song with a small delay and increment retry count
-                  setTimeout(
-                    () =>
-                      playSong(videoId, title, artist, logType, retryCount + 1),
-                    500,
-                  );
-
-                  toast({
-                    title: "Player Recovered",
-                    description:
-                      "Player window opened successfully. Retrying song...",
-                    variant: "default",
-                  });
-                } else {
-                  console.error(
-                    "[PlaySong] Player recovery failed - window still not available",
-                  );
-                  toast({
-                    title: "Player Recovery Failed",
-                    description:
-                      "Could not open player window. Please check popup blockers or manually open player from admin panel.",
-                    variant: "destructive",
-                  });
-                }
-                return currentState;
-              });
-            }, 2000);
+          // Update state with new window
+          const newState = {
+            ...currentState,
+            playerWindow: emergencyPlayerWindow,
+            isPlayerRunning: true,
           };
 
-          retryWithRecovery();
-        } catch (error) {
-          console.error("[PlaySong] Error during player recovery:", error);
+          // Wait for window to load before retrying
+          emergencyPlayerWindow.addEventListener("load", () => {
+            console.log("[PlaySong] Emergency window loaded, retrying song");
+            setTimeout(() => {
+              playSong(videoId, title, artist, logType, retryCount + 1);
+            }, 1000);
+          });
+
+          // Fallback timeout in case load event doesn't fire
+          setTimeout(() => {
+            console.log("[PlaySong] Fallback retry with emergency window");
+            playSong(videoId, title, artist, logType, retryCount + 1);
+          }, 3000);
+
+          return newState;
+        } else {
+          console.error("[PlaySong] Could not create emergency player window");
           toast({
-            title: "Player Error",
+            title: "Player Window Required",
             description:
-              "Failed to initialize player. Please manually start the player from admin controls.",
+              "Please click 'Open Player' in the admin panel to start the video player.",
             variant: "destructive",
           });
+          return currentState;
+        }
+      }
+
+      // Player window exists and is not closed, send play command
+      if (currentState.playerWindow && !currentState.playerWindow.closed) {
+        const command = {
+          action: "play",
+          videoId: videoId,
+          title: title,
+          artist: artist,
+          timestamp: Date.now(),
+          testMode: currentState.testMode,
+        };
+
+        try {
+          currentState.playerWindow.localStorage.setItem(
+            "jukeboxCommand",
+            JSON.stringify(command),
+          );
+
+          console.log(
+            `[PlaySong] Command sent successfully. VideoID: ${videoId}, TestMode: ${currentState.testMode}`,
+          );
+
+          const description =
+            logType === "USER_SELECTION"
+              ? `Playing user request: ${title}${currentState.testMode ? " (TEST MODE - 20s)" : ""}`
+              : `Autoplay: ${title}${currentState.testMode ? " (TEST MODE - 20s)" : ""}`;
+          addLog(logType, description, videoId);
+
+          // Update state with new video info
+          return {
+            ...currentState,
+            currentlyPlaying: title.replace(/\([^)]*\)/g, "").trim(),
+            currentVideoId: videoId,
+          };
+        } catch (error) {
+          console.error("[PlaySong] Error sending command to player:", error);
+          return currentState;
         }
       } else {
-        console.error(
-          "[PlaySong] Maximum retries exceeded, cannot recover player",
-        );
+        console.error("[PlaySong] Player window not available for retry");
+        console.log("[PlaySong] Current state details:", {
+          playerWindow: currentState.playerWindow,
+          isPlayerRunning: currentState.isPlayerRunning,
+          windowClosed: currentState.playerWindow?.closed,
+          windowExists: !!currentState.playerWindow,
+        });
+
         toast({
-          title: "Player Error",
+          title: "Player Window Missing",
           description:
-            "Unable to open player window after multiple attempts. Please manually open from admin panel.",
+            "Player window not available. Please use admin panel to open player.",
           variant: "destructive",
         });
+
+        return currentState;
       }
-    }
+    });
   };
 
   const handlePlayerToggle = () => {
