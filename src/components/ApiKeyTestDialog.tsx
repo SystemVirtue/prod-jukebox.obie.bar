@@ -32,6 +32,8 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
   const [currentTestIndex, setCurrentTestIndex] = useState(0);
   const [isComplete, setIsComplete] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [dismissCountdown, setDismissCountdown] = useState<number>(0);
 
   const API_KEYS = [
     { key: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4", name: "Key 1 (Primary)" },
