@@ -810,6 +810,16 @@ const Index = () => {
           setState((prev) => ({ ...prev, coinValueB: value }))
         }
       />
+
+      {/* Display Confirmation Dialog */}
+      {pendingDisplayConfirmation && (
+        <DisplayConfirmationDialog
+          isOpen={true}
+          displayInfo={pendingDisplayConfirmation.displayInfo}
+          onConfirm={handleDisplayConfirmationResponse}
+          onCancel={handleDisplayConfirmationCancel}
+        />
+      )}
     </BackgroundDisplay>
   );
 };
