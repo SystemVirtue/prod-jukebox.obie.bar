@@ -25,6 +25,11 @@ class MusicSearchService {
   private async initYtMusic() {
     try {
       if (!this.isYtMusicInitialized) {
+        // Check if we're in a browser environment
+        if (typeof window === "undefined") {
+          throw new Error("YtMusic API not supported in this environment");
+        }
+
         this.ytMusic = new YtMusic();
         await this.ytMusic.initialize();
         this.isYtMusicInitialized = true;
@@ -33,6 +38,7 @@ class MusicSearchService {
     } catch (error) {
       console.error("Failed to initialize YtMusic API:", error);
       this.isYtMusicInitialized = false;
+      this.ytMusic = null;
     }
   }
 
