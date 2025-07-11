@@ -1068,6 +1068,24 @@ const Index = () => {
           onCancel={handleDisplayConfirmationCancel}
         />
       )}
+
+      {/* Quota Exhausted Dialog */}
+      <QuotaExhaustedDialog
+        isOpen={state.allKeysExhausted}
+        onOkClick={handleQuotaExhaustedOk}
+      />
+
+      {/* App Pause Overlay */}
+      {state.isAppPaused && (
+        <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center">
+          <div className="text-white text-center">
+            <h2 className="text-4xl font-bold mb-4">APP PAUSED</h2>
+            <p className="text-xl">
+              All API keys exhausted. Please acknowledge the dialog to continue.
+            </p>
+          </div>
+        </div>
+      )}
     </BackgroundDisplay>
   );
 };
