@@ -656,6 +656,34 @@ const Index = () => {
         }
         apiKey={state.apiKey}
         onApiKeyChange={(apiKey) => setState((prev) => ({ ...prev, apiKey }))}
+        selectedApiKeyOption={state.selectedApiKeyOption}
+        onApiKeyOptionChange={(option) => {
+          const API_KEY_OPTIONS = {
+            key1: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4",
+            key2: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY",
+            key3: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU",
+            key4: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk",
+            custom: state.customApiKey,
+          };
+
+          setState((prev) => ({
+            ...prev,
+            selectedApiKeyOption: option,
+            apiKey:
+              option === "custom"
+                ? prev.customApiKey
+                : API_KEY_OPTIONS[option as keyof typeof API_KEY_OPTIONS] ||
+                  prev.apiKey,
+          }));
+        }}
+        customApiKey={state.customApiKey}
+        onCustomApiKeyChange={(key) => {
+          setState((prev) => ({
+            ...prev,
+            customApiKey: key,
+            apiKey: prev.selectedApiKeyOption === "custom" ? key : prev.apiKey,
+          }));
+        }}
         searchMethod={state.searchMethod}
         onSearchMethodChange={(searchMethod) =>
           setState((prev) => ({ ...prev, searchMethod }))
