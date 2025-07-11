@@ -157,6 +157,7 @@ const Index = () => {
         else if (workingKey.keyName.includes("Key 2")) selectedOption = "key2";
         else if (workingKey.keyName.includes("Key 3")) selectedOption = "key3";
         else if (workingKey.keyName.includes("Key 4")) selectedOption = "key4";
+        else if (workingKey.keyName.includes("Key 5")) selectedOption = "key5";
 
         console.log(
           `[Init] Setting API key to ${selectedOption} with key ...${workingKey.key.slice(-8)}`,
