@@ -1,4 +1,4 @@
-import { YtMusic } from "ytmusic-api";
+import YTMusic from "ytmusic-api";
 
 export interface SearchResult {
   id: string;
@@ -14,7 +14,7 @@ export interface SearchResult {
 export type SearchMethod = "youtube_api" | "ytmusic_api";
 
 class MusicSearchService {
-  private ytMusic: YtMusic | null = null;
+  private ytMusic: YTMusic | null = null;
   private isYtMusicInitialized = false;
 
   constructor() {
@@ -30,7 +30,7 @@ class MusicSearchService {
           throw new Error("YtMusic API not supported in this environment");
         }
 
-        this.ytMusic = new YtMusic();
+        this.ytMusic = new YTMusic();
         await this.ytMusic.initialize();
         this.isYtMusicInitialized = true;
         console.log("YtMusic API initialized successfully");
