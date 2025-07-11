@@ -1097,6 +1097,12 @@ const Index = () => {
         />
       )}
 
+      {/* API Key Test Dialog */}
+      <ApiKeyTestDialog
+        isOpen={state.showApiKeyTestDialog}
+        onComplete={handleApiKeyTestComplete}
+      />
+
       {/* Quota Exhausted Dialog */}
       <QuotaExhaustedDialog
         isOpen={state.allKeysExhausted}
