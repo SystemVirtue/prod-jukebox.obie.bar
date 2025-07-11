@@ -17,6 +17,8 @@ export type SearchMethod = "youtube_api" | "ytmusic_api";
 class MusicSearchService {
   private ytMusic: YTMusic | null = null;
   private isYtMusicInitialized = false;
+  private lastSearchTimes: { [key: string]: number } = {};
+  private readonly MIN_SEARCH_INTERVAL = 1000; // Minimum 1 second between searches
 
   constructor() {
     // YtMusic API is not compatible with browser environments due to CORS restrictions
@@ -56,6 +58,20 @@ class MusicSearchService {
     maxResults: number = 48,
   ): Promise<SearchResult[]> {
     try {
+      // Rate limiting: prevent rapid successive searches
+      const searchKey = `${apiKey.slice(-8)}-${query}`;
+      const now = Date.now();
+      const lastSearch = this.lastSearchTimes[searchKey] || 0;
+
+      if (now - lastSearch < this.MIN_SEARCH_INTERVAL) {
+        console.log(`[MusicSearch] Rate limited search for query: ${query}`);
+        throw new Error(
+          "Search rate limited. Please wait before searching again.",
+        );
+      }
+
+      this.lastSearchTimes[searchKey] = now;
+
       // Check if quota is exhausted for this API key
       const quotaExhaustedKey = `quota-exhausted-${apiKey.slice(-8)}`;
       const quotaExhaustedTime = localStorage.getItem(quotaExhaustedKey);
