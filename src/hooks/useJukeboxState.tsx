@@ -206,7 +206,7 @@ export const useJukeboxState = () => {
     coinValueB: 1,
     allKeysExhausted: false,
     isAppPaused: false,
-    showApiKeyTestDialog: true,
+    showApiKeyTestDialog: false, // Temporarily disabled to stop infinite calls
   });
 
   const addLog = (
