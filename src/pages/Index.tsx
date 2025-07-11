@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Check, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SearchInterface } from "@/components/SearchInterface";
+import { IframeSearchInterface } from "@/components/IframeSearchInterface";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
 import { AdminConsole } from "@/components/AdminConsole";
