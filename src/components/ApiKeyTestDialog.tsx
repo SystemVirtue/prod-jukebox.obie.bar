@@ -183,7 +183,7 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
             Testing API Key Quotas
           </DialogTitle>
           <DialogDescription className="text-blue-800">
-            Testing all 4 YouTube API keys before initializing the
+            Testing all 5 YouTube API keys before initializing the
             application...
           </DialogDescription>
         </DialogHeader>
