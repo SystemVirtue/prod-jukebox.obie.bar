@@ -63,16 +63,59 @@ export const usePlaylistManager = (
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50&key=${encodeURIComponent(state.apiKey)}${nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : ""}`;
 
         console.log(`[LoadPlaylist] Fetching: ${url}`);
+        console.log(
+          `[LoadPlaylist] API Key: ${state.apiKey ? `...${state.apiKey.slice(-8)}` : "NOT SET"}`,
+        );
+        console.log(`[LoadPlaylist] Playlist ID: ${playlistId}`);
+        console.log(`[LoadPlaylist] Browser online: ${navigator.onLine}`);
+
+        // Check for basic requirements before attempting fetch
+        if (!state.apiKey || state.apiKey.length < 20) {
+          console.error(
+            "[LoadPlaylist] Invalid or missing API key, using fallback",
+          );
+          toast({
+            title: "Configuration Error",
+            description:
+              "YouTube API key is missing or invalid. Using fallback playlist.",
+            variant: "default",
+          });
+          allVideos = [];
+          break;
+        }
+
+        // If we've had persistent fetch failures, skip to fallback immediately
+        const failureKey = `playlist-fetch-failures-${playlistId}`;
+        const failures = parseInt(localStorage.getItem(failureKey) || "0");
+        if (failures >= 3) {
+          console.log(
+            `[LoadPlaylist] Too many previous failures (${failures}), using fallback immediately`,
+          );
+          toast({
+            title: "Using Offline Mode",
+            description:
+              "YouTube API has persistent issues. Using fallback playlist.",
+            variant: "default",
+          });
+          allVideos = [];
+          break;
+        }
 
         // Simple fetch approach with comprehensive error handling
         let data;
         try {
-          console.log(`[LoadPlaylist] Making request to YouTube API...`);
+          console.log(
+            `[LoadPlaylist] Making request to YouTube API (attempt after ${failures} previous failures)...`,
+          );
+
           const response = await fetch(url, {
             method: "GET",
             headers: {
               Accept: "application/json",
             },
+            // Add cache control and timeout
+            cache: "no-cache",
+            signal: AbortSignal.timeout(10000), // 10 second timeout
           });
 
           console.log(`[LoadPlaylist] Response status: ${response.status}`);
