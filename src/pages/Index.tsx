@@ -48,7 +48,12 @@ const Index = () => {
     handlePlayerToggle,
     handleSkipSong,
     performSkip,
-  } = usePlayerManager(state, setState, addLog);
+  } = usePlayerManager(
+    state,
+    setState,
+    addLog,
+    handleDisplayConfirmationNeeded,
+  );
 
   const {
     loadPlaylistVideos,
