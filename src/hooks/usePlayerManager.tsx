@@ -367,11 +367,21 @@ export const usePlayerManager = (
 
     // Prevent infinite loops by limiting retries
     if (retryCount >= MAX_RETRIES) {
-      console.error("[PlaySong] Maximum retry attempts reached, stopping");
+      console.error(
+        `[PlaySong] Maximum retry attempts reached for ${videoId} - ${title}, stopping`,
+      );
+
+      // Set a more informative error state
+      setState((prev) => ({
+        ...prev,
+        currentlyPlaying: "Player Error - Please restart",
+        currentVideoId: "",
+      }));
+
       toast({
         title: "Player Error",
         description:
-          "Unable to play song after multiple attempts. Please open player manually.",
+          "Unable to play song after multiple attempts. Please open player manually or restart the app.",
         variant: "destructive",
       });
       return;
