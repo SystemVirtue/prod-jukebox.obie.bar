@@ -758,6 +758,51 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   )}
                 </p>
               </div>
+
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    checked={autoRotateApiKeys}
+                    onCheckedChange={onAutoRotateChange}
+                    id="auto-rotate"
+                  />
+                  <label
+                    htmlFor="auto-rotate"
+                    className="text-sm font-medium text-slate-700"
+                  >
+                    Auto-rotate API keys when quota exhausted
+                  </label>
+                </div>
+                {lastRotationTime && (
+                  <span className="text-xs text-slate-500">
+                    Last rotation:{" "}
+                    {new Date(lastRotationTime).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+
+              {rotationHistory.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-medium text-slate-700">
+                    Recent Rotations:
+                  </label>
+                  <div className="max-h-24 overflow-y-auto space-y-1">
+                    {rotationHistory.slice(0, 3).map((rotation, index) => (
+                      <div
+                        key={index}
+                        className="text-xs text-slate-600 p-2 bg-slate-100 rounded"
+                      >
+                        <span className="font-mono">
+                          ...{rotation.from} → ...{rotation.to}
+                        </span>
+                        <span className="ml-2 text-slate-500">
+                          {new Date(rotation.timestamp).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             <div>
