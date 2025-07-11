@@ -1,5 +1,6 @@
 import YTMusic from "ytmusic-api";
 import { youtubeQuotaService } from "./youtubeQuota";
+import { youtubeHtmlParserService } from "./youtubeHtmlParser";
 
 export interface SearchResult {
   id: string;
