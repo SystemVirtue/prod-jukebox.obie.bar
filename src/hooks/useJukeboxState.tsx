@@ -287,11 +287,20 @@ export const useJukeboxState = () => {
     }
 
     // Fill remaining slots with in-memory playlist songs
+    // Skip the first song if it's currently playing to avoid showing it in "coming up"
     if (upcoming.length < 3 && state.inMemoryPlaylist.length > 0) {
       const remainingSlots = 3 - upcoming.length;
+      const startIndex =
+        state.currentlyPlaying !== "Loading..." &&
+        state.inMemoryPlaylist.length > 0 &&
+        state.inMemoryPlaylist[0].title === state.currentlyPlaying
+          ? 1
+          : 0;
+
       for (
-        let i = 0;
-        i < Math.min(remainingSlots, state.inMemoryPlaylist.length);
+        let i = startIndex;
+        i <
+        Math.min(startIndex + remainingSlots, state.inMemoryPlaylist.length);
         i++
       ) {
         upcoming.push(state.inMemoryPlaylist[i].title);
