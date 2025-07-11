@@ -27,6 +27,28 @@ export const usePlayerManager = (
       isRunning: state.isPlayerRunning,
     });
 
+    // Check if player window state exists in localStorage
+    const playerWindowState = localStorage.getItem("jukeboxPlayerWindowState");
+    if (playerWindowState) {
+      try {
+        const parsedState = JSON.parse(playerWindowState);
+        const timeSinceClose = Date.now() - parsedState.timestamp;
+
+        // If player was closed recently (within 30 seconds), don't auto-reopen
+        if (parsedState.isClosed && timeSinceClose < 30000) {
+          console.log(
+            "[InitPlayer] Player was recently closed by user, skipping auto-initialization",
+          );
+          return;
+        }
+      } catch (error) {
+        console.warn(
+          "[InitPlayer] Failed to parse player window state:",
+          error,
+        );
+      }
+    }
+
     if (state.playerWindow && !state.playerWindow.closed) {
       console.log("[InitPlayer] Player window already exists and is open");
       return;
