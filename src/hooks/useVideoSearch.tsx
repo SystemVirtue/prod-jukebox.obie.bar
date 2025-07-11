@@ -33,35 +33,6 @@ export const useVideoSearch = (
     video: SearchResult | null;
   }>({ isOpen: false, video: null });
 
-  // Helper function to convert duration string to minutes
-  const durationToMinutes = (duration: string): number => {
-    // Parse ISO 8601 duration format (PT4M33S)
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return 0;
-
-    const hours = parseInt(match[1] || "0");
-    const minutes = parseInt(match[2] || "0");
-    const seconds = parseInt(match[3] || "0");
-
-    return hours * 60 + minutes + (seconds > 30 ? 1 : 0); // Round up if over 30 seconds
-  };
-
-  // Helper function to format duration for display
-  const formatDuration = (duration: string): string => {
-    const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-    if (!match) return "";
-
-    const hours = parseInt(match[1] || "0");
-    const minutes = parseInt(match[2] || "0");
-    const seconds = parseInt(match[3] || "0");
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
-    } else {
-      return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-    }
-  };
-
   const performSearch = async (query: string) => {
     if (!query.trim()) return;
 
