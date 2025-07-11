@@ -244,6 +244,7 @@ class YouTubeQuotaService {
       "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY", // key2
       "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU", // key3
       "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk", // key4
+      "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA", // key5
     ];
 
     // Add custom key if it exists and is different from predefined ones
