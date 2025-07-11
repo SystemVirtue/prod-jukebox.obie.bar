@@ -265,6 +265,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
           );
 
           if (response.ok) {
+            // Track API usage
+            youtubeQuotaService.trackApiUsage(apiKey, "playlists", 1);
+
             const data = await response.json();
             if (data.items && data.items.length > 0) {
               titles[playlist.id] = data.items[0].snippet.title;
