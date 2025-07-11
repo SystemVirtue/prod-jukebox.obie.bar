@@ -42,6 +42,8 @@ export const IframeSearchInterface: React.FC<IframeSearchInterfaceProps> = ({
   onClose,
   searchQuery,
   onSearchQueryChange,
+  searchResults,
+  isSearching,
   showKeyboard,
   showSearchResults,
   onKeyboardInput,
