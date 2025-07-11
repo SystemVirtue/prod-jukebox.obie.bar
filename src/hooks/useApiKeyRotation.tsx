@@ -121,6 +121,12 @@ export const useApiKeyRotation = (
   const checkAndRotateIfNeeded = useCallback(async () => {
     if (!state.autoRotateApiKeys) return;
 
+    // Don't attempt rotation with empty or invalid API key
+    if (!state.apiKey || state.apiKey.length < 20) {
+      console.log("[API Rotation] Skipping rotation - no valid API key set");
+      return;
+    }
+
     const availableKeys = getAvailableKeys();
     if (availableKeys.length <= 1) return;
 
