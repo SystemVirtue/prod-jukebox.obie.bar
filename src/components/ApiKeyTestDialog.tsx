@@ -46,7 +46,7 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
       setHasStarted(true);
       startTesting();
     }
-  }, [isOpen]); // Only depend on isOpen to prevent infinite loops
+  }, [isOpen, hasStarted]); // Include hasStarted to fix ESLint warning
 
   const startTesting = async () => {
     console.log("[ApiKeyTestDialog] Initializing API key tests");
