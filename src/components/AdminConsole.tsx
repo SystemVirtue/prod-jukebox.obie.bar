@@ -633,6 +633,37 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Player Controls
               </label>
+
+              {/* Player Status Indicator */}
+              <div className="mb-3 p-2 bg-slate-100 rounded text-sm">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      playerWindow && !playerWindow.closed
+                        ? "bg-green-500"
+                        : "bg-red-500"
+                    }`}
+                  ></div>
+                  <span className="font-medium">Player Window:</span>
+                  <span
+                    className={
+                      playerWindow && !playerWindow.closed
+                        ? "text-green-700"
+                        : "text-red-700"
+                    }
+                  >
+                    {playerWindow && !playerWindow.closed
+                      ? "Open & Ready"
+                      : playerWindow
+                        ? "Closed"
+                        : "Not Created"}
+                  </span>
+                </div>
+                <div className="text-xs text-slate-600 mt-1">
+                  Status: {isPlayerRunning ? "Running" : "Stopped"}
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <Button
                   onClick={onPlayerToggle}
