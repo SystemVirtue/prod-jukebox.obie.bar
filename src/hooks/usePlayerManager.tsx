@@ -57,16 +57,19 @@ export const usePlayerManager = (
         // Start first song after initialization delay
         setTimeout(() => {
           console.log("[InitPlayer] Auto-starting first song");
-          if (state.inMemoryPlaylist.length > 0) {
-            const firstSong = state.inMemoryPlaylist[0];
-            playSong(
-              firstSong.videoId,
-              firstSong.title,
-              firstSong.channelTitle,
-              "SONG_PLAYED",
-              0,
-            );
-          }
+          setState((currentState) => {
+            if (currentState.inMemoryPlaylist.length > 0) {
+              const firstSong = currentState.inMemoryPlaylist[0];
+              playSong(
+                firstSong.videoId,
+                firstSong.title,
+                firstSong.channelTitle,
+                "SONG_PLAYED",
+                0,
+              );
+            }
+            return currentState;
+          });
         }, 3000);
 
         addLog("SONG_PLAYED", "Player window opened successfully");
@@ -125,20 +128,23 @@ export const usePlayerManager = (
 
       // Start first song after initialization
       setTimeout(() => {
-        if (state.inMemoryPlaylist.length > 0) {
-          const firstSong = state.inMemoryPlaylist[0];
-          console.log(
-            "Auto-starting first song after player initialization:",
-            firstSong.title,
-          );
-          playSong(
-            firstSong.videoId,
-            firstSong.title,
-            firstSong.channelTitle,
-            "SONG_PLAYED",
-            0,
-          );
-        }
+        setState((currentState) => {
+          if (currentState.inMemoryPlaylist.length > 0) {
+            const firstSong = currentState.inMemoryPlaylist[0];
+            console.log(
+              "Auto-starting first song after player initialization:",
+              firstSong.title,
+            );
+            playSong(
+              firstSong.videoId,
+              firstSong.title,
+              firstSong.channelTitle,
+              "SONG_PLAYED",
+              0,
+            );
+          }
+          return currentState;
+        });
       }, 3000);
 
       addLog(
@@ -173,16 +179,19 @@ export const usePlayerManager = (
       console.log("Basic player window opened successfully");
 
       setTimeout(() => {
-        if (state.inMemoryPlaylist.length > 0) {
-          const firstSong = state.inMemoryPlaylist[0];
-          playSong(
-            firstSong.videoId,
-            firstSong.title,
-            firstSong.channelTitle,
-            "SONG_PLAYED",
-            0,
-          );
-        }
+        setState((currentState) => {
+          if (currentState.inMemoryPlaylist.length > 0) {
+            const firstSong = currentState.inMemoryPlaylist[0];
+            playSong(
+              firstSong.videoId,
+              firstSong.title,
+              firstSong.channelTitle,
+              "SONG_PLAYED",
+              0,
+            );
+          }
+          return currentState;
+        });
       }, 3000);
     } else {
       toast({
@@ -381,16 +390,19 @@ export const usePlayerManager = (
         isPlayerRunning: true,
         isPlayerPaused: false,
       }));
-      if (state.inMemoryPlaylist.length > 0) {
-        const firstSong = state.inMemoryPlaylist[0];
-        playSong(
-          firstSong.videoId,
-          firstSong.title,
-          firstSong.channelTitle,
-          "SONG_PLAYED",
-          0,
-        );
-      }
+      setState((currentState) => {
+        if (currentState.inMemoryPlaylist.length > 0) {
+          const firstSong = currentState.inMemoryPlaylist[0];
+          playSong(
+            firstSong.videoId,
+            firstSong.title,
+            firstSong.channelTitle,
+            "SONG_PLAYED",
+            0,
+          );
+        }
+        return currentState;
+      });
       addLog("SONG_PLAYED", "Player started by admin");
     }
   };
