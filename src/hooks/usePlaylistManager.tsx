@@ -200,9 +200,12 @@ export const usePlaylistManager = (
       if (
         error instanceof Error &&
         (error.message.includes("Network error") ||
-          error.message.includes("Failed to fetch"))
+          error.message.includes("Failed to fetch") ||
+          error.message.includes("Quota exceeded"))
       ) {
-        console.log("API unavailable, providing fallback playlist content");
+        console.log(
+          "API unavailable or quota exceeded, providing fallback playlist content",
+        );
 
         // Create minimal fallback playlist with popular music videos
         const fallbackVideos: PlaylistItem[] = [
