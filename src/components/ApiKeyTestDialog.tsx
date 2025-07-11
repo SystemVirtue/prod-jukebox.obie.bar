@@ -41,19 +41,14 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
   ];
 
   useEffect(() => {
-    if (isOpen && !hasStarted && testResults.length === 0) {
+    if (isOpen && !hasStarted) {
       console.log("[ApiKeyTestDialog] Starting API key tests...");
       setHasStarted(true);
       startTesting();
     }
-  }, [isOpen, hasStarted, testResults.length]);
+  }, [isOpen]); // Only depend on isOpen to prevent infinite loops
 
   const startTesting = async () => {
-    if (hasStarted && testResults.length > 0) {
-      console.log("[ApiKeyTestDialog] Testing already in progress, skipping");
-      return;
-    }
-
     console.log("[ApiKeyTestDialog] Initializing API key tests");
     const initialResults: ApiKeyTestResult[] = API_KEYS.map((apiKey) => ({
       key: apiKey.key,
