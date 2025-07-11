@@ -190,7 +190,7 @@ export const usePlayerManager = (
     }
   };
 
-  const playSong = (
+    const playSong = (
     videoId: string,
     title: string,
     artist: string,
@@ -199,9 +199,7 @@ export const usePlayerManager = (
   ) => {
     const MAX_RETRIES = 2;
 
-    console.log(
-      `[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`,
-    );
+    console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`);
     console.log(`[PlaySong] Player window state:`, {
       exists: !!state.playerWindow,
       closed: state.playerWindow?.closed,
@@ -213,8 +211,7 @@ export const usePlayerManager = (
       console.error("[PlaySong] Maximum retry attempts reached, stopping");
       toast({
         title: "Player Error",
-        description:
-          "Unable to play song after multiple attempts. Please open player manually.",
+        description: "Unable to play song after multiple attempts. Please open player manually.",
         variant: "destructive",
       });
       return;
@@ -310,66 +307,67 @@ export const usePlayerManager = (
         variant: "default",
       });
 
-      // Immediately attempt to reinitialize the player
-      console.log("[PlaySong] Attempting to reinitialize player window");
-      try {
-        // Force player window state to false to trigger reinitialization
-        setState((prev) => ({
-          ...prev,
-          playerWindow: null,
-          isPlayerRunning: false,
-        }));
+            // Only attempt recovery if we haven't exceeded retry limit
+      if (retryCount < MAX_RETRIES) {
+        console.log("[PlaySong] Attempting to reinitialize player window");
+        try {
+          // Force player window state to false to trigger reinitialization
+          setState((prev) => ({
+            ...prev,
+            playerWindow: null,
+            isPlayerRunning: false,
+          }));
 
-        // Initialize player and retry song
-        const retryWithRecovery = async () => {
-          await initializePlayer();
+          // Initialize player and retry song
+          const retryWithRecovery = async () => {
+            await initializePlayer();
 
-          // Wait for window to be ready, then retry
-          setTimeout(() => {
-            // Use setState callback to get latest state
-            setState((currentState) => {
-              console.log("[PlaySong] Checking recovery status:", {
-                hasWindow: !!currentState.playerWindow,
-                windowClosed: currentState.playerWindow?.closed,
-                isRunning: currentState.isPlayerRunning,
+            // Wait for window to be ready, then retry
+            setTimeout(() => {
+              // Use setState callback to get latest state
+              setState((currentState) => {
+                console.log("[PlaySong] Checking recovery status:", {
+                  hasWindow: !!currentState.playerWindow,
+                  windowClosed: currentState.playerWindow?.closed,
+                  isRunning: currentState.isPlayerRunning,
+                });
+
+                if (
+                  currentState.playerWindow &&
+                  !currentState.playerWindow.closed
+                ) {
+                  console.log(
+                    "[PlaySong] Player recovered successfully, retrying song",
+                  );
+                  // Retry the song with a small delay and increment retry count
+                  setTimeout(
+                    () => playSong(videoId, title, artist, logType, retryCount + 1),
+                    500,
+                  );
+
+                  toast({
+                    title: "Player Recovered",
+                    description:
+                      "Player window opened successfully. Retrying song...",
+                    variant: "default",
+                  });
+                } else {
+                  console.error(
+                    "[PlaySong] Player recovery failed - window still not available",
+                  );
+                  toast({
+                    title: "Player Recovery Failed",
+                    description:
+                      "Could not open player window. Please check popup blockers or manually open player from admin panel.",
+                    variant: "destructive",
+                  });
+                }
+                return currentState;
               });
+            }, 2000);
+          };
 
-              if (
-                currentState.playerWindow &&
-                !currentState.playerWindow.closed
-              ) {
-                console.log(
-                  "[PlaySong] Player recovered successfully, retrying song",
-                );
-                // Retry the song with a small delay
-                setTimeout(
-                  () => playSong(videoId, title, artist, logType),
-                  500,
-                );
-
-                toast({
-                  title: "Player Recovered",
-                  description:
-                    "Player window opened successfully. Retrying song...",
-                  variant: "default",
-                });
-              } else {
-                console.error(
-                  "[PlaySong] Player recovery failed - window still not available",
-                );
-                toast({
-                  title: "Player Recovery Failed",
-                  description:
-                    "Could not open player window. Please check popup blockers or manually open player from admin panel.",
-                  variant: "destructive",
-                });
-              }
-              return currentState;
-            });
-          }, 2000);
-        };
-
-        retryWithRecovery();
+          retryWithRecovery();
       } catch (error) {
         console.error("[PlaySong] Error during player recovery:", error);
         toast({
