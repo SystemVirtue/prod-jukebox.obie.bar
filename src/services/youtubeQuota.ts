@@ -75,27 +75,33 @@ class YouTubeQuotaService {
       const testUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent("music")}&type=video&maxResults=1&key=${encodeURIComponent(apiKey)}`;
       const response = await fetch(testUrl);
 
+      // Read response body once and handle all cases
+      let responseData = null;
+      try {
+        responseData = await response.json();
+      } catch (jsonError) {
+        // Response is not JSON, handle based on status code only
+        if (!response.ok) {
+          if (response.status === 403) {
+            // Assume quota exceeded for 403 without readable JSON
+            return {
+              used: this.QUOTA_LIMIT,
+              limit: this.QUOTA_LIMIT,
+              percentage: 100,
+              lastUpdated: new Date().toISOString(),
+            };
+          } else {
+            throw new Error(`API Error: ${response.status}`);
+          }
+        }
+        // Success with non-JSON response, continue with estimation
+      }
+
+      // Handle error responses with parsed JSON data
       if (!response.ok) {
         if (response.status === 403) {
-          try {
-            const errorData = await response.json();
-            if (errorData.error?.errors?.[0]?.reason === "quotaExceeded") {
-              return {
-                used: this.QUOTA_LIMIT,
-                limit: this.QUOTA_LIMIT,
-                percentage: 100,
-                lastUpdated: new Date().toISOString(),
-              };
-            }
-            // If not quota exceeded, throw error with message
-            const errorMessage =
-              errorData.error?.message || `HTTP ${response.status}`;
-            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
-          } catch (jsonError) {
-            // If we can't parse the response, assume quota exceeded for 403 errors
-            console.warn(
-              "Could not parse 403 response, assuming quota exceeded",
-            );
+          // Check if we have quota exceeded in parsed data
+          if (responseData?.error?.errors?.[0]?.reason === "quotaExceeded") {
             return {
               used: this.QUOTA_LIMIT,
               limit: this.QUOTA_LIMIT,
@@ -103,27 +109,22 @@ class YouTubeQuotaService {
               lastUpdated: new Date().toISOString(),
             };
           }
+          // For other 403 errors, assume quota exceeded
+          return {
+            used: this.QUOTA_LIMIT,
+            limit: this.QUOTA_LIMIT,
+            percentage: 100,
+            lastUpdated: new Date().toISOString(),
+          };
         } else {
-          // For non-403 errors, try to get error details
-          try {
-            const errorData = await response.json();
-            const errorMessage =
-              errorData.error?.message || `HTTP ${response.status}`;
-            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
-          } catch (jsonError) {
-            throw new Error(`API Error: ${response.status}`);
-          }
+          // For non-403 errors, throw with available error info
+          const errorMessage =
+            responseData?.error?.message || `HTTP ${response.status}`;
+          throw new Error(`API Error: ${response.status} - ${errorMessage}`);
         }
       }
 
-      // Consume the response to prevent body stream issues
-      try {
-        const data = await response.json();
-        // Successfully read JSON response, use it if needed
-      } catch (jsonError) {
-        // If response is not JSON, that's okay for quota checking
-        console.log("Response is not JSON, continuing with quota estimation");
-      }
+      // Success case - response body already consumed above
 
       // If we get here, the API key is valid and has quota available
       // Return cached usage or estimate
