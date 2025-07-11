@@ -315,33 +315,8 @@ export const usePlaylistManager = (
       // Check if we got any videos, if not, proceed directly to fallback
       if (allVideos.length === 0) {
         console.log("No videos loaded, proceeding to fallback playlist");
-        // Don't throw error, just create fallback playlist directly
-        const fallbackVideos: PlaylistItem[] = [
-          {
-            id: "fallback-1",
-            title: "Demo Song 1 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "dQw4w9WgXcQ", // Rick Roll as fallback
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-          {
-            id: "fallback-2",
-            title: "Demo Song 2 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "oHg5SJYRHA0", // Another classic
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-          {
-            id: "fallback-3",
-            title: "Demo Song 3 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "kJQP7kiw5Fk", // Despacito
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-        ];
+        // Don't create fallback playlist - leave empty to prevent annoying demo songs
+        const fallbackVideos: PlaylistItem[] = [];
 
         setState((prev) => ({
           ...prev,
@@ -396,33 +371,8 @@ export const usePlaylistManager = (
           "API unavailable or quota exceeded, providing fallback playlist content",
         );
 
-        // Create minimal fallback playlist with popular music videos
-        const fallbackVideos: PlaylistItem[] = [
-          {
-            id: "fallback-1",
-            title: "Demo Song 1 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "dQw4w9WgXcQ", // Rick Roll as fallback
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-          {
-            id: "fallback-2",
-            title: "Demo Song 2 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "oHg5SJYRHA0", // Another classic
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-          {
-            id: "fallback-3",
-            title: "Demo Song 3 (Offline Mode)",
-            channelTitle: "System",
-            videoId: "kJQP7kiw5Fk", // Despacito
-            isNowPlaying: false,
-            isUserRequest: false,
-          },
-        ];
+        // Don't create fallback playlist - leave empty to prevent annoying demo songs
+        const fallbackVideos: PlaylistItem[] = [];
 
         setState((prev) => ({
           ...prev,
