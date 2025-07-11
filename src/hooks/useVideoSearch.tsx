@@ -51,13 +51,59 @@ export const useVideoSearch = (
       return;
     }
 
-    // If using iframe search, just switch to search results view without API call
+    // If using iframe search, we can either show iframe directly OR use HTML parser
+    // For now, let's show the iframe interface but also populate search results for fallback
     if (state.searchMethod === "iframe_search") {
       setState((prev) => ({
         ...prev,
+        isSearching: true,
+        searchResults: [],
         showKeyboard: false,
         showSearchResults: true,
       }));
+
+      try {
+        // Use HTML parser to get fallback search results
+        console.log(`Starting iframe/HTML parser search for: ${query}`);
+        const searchResults = await musicSearchService.search(
+          query,
+          "iframe_search",
+          undefined, // No API key needed
+          48,
+        );
+
+        const filteredResults = searchResults.filter(
+          (video) => video.durationMinutes! <= state.maxSongLength,
+        );
+
+        console.log(`HTML parser search completed:`, filteredResults);
+        setState((prev) => ({
+          ...prev,
+          searchResults: filteredResults,
+          isSearching: false,
+        }));
+
+        if (filteredResults.length === 0) {
+          toast({
+            title: "No Results",
+            description:
+              "No music videos found for your search in fallback database.",
+            variant: "default",
+          });
+        }
+      } catch (error) {
+        console.error("HTML parser search error:", error);
+        setState((prev) => ({
+          ...prev,
+          isSearching: false,
+          searchResults: [],
+        }));
+        toast({
+          title: "Search Error",
+          description: "Unable to search. Please try again.",
+          variant: "destructive",
+        });
+      }
       return;
     }
 
