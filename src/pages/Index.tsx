@@ -657,6 +657,8 @@ const Index = () => {
 
   // Determine when to show the loading indicator
   const isLoading =
+    // When API key test dialog is open
+    state.showApiKeyTestDialog ||
     // When the application is initializing
     state.defaultPlaylistVideos.length === 0 ||
     // When playlist is loading
