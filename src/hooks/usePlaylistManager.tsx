@@ -64,28 +64,97 @@ export const usePlaylistManager = (
 
         console.log(`[LoadPlaylist] Fetching: ${url}`);
 
-        // Simple fetch approach to avoid body stream issues
+        // Simple fetch approach with comprehensive error handling
         let data;
         try {
-          const response = await fetch(url);
+          console.log(`[LoadPlaylist] Making request to YouTube API...`);
+          const response = await fetch(url, {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+            },
+          });
+
+          console.log(`[LoadPlaylist] Response status: ${response.status}`);
 
           if (!response.ok) {
             if (response.status === 403) {
-              console.log("Quota exceeded, using fallback playlist");
+              console.log(
+                "[LoadPlaylist] Quota exceeded, using fallback playlist",
+              );
+              toast({
+                title: "Quota Exceeded",
+                description:
+                  "YouTube API quota exceeded. Using fallback playlist.",
+                variant: "default",
+              });
               allVideos = []; // Trigger fallback
               break;
+            } else if (response.status === 404) {
+              console.log("[LoadPlaylist] Playlist not found, using fallback");
+              toast({
+                title: "Playlist Not Found",
+                description:
+                  "The playlist could not be found. Using fallback playlist.",
+                variant: "default",
+              });
+              allVideos = []; // Trigger fallback
+              break;
+            } else {
+              console.error(`[LoadPlaylist] HTTP ${response.status} error`);
+              toast({
+                title: "API Error",
+                description: `YouTube API error (${response.status}). Using fallback playlist.`,
+                variant: "default",
+              });
+              allVideos = []; // Trigger fallback for any error
+              break;
             }
-            console.error(`HTTP ${response.status} error`);
-            allVideos = []; // Trigger fallback for any error
-            break;
           }
 
+          console.log("[LoadPlaylist] Parsing JSON response...");
           data = await response.json();
+          console.log(
+            `[LoadPlaylist] Received ${data.items?.length || 0} items`,
+          );
 
           // Track API usage
           youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
         } catch (error) {
-          console.error("Error fetching playlist:", error.message || error);
+          console.error("[LoadPlaylist] Fetch error details:", {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+          });
+
+          // Provide specific error messages for different types of failures
+          if (error.message.includes("Failed to fetch")) {
+            console.log(
+              "[LoadPlaylist] Network connectivity issue, using fallback",
+            );
+            toast({
+              title: "Network Error",
+              description:
+                "Unable to connect to YouTube API. Using fallback playlist.",
+              variant: "default",
+            });
+          } else if (error.message.includes("CORS")) {
+            console.log("[LoadPlaylist] CORS issue, using fallback");
+            toast({
+              title: "Access Error",
+              description: "API access blocked. Using fallback playlist.",
+              variant: "default",
+            });
+          } else {
+            console.log("[LoadPlaylist] Unknown error, using fallback");
+            toast({
+              title: "API Unavailable",
+              description:
+                "YouTube API is currently unavailable. Using fallback playlist.",
+              variant: "default",
+            });
+          }
+
           // Any error triggers fallback
           allVideos = [];
           break;
