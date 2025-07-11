@@ -702,6 +702,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 </Button>
               </div>
 
+              {/* Display Management Controls */}
+              <DisplayControls
+                playerWindow={playerWindow}
+                onInitializePlayer={onInitializePlayer}
+              />
+
               {/* Debug Controls */}
               <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
                 <div className="text-xs font-medium text-yellow-800 mb-2">
@@ -1178,7 +1184,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
                     <Play className="w-2 h-2 text-white" />
                   </div>
-                  <span className="text-sm font-mono text-gray-500 w-8">♪</span>
+                  <span className="text-sm font-mono text-gray-500 w-8">
+                    ��
+                  </span>
                   <div className="flex-1">
                     <div className="font-semibold text-sm text-green-700">
                       {cleanTitle(currentlyPlaying)} (Now Playing)
