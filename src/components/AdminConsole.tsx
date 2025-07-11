@@ -254,12 +254,19 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     custom: customApiKey,
   };
 
-  // Load quota usage when API key changes
+  // Only load quota usage when user manually opens admin panel and has valid key
+  // Don't auto-check quota on every API key change to prevent errors
   useEffect(() => {
-    if (apiKey && isOpen && apiKey.startsWith("AIza") && apiKey.length >= 20) {
-      handleRefreshQuota();
+    // Only check quota if admin panel was manually opened and we have a valid key
+    if (isOpen && apiKey && apiKey.startsWith("AIza") && apiKey.length >= 20) {
+      // Add a small delay to prevent immediate quota checks
+      const timer = setTimeout(() => {
+        handleRefreshQuota();
+      }, 1000);
+
+      return () => clearTimeout(timer);
     }
-  }, [apiKey, isOpen]);
+  }, [isOpen]); // Only depend on isOpen, not apiKey changes
 
   const handleRefreshQuota = async () => {
     if (!apiKey) {
