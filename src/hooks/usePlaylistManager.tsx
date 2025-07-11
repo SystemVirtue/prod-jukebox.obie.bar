@@ -164,43 +164,82 @@ export const usePlaylistManager = (
           // Track API usage
           youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
         } catch (error) {
+          // Track failures for future reference
+          const failureKey = `playlist-fetch-failures-${playlistId}`;
+          const currentFailures =
+            parseInt(localStorage.getItem(failureKey) || "0") + 1;
+          localStorage.setItem(failureKey, currentFailures.toString());
+
           console.error("[LoadPlaylist] Fetch error details:", {
             message: error.message,
             name: error.name,
             stack: error.stack,
+            failureCount: currentFailures,
           });
 
           // Provide specific error messages for different types of failures
           if (error.message.includes("Failed to fetch")) {
             console.log(
-              "[LoadPlaylist] Network connectivity issue, using fallback",
+              `[LoadPlaylist] Network connectivity issue (failure #${currentFailures}), using fallback`,
             );
             toast({
               title: "Network Error",
-              description:
-                "Unable to connect to YouTube API. Using fallback playlist.",
+              description: `Unable to connect to YouTube API (attempt ${currentFailures}). Using fallback playlist.`,
               variant: "default",
             });
           } else if (error.message.includes("CORS")) {
-            console.log("[LoadPlaylist] CORS issue, using fallback");
+            console.log(
+              `[LoadPlaylist] CORS issue (failure #${currentFailures}), using fallback`,
+            );
             toast({
               title: "Access Error",
-              description: "API access blocked. Using fallback playlist.",
+              description:
+                "API access blocked by browser. Using fallback playlist.",
+              variant: "default",
+            });
+          } else if (
+            error.message.includes("timeout") ||
+            error.name === "TimeoutError"
+          ) {
+            console.log(
+              `[LoadPlaylist] Request timeout (failure #${currentFailures}), using fallback`,
+            );
+            toast({
+              title: "Timeout Error",
+              description:
+                "YouTube API request timed out. Using fallback playlist.",
               variant: "default",
             });
           } else {
-            console.log("[LoadPlaylist] Unknown error, using fallback");
+            console.log(
+              `[LoadPlaylist] Unknown error (failure #${currentFailures}), using fallback`,
+            );
             toast({
               title: "API Unavailable",
-              description:
-                "YouTube API is currently unavailable. Using fallback playlist.",
+              description: `YouTube API error (${error.message}). Using fallback playlist.`,
               variant: "default",
             });
+          }
+
+          // If this is the 3rd failure, clear the failure count after some time
+          if (currentFailures >= 3) {
+            setTimeout(() => {
+              localStorage.removeItem(failureKey);
+              console.log(
+                "[LoadPlaylist] Cleared failure count, will retry API on next load",
+              );
+            }, 300000); // Reset after 5 minutes
           }
 
           // Any error triggers fallback
           allVideos = [];
           break;
+        }
+
+        // Success - clear any previous failure count
+        if (data) {
+          const failureKey = `playlist-fetch-failures-${playlistId}`;
+          localStorage.removeItem(failureKey);
         }
 
         // Data processing continues here - response is already handled above
