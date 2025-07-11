@@ -185,11 +185,69 @@ export const usePlaylistManager = (
       );
     } catch (error) {
       console.error("Error loading playlist:", error);
-      toast({
-        title: "Playlist Error",
-        description: "Failed to load default playlist",
-        variant: "destructive",
-      });
+
+      // Provide fallback content when API is unavailable
+      if (
+        error instanceof Error &&
+        (error.message.includes("Network error") ||
+          error.message.includes("Failed to fetch"))
+      ) {
+        console.log("API unavailable, providing fallback playlist content");
+
+        // Create minimal fallback playlist with popular music videos
+        const fallbackVideos: PlaylistItem[] = [
+          {
+            id: "fallback-1",
+            title: "Demo Song 1 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "dQw4w9WgXcQ", // Rick Roll as fallback
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+          {
+            id: "fallback-2",
+            title: "Demo Song 2 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "oHg5SJYRHA0", // Another classic
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+          {
+            id: "fallback-3",
+            title: "Demo Song 3 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "kJQP7kiw5Fk", // Despacito
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+        ];
+
+        setState((prev) => ({
+          ...prev,
+          defaultPlaylistVideos: fallbackVideos,
+          inMemoryPlaylist: fallbackVideos,
+          currentVideoIndex: 0,
+        }));
+
+        toast({
+          title: "Offline Mode",
+          description:
+            "Using fallback playlist due to YouTube API connectivity issues. Check your API key in admin settings.",
+          variant: "default",
+        });
+
+        addLog(
+          "SONG_PLAYED",
+          "Loaded fallback playlist due to API unavailability",
+        );
+      } else {
+        toast({
+          title: "Playlist Error",
+          description:
+            "Failed to load default playlist. Check API key and playlist ID in admin settings.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
