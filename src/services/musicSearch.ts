@@ -56,9 +56,26 @@ class MusicSearchService {
     try {
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${apiKey}`;
 
-      const response = await fetch(searchUrl);
+      let response;
+      try {
+        response = await fetch(searchUrl);
+      } catch (networkError) {
+        console.error("Network error during YouTube search:", networkError);
+        throw new Error(
+          "Network error: Unable to connect to YouTube API. Please check your internet connection.",
+        );
+      }
+
       if (!response.ok) {
-        throw new Error(`YouTube API Error: ${response.status}`);
+        if (response.status === 403) {
+          throw new Error(
+            "YouTube API key is invalid or has exceeded quota limits.",
+          );
+        } else if (response.status === 400) {
+          throw new Error("Invalid search query or parameters.");
+        } else {
+          throw new Error(`YouTube API Error: ${response.status}`);
+        }
       }
 
       const data = await response.json();
