@@ -72,6 +72,31 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
     }
 
     setIsComplete(true);
+
+    // Find the first working key to display
+    const workingKey = initialResults.find((result) =>
+      testResults.find((r, i) => i < API_KEYS.length && r.status === "success"),
+    );
+
+    if (workingKey) {
+      const workingIndex = testResults.findIndex((r) => r.status === "success");
+      if (workingIndex >= 0) {
+        setSelectedKey(API_KEYS[workingIndex].name);
+      }
+    }
+
+    // Start 3-second countdown for auto-dismiss
+    setDismissCountdown(3);
+    const countdownInterval = setInterval(() => {
+      setDismissCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownInterval);
+          onComplete(testResults);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   const testApiKey = async (index: number) => {
