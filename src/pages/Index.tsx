@@ -268,28 +268,40 @@ const Index = () => {
     coinValueB: state.coinValueB,
   });
 
-  // Initialize playlist ONLY when defaultPlaylist changes or on initial load
+  // Initialize playlist ONLY when API key is properly selected AND playlist changes
   const [hasInitialized, setHasInitialized] = useState(false);
   useEffect(() => {
-    // Only run once on initial load or when playlist ID changes
-    if (hasInitialized && state.defaultPlaylist === state.defaultPlaylist) {
-      return;
-    }
-
-    console.log("Loading initial playlist...", state.defaultPlaylist);
-    setHasInitialized(true);
-
-    // Don't load playlist if API key test dialog is open
+    // Don't initialize if API key test dialog is still open
     if (state.showApiKeyTestDialog) {
-      console.log("Skipping playlist load - API key test dialog is open");
+      console.log(
+        "[Init] Skipping playlist load - API key test dialog is open",
+      );
       return;
     }
 
-    // Check if we have a valid API key before attempting to load
+    // Don't initialize if no valid API key is set
     if (!state.apiKey || state.apiKey.length < 20) {
-      console.log("No valid API key found during playlist load");
+      console.log("[Init] Skipping playlist load - no valid API key set");
       return;
     }
+
+    // Don't initialize if selectedApiKeyOption is still "custom" (means no proper key selected)
+    if (state.selectedApiKeyOption === "custom" && !state.customApiKey) {
+      console.log(
+        "[Init] Skipping playlist load - API key not properly selected yet",
+      );
+      return;
+    }
+
+    // Only run once after API key is properly set
+    if (hasInitialized) {
+      return;
+    }
+
+    console.log(
+      `[Init] Loading initial playlist with selected key: ${state.selectedApiKeyOption} (...${state.apiKey.slice(-8)})`,
+    );
+    setHasInitialized(true);
 
     // Check if quota is exhausted for current API key
     const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
@@ -298,13 +310,19 @@ const Index = () => {
       const timeSinceExhaustion = Date.now() - parseInt(quotaExhaustedTime);
       // If quota was exhausted recently (within 1 hour), skip loading
       if (timeSinceExhaustion < 3600000) {
-        console.log("API key quota exhausted, skipping playlist load");
+        console.log("[Init] API key quota exhausted, skipping playlist load");
         return;
       }
     }
 
     loadPlaylistVideos(state.defaultPlaylist);
-  }, [state.defaultPlaylist]); // ONLY depend on playlist ID, not API key
+  }, [
+    state.showApiKeyTestDialog,
+    state.apiKey,
+    state.selectedApiKeyOption,
+    state.customApiKey,
+    hasInitialized,
+  ]); // Depend on API key selection state
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
