@@ -76,9 +76,6 @@ class YouTubeQuotaService {
       const response = await fetch(testUrl);
 
       if (!response.ok) {
-        // Clone response BEFORE reading to avoid "body stream already read" errors
-        const responseClone = response.clone();
-
         if (response.status === 403) {
           try {
             const errorData = await response.json();
@@ -90,6 +87,10 @@ class YouTubeQuotaService {
                 lastUpdated: new Date().toISOString(),
               };
             }
+            // If not quota exceeded, throw error with message
+            const errorMessage =
+              errorData.error?.message || `HTTP ${response.status}`;
+            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
           } catch (jsonError) {
             // If we can't parse the response, assume quota exceeded for 403 errors
             console.warn(
@@ -102,15 +103,16 @@ class YouTubeQuotaService {
               lastUpdated: new Date().toISOString(),
             };
           }
-        }
-        // For other errors, try to get more specific error information using the clone
-        try {
-          const errorData = await responseClone.json();
-          const errorMessage =
-            errorData.error?.message || `HTTP ${response.status}`;
-          throw new Error(`API Error: ${response.status} - ${errorMessage}`);
-        } catch (jsonError) {
-          throw new Error(`API Error: ${response.status}`);
+        } else {
+          // For non-403 errors, try to get error details
+          try {
+            const errorData = await response.json();
+            const errorMessage =
+              errorData.error?.message || `HTTP ${response.status}`;
+            throw new Error(`API Error: ${response.status} - ${errorMessage}`);
+          } catch (jsonError) {
+            throw new Error(`API Error: ${response.status}`);
+          }
         }
       }
 
