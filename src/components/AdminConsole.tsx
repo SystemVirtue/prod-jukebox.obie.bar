@@ -614,12 +614,88 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 YouTube API Key
               </label>
-              <Input
-                value={apiKey}
-                onChange={(e) => onApiKeyChange(e.target.value)}
-                placeholder="Enter YouTube API Key"
-                className="font-mono text-sm"
-              />
+              <div className="space-y-3">
+                <Select
+                  value={selectedApiKeyOption}
+                  onValueChange={onApiKeyOptionChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select an API key option" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="key1">API Key 1 (Default)</SelectItem>
+                    <SelectItem value="key2">API Key 2 (Backup)</SelectItem>
+                    <SelectItem value="key3">API Key 3 (Primary)</SelectItem>
+                    <SelectItem value="key4">API Key 4 (Secondary)</SelectItem>
+                    <SelectItem value="custom">Custom API Key</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                {selectedApiKeyOption === "custom" && (
+                  <Input
+                    value={customApiKey}
+                    onChange={(e) => onCustomApiKeyChange(e.target.value)}
+                    placeholder="Enter custom YouTube API Key"
+                    className="font-mono text-sm"
+                  />
+                )}
+
+                <div className="flex items-center justify-between p-3 bg-slate-100 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-slate-700">
+                      Quota Usage:
+                    </span>
+                    {quotaLoading ? (
+                      <span className="text-xs text-slate-500">
+                        Checking...
+                      </span>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 h-2 bg-slate-300 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full transition-all duration-300 ${
+                              quotaUsage.percentage >= 90
+                                ? "bg-red-500"
+                                : quotaUsage.percentage >= 70
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                            }`}
+                            style={{
+                              width: `${Math.min(quotaUsage.percentage, 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs font-mono text-slate-600">
+                          {quotaUsage.used.toLocaleString()}/
+                          {quotaUsage.limit.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-slate-500">
+                          ({quotaUsage.percentage.toFixed(1)}%)
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    onClick={handleRefreshQuota}
+                    size="sm"
+                    variant="ghost"
+                    className="text-xs h-6 px-2"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Active Key:{" "}
+                  {apiKey ? `...${apiKey.slice(-8)}` : "None selected"}
+                  {quotaUsage.lastUpdated && (
+                    <span className="ml-2">
+                      (Updated:{" "}
+                      {new Date(quotaUsage.lastUpdated).toLocaleTimeString()})
+                    </span>
+                  )}
+                </p>
+              </div>
             </div>
 
             <div>
