@@ -202,6 +202,25 @@ class MusicSearchService {
     maxResults: number = 48,
   ): Promise<SearchResult[]> {
     switch (method) {
+      case "iframe_search":
+        // Use HTML parser for iframe search - no API key needed
+        console.log(
+          `[MusicSearch] Using HTML parser for iframe search: ${query}`,
+        );
+        const htmlResults = await youtubeHtmlParserService.searchYouTube(
+          query,
+          maxResults,
+        );
+        return htmlResults.map((video) => ({
+          id: video.id,
+          title: video.title,
+          channelTitle: video.channelTitle,
+          thumbnailUrl: video.thumbnailUrl,
+          videoUrl: video.videoUrl,
+          duration: video.duration,
+          officialScore: 0,
+        }));
+
       case "youtube_api":
         if (!apiKey) {
           throw new Error("YouTube API key is required for YouTube API search");
