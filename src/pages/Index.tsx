@@ -291,7 +291,8 @@ const Index = () => {
           firstSong: state.inMemoryPlaylist[0]?.title,
           priorityQueue: state.priorityQueue.length,
         });
-        playNextSong();
+        // Defer to next tick to prevent setState during render
+        setTimeout(() => playNextSong(), 0);
       }
     } else {
       // Reset flag if player or playlist is not ready
