@@ -333,23 +333,15 @@ const Index = () => {
       windowClosed: state.playerWindow?.closed,
     });
 
-    // Check if playlist is empty (indicates API failure since we removed demo songs)
+    // Check if playlist is empty but don't auto-open admin - let API key rotation handle it
     const hasEmptyPlaylist = state.defaultPlaylistVideos.length === 0;
 
-    if (hasEmptyPlaylist && !state.isAdminOpen && state.apiKey) {
-      console.log("[Auto-init] Empty playlist detected, likely API failure");
-      toast({
-        title: "API Configuration Needed",
-        description:
-          "YouTube API failed to load playlist. Opening admin panel to configure API keys.",
-        variant: "default",
-      });
-
-      setTimeout(() => {
-        setState((prev) => ({ ...prev, isAdminOpen: true }));
-      }, 3000); // Wait a bit longer since this happens after playlist load
-
-      return;
+    if (hasEmptyPlaylist && state.apiKey) {
+      console.log(
+        "[Auto-init] Empty playlist detected - API key rotation will handle this",
+      );
+      // Don't auto-open admin panel - the API key test dialog already handled key selection
+      // If playlist loading fails, rotation will find a working key or exhaust all keys
     }
 
     // Only auto-initialize if user hasn't manually closed the player recently
