@@ -203,6 +203,46 @@ export const usePlayerManager = (
       isPlayerRunning: state.isPlayerRunning,
     });
 
+    // If no player window exists, try to create one immediately
+    if (!state.playerWindow || state.playerWindow.closed) {
+      console.warn(
+        "[PlaySong] No player window available, creating one now...",
+      );
+
+      // Try to open player window immediately
+      const emergencyPlayerWindow = window.open(
+        "/player.html",
+        "JukeboxPlayer",
+        "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
+      );
+
+      if (emergencyPlayerWindow) {
+        console.log("[PlaySong] Emergency player window created successfully");
+        setState((prev) => ({
+          ...prev,
+          playerWindow: emergencyPlayerWindow,
+          isPlayerRunning: true,
+        }));
+
+        // Wait a moment for the window to load, then play the song
+        setTimeout(() => {
+          console.log("[PlaySong] Retrying song play with emergency window");
+          playSong(videoId, title, artist, logType);
+        }, 2000);
+
+        return;
+      } else {
+        console.error("[PlaySong] Could not create emergency player window");
+        toast({
+          title: "Player Window Required",
+          description:
+            "Please click 'Open Player' in the admin panel to start the video player.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
         action: "play",
