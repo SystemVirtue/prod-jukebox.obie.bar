@@ -112,10 +112,10 @@ export const usePlaylistManager = (
           break;
         }
 
-        if (!response.ok) {
-          console.error(`API Error ${response.status}:`, responseText);
+        if (responseStatus < 200 || responseStatus >= 300) {
+          console.error(`API Error ${responseStatus}:`, responseText);
 
-          if (response.status === 403) {
+          if (responseStatus === 403) {
             // Check if it's quota exceeded or invalid key
             if (responseText.includes("quotaExceeded")) {
               console.log("Quota exceeded, proceeding to fallback playlist");
