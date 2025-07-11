@@ -249,7 +249,10 @@ class YouTubeQuotaService {
       await this.checkQuotaUsage(currentKey);
 
       if (this.isKeyExhausted(currentKey)) {
-        const nextKey = this.getNextAvailableKey(currentKey, availableKeys);
+        const nextKey = await this.getNextAvailableKey(
+          currentKey,
+          availableKeys,
+        );
 
         if (nextKey && this.onQuotaExhaustedCallback) {
           console.warn(
