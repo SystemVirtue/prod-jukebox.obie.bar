@@ -641,6 +641,9 @@ const Index = () => {
             <DialogTitle className="text-xl text-amber-900">
               Skip User Selection?
             </DialogTitle>
+            <DialogDescription className="text-amber-800">
+              Confirm if you want to skip the current user-requested song.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
@@ -752,6 +755,9 @@ const Index = () => {
             <DialogTitle className="text-xl text-amber-900">
               Add song to Playlist?
             </DialogTitle>
+            <DialogDescription className="text-amber-800">
+              Confirm adding this song to your playlist for playback.
+            </DialogDescription>
           </DialogHeader>
 
           {confirmDialog.video && (
