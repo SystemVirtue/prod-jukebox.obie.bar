@@ -231,13 +231,16 @@ const Index = () => {
                   console.error(
                     "[Auto-init] Failed to initialize player after all retries",
                   );
-                  toast({
-                    title: "Player Window Blocked",
-                    description:
-                      "Browser blocked the player window. Please allow popups for this site, then click 'Open Player' in the admin panel (Settings icon bottom-left).",
-                    variant: "default",
-                    duration: 8000,
-                  });
+                  // Only show this message if we actually tried to initialize
+                  if (retryCount > 0) {
+                    toast({
+                      title: "Player Window Blocked",
+                      description:
+                        "Browser blocked the player window. Please allow popups for this site, then click 'Open Player' in the admin panel (Settings icon bottom-left).",
+                      variant: "default",
+                      duration: 6000,
+                    });
+                  }
                 }
               } else {
                 console.log("[Auto-init] Player successfully initialized!");
