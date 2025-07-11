@@ -509,6 +509,34 @@ const Index = () => {
           </Card>
         </div>
 
+        {/* Player Closed Notification - Top Right */}
+        {(!state.playerWindow || state.playerWindow.closed) &&
+          state.isPlayerRunning && (
+            <div className="absolute top-4 right-4 z-20">
+              <Card className="bg-red-900/80 border-red-400 shadow-lg backdrop-blur-sm">
+                <CardContent className="p-3">
+                  <div className="flex items-center gap-3">
+                    <div className="text-red-100 font-medium text-sm">
+                      ⚠️ Player Window Closed
+                    </div>
+                    <Button
+                      onClick={() => {
+                        console.log(
+                          "Reopening player window from notification",
+                        );
+                        initializePlayer();
+                      }}
+                      size="sm"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 h-auto"
+                    >
+                      Reopen Player
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
         {/* Credits display has been moved to the CreditsDisplay component */}
 
         <div className="text-center mb-8">
