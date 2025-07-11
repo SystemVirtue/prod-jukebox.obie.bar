@@ -166,24 +166,10 @@ export const usePlaylistManager = (
             data = await response.json();
           }
         } catch (responseError) {
-          if (
-            responseError.message &&
-            responseError.message.includes("body stream")
-          ) {
-            console.error("Response body already read, creating new request");
-            // If body stream error, restart the fetch with a new request
-            retryCount++;
-            if (retryCount <= maxRetries) {
-              await new Promise((resolve) => setTimeout(resolve, 1000));
-              continue; // Restart the while loop with a new fetch
-            } else {
-              throw new Error(
-                "Failed to fetch after multiple body stream errors",
-              );
-            }
-          } else {
-            throw responseError;
-          }
+          console.error("Error processing response:", responseError);
+          // For any response processing error, break and go to fallback
+          allVideos = []; // This will trigger fallback
+          break;
         }
 
         // Skip processing if we don't have data (e.g., quota exceeded case)
