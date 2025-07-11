@@ -137,7 +137,7 @@ export const usePlaylistManager = (
               });
               throw new Error("YouTube API key is invalid or access denied.");
             }
-          } else if (response.status === 404) {
+          } else if (responseStatus === 404) {
             toast({
               title: "Playlist Not Found",
               description: `Playlist ${playlistId} not found or is private.`,
@@ -146,7 +146,7 @@ export const usePlaylistManager = (
             throw new Error(
               "Playlist not found. Please check the playlist ID.",
             );
-          } else if (response.status === 400) {
+          } else if (responseStatus === 400) {
             toast({
               title: "Bad Request",
               description:
@@ -157,11 +157,11 @@ export const usePlaylistManager = (
           } else {
             toast({
               title: "API Error",
-              description: `YouTube API returned error ${response.status}. Please try again.`,
+              description: `YouTube API returned error ${responseStatus}. Please try again.`,
               variant: "destructive",
             });
             throw new Error(
-              `Failed to load playlist (HTTP ${response.status}): ${responseText}`,
+              `Failed to load playlist (HTTP ${responseStatus}): ${responseText}`,
             );
           }
         } else {
