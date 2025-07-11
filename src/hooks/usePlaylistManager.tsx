@@ -91,68 +91,7 @@ export const usePlaylistManager = (
           break;
         }
 
-        if (responseStatus < 200 || responseStatus >= 300) {
-          console.error(`API Error ${responseStatus}:`, responseText);
-
-          if (responseStatus === 403) {
-            // Check if it's quota exceeded or invalid key
-            if (responseText.includes("quotaExceeded")) {
-              console.log("Quota exceeded, proceeding to fallback playlist");
-              toast({
-                title: "Quota Exceeded",
-                description:
-                  "YouTube API quota exceeded. Using fallback playlist.",
-                variant: "default",
-              });
-              // Set a flag to trigger fallback and break out of the loop
-              allVideos = []; // Empty array will trigger fallback after the loop
-              break; // Exit the retry loop
-            } else {
-              toast({
-                title: "Invalid API Key",
-                description:
-                  "YouTube API key is invalid. Please check admin settings.",
-                variant: "destructive",
-              });
-              throw new Error("YouTube API key is invalid or access denied.");
-            }
-          } else if (responseStatus === 404) {
-            toast({
-              title: "Playlist Not Found",
-              description: `Playlist ${playlistId} not found or is private.`,
-              variant: "destructive",
-            });
-            throw new Error(
-              "Playlist not found. Please check the playlist ID.",
-            );
-          } else if (responseStatus === 400) {
-            toast({
-              title: "Bad Request",
-              description:
-                "Invalid playlist request. Please check the playlist configuration.",
-              variant: "destructive",
-            });
-            throw new Error("Invalid playlist request parameters.");
-          } else {
-            toast({
-              title: "API Error",
-              description: `YouTube API returned error ${responseStatus}. Please try again.`,
-              variant: "destructive",
-            });
-            throw new Error(
-              `Failed to load playlist (HTTP ${responseStatus}): ${responseText}`,
-            );
-          }
-        } else {
-          // Parse successful response
-          try {
-            data = JSON.parse(responseText);
-          } catch (parseError) {
-            console.error("Error parsing JSON response:", parseError);
-            allVideos = []; // Trigger fallback
-            break;
-          }
-        }
+        // Data processing continues here - response is already handled above
 
         // Skip processing if we don't have data (e.g., quota exceeded case)
         if (!data || !data.items) {
