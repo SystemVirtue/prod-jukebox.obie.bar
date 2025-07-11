@@ -109,6 +109,34 @@ const Index = () => {
     getAllKeysStatus,
   } = useApiKeyRotation(state, setState, toast);
 
+  // Handle all keys exhausted callback
+  const handleAllKeysExhausted = useCallback(() => {
+    console.log("[Quota] All API keys exhausted - pausing app");
+    setState((prev) => ({
+      ...prev,
+      allKeysExhausted: true,
+      isAppPaused: true,
+    }));
+  }, [setState]);
+
+  // Set up quota exhausted callback
+  useEffect(() => {
+    youtubeQuotaService.setAllKeysExhaustedCallback(handleAllKeysExhausted);
+
+    return () => {
+      youtubeQuotaService.setAllKeysExhaustedCallback(null);
+    };
+  }, [handleAllKeysExhausted]);
+
+  // Handle quota exhausted dialog OK click
+  const handleQuotaExhaustedOk = useCallback(() => {
+    setState((prev) => ({
+      ...prev,
+      allKeysExhausted: false,
+      isAppPaused: false,
+    }));
+  }, [setState]);
+
   const {
     performSearch,
     filterForOfficial,
