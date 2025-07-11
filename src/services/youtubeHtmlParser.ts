@@ -220,14 +220,6 @@ class YouTubeHtmlParserService {
         genre: "jazz",
       },
 
-      // Classical Crossover
-      {
-        id: "rOjHhS5MtvA",
-        title: "Canon in D - Pachelbel",
-        channelTitle: "Classical Music",
-        genre: "classical",
-      },
-
       // Reggae
       {
         id: "CHekNnySAfM",
