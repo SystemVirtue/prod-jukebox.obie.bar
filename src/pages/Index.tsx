@@ -727,6 +727,20 @@ const Index = () => {
                 setState((prev) => ({ ...prev }));
               }, 500);
             }, 1000);
+
+            // Safety timeout for error case
+            setTimeout(() => {
+              setState((currentState) => {
+                if (currentState.currentlyPlaying === "Loading...") {
+                  console.warn(
+                    "[StorageEvent] Still loading after error timeout, forcing next song",
+                  );
+                  handleVideoEndedRef.current();
+                  return { ...currentState, currentlyPlaying: "Recovering..." };
+                }
+                return currentState;
+              });
+            }, 11000); // 1000ms initial delay + 10000ms safety
           }
         }
 
