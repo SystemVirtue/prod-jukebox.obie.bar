@@ -77,20 +77,28 @@ export const usePlaylistManager = (
             const response = await fetch(url);
             responseStatus = response.status;
 
-            // Read the response body immediately to avoid any stream issues
-            responseText = await response.text();
-            fetchSuccessful = true;
+            // Try to read response body with additional error handling
+            try {
+              responseText = await response.text();
+              fetchSuccessful = true;
 
-            // Track API usage for successful requests
-            youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
+              // Track API usage only after successful read
+              youtubeQuotaService.trackApiUsage(
+                state.apiKey,
+                "playlistItems",
+                1,
+              );
+            } catch (bodyError) {
+              console.error("Error reading response body:", bodyError);
+              // If we can't read the body, treat as network error and retry
+              throw bodyError;
+            }
           } catch (networkError) {
-            console.error("Network error loading playlist:", networkError);
+            console.error(
+              "Network error loading playlist:",
+              networkError.message || networkError,
+            );
             console.error("Failed URL:", url);
-            console.error("Error details:", {
-              name: networkError.name,
-              message: networkError.message,
-              stack: networkError.stack,
-            });
             retryCount++;
 
             if (retryCount <= maxRetries) {
