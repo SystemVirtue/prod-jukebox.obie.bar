@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 export interface SearchResult {
   id: string;
@@ -30,7 +30,7 @@ export interface QueuedRequest {
 
 export interface LogEntry {
   timestamp: string;
-  type: 'SONG_PLAYED' | 'USER_SELECTION' | 'CREDIT_ADDED' | 'CREDIT_REMOVED';
+  type: "SONG_PLAYED" | "USER_SELECTION" | "CREDIT_ADDED" | "CREDIT_REMOVED";
   description: string;
   videoId?: string;
   creditAmount?: number;
@@ -46,7 +46,7 @@ export interface UserRequest {
 export interface CreditHistory {
   timestamp: string;
   amount: number;
-  type: 'ADDED' | 'REMOVED';
+  type: "ADDED" | "REMOVED";
   description: string;
 }
 
@@ -54,11 +54,11 @@ export interface BackgroundFile {
   id: string;
   name: string;
   url: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
 }
 
 export interface JukeboxState {
-  mode: 'FREEPLAY' | 'PAID';
+  mode: "FREEPLAY" | "PAID";
   credits: number;
   priorityQueue: QueuedRequest[];
   defaultPlaylist: string;
@@ -98,13 +98,16 @@ export interface JukeboxState {
   coinValueB: number;
 }
 
-//const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
-const DEFAULT_API_KEY = 'AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU';
-const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
+const DEFAULT_API_KEY =
+  import.meta.env.VITE_YOUTUBE_API_KEY ||
+  "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU";
+const DEFAULT_PLAYLIST_ID =
+  import.meta.env.VITE_DEFAULT_PLAYLIST_ID ||
+  "PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH";
 
 export const useJukeboxState = () => {
   const [state, setState] = useState<JukeboxState>({
-    mode: 'PAID',
+    mode: "PAID",
     credits: 0,
     priorityQueue: [],
     defaultPlaylist: DEFAULT_PLAYLIST_ID,
@@ -114,143 +117,202 @@ export const useJukeboxState = () => {
     isSearchOpen: false,
     isAdminOpen: false,
     searchResults: [],
-    searchQuery: '',
+    searchQuery: "",
     isSearching: false,
-    selectedCoinAcceptor: '',
+    selectedCoinAcceptor: "",
     playerWindow: null,
     apiKey: DEFAULT_API_KEY,
+    searchMethod: "youtube_api" as SearchMethod,
     logs: [],
     userRequests: [],
     creditHistory: [],
     backgrounds: [
-      { id: 'default', name: 'Default', url: '/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png', type: 'image' },
-      { id: 'neon1', name: 'Neon 1', url: '/backgrounds/Obie_NEON1.png', type: 'image' },
-      { id: 'neon2', name: 'Neon 2', url: '/backgrounds/Obie_NEON2.png', type: 'image' },
-      { id: 'crest1', name: 'Shield Crest 1', url: '/backgrounds/Obie_Shield_Crest_Animation1.mp4', type: 'video' },
-      { id: 'crest2', name: 'Shield Crest 2', url: '/backgrounds/Obie_Shield_Crest_Animation2.mp4', type: 'video' }
+      {
+        id: "default",
+        name: "Default",
+        url: "/lovable-uploads/8948bfb8-e172-4535-bd9b-76f9d1c35307.png",
+        type: "image",
+      },
+      {
+        id: "neon1",
+        name: "Neon 1",
+        url: "/backgrounds/Obie_NEON1.png",
+        type: "image",
+      },
+      {
+        id: "neon2",
+        name: "Neon 2",
+        url: "/backgrounds/Obie_NEON2.png",
+        type: "image",
+      },
+      {
+        id: "crest1",
+        name: "Shield Crest 1",
+        url: "/backgrounds/Obie_Shield_Crest_Animation1.mp4",
+        type: "video",
+      },
+      {
+        id: "crest2",
+        name: "Shield Crest 2",
+        url: "/backgrounds/Obie_Shield_Crest_Animation2.mp4",
+        type: "video",
+      },
     ],
-    selectedBackground: 'neon1',
+    selectedBackground: "neon1",
     cycleBackgrounds: true,
     bounceVideos: false,
     backgroundCycleIndex: 0,
     showKeyboard: false,
     showSearchResults: false,
     isPlayerRunning: false,
-    currentlyPlaying: 'Loading...',
-    currentVideoId: '',
+    currentlyPlaying: "Loading...",
+    currentVideoId: "",
     maxSongLength: 10,
     showInsufficientCredits: false,
     showDuplicateSong: false,
-    duplicateSongTitle: '',
+    duplicateSongTitle: "",
     isPlayerPaused: false,
     showSkipConfirmation: false,
     showMiniPlayer: false,
     testMode: false,
     coinValueA: 3,
-    coinValueB: 1
+    coinValueB: 1,
   });
 
-  const addLog = (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => {
+  const addLog = (
+    type: LogEntry["type"],
+    description: string,
+    videoId?: string,
+    creditAmount?: number,
+  ) => {
     const logEntry: LogEntry = {
       timestamp: new Date().toISOString(),
       type,
       description,
       videoId,
-      creditAmount
+      creditAmount,
     };
-    setState(prev => ({ ...prev, logs: [logEntry, ...prev.logs] }));
+    setState((prev) => ({ ...prev, logs: [logEntry, ...prev.logs] }));
   };
 
-  const addUserRequest = (title: string, videoId: string, channelTitle: string) => {
-    const cleanTitle = title.replace(/\([^)]*\)/g, '').trim();
+  const addUserRequest = (
+    title: string,
+    videoId: string,
+    channelTitle: string,
+  ) => {
+    const cleanTitle = title.replace(/\([^)]*\)/g, "").trim();
     const userRequest: UserRequest = {
       timestamp: new Date().toISOString(),
       title: cleanTitle,
       videoId,
-      channelTitle
+      channelTitle,
     };
-    setState(prev => ({ ...prev, userRequests: [userRequest, ...prev.userRequests] }));
+    setState((prev) => ({
+      ...prev,
+      userRequests: [userRequest, ...prev.userRequests],
+    }));
   };
 
-  const addCreditHistory = (amount: number, type: 'ADDED' | 'REMOVED', description: string) => {
+  const addCreditHistory = (
+    amount: number,
+    type: "ADDED" | "REMOVED",
+    description: string,
+  ) => {
     const creditEntry: CreditHistory = {
       timestamp: new Date().toISOString(),
       amount,
       type,
-      description
+      description,
     };
-    setState(prev => ({ ...prev, creditHistory: [creditEntry, ...prev.creditHistory] }));
+    setState((prev) => ({
+      ...prev,
+      creditHistory: [creditEntry, ...prev.creditHistory],
+    }));
   };
 
-  const handleBackgroundUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBackgroundUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
     const url = URL.createObjectURL(file);
-    const type = file.type.startsWith('video/') ? 'video' : 'image';
-    
+    const type = file.type.startsWith("video/") ? "video" : "image";
+
     const newBackground: BackgroundFile = {
       id: Date.now().toString(),
       name: file.name,
       url,
-      type
+      type,
     };
 
-    setState(prev => ({
+    setState((prev) => ({
       ...prev,
-      backgrounds: [...prev.backgrounds, newBackground]
+      backgrounds: [...prev.backgrounds, newBackground],
     }));
   };
 
   const getUpcomingTitles = () => {
     const upcoming = [];
-    
+
     // Add priority queue songs first
     for (let i = 0; i < Math.min(3, state.priorityQueue.length); i++) {
       upcoming.push(`🎵 ${state.priorityQueue[i].title}`);
     }
-    
+
     // Fill remaining slots with in-memory playlist songs
     if (upcoming.length < 3 && state.inMemoryPlaylist.length > 0) {
       const remainingSlots = 3 - upcoming.length;
-      for (let i = 0; i < Math.min(remainingSlots, state.inMemoryPlaylist.length); i++) {
+      for (
+        let i = 0;
+        i < Math.min(remainingSlots, state.inMemoryPlaylist.length);
+        i++
+      ) {
         upcoming.push(state.inMemoryPlaylist[i].title);
       }
     }
-    
+
     return upcoming;
   };
 
   const isCurrentSongUserRequest = () => {
-    return state.userRequests.some(req => req.title === state.currentlyPlaying);
+    return state.userRequests.some(
+      (req) => req.title === state.currentlyPlaying,
+    );
   };
 
   const getCurrentPlaylistForDisplay = () => {
     const playlist = [];
-    
+
     // Add currently playing song at top
-    if (state.currentlyPlaying && state.currentlyPlaying !== 'Loading...') {
+    if (state.currentlyPlaying && state.currentlyPlaying !== "Loading...") {
       playlist.push({
-        id: 'now-playing',
+        id: "now-playing",
         title: state.currentlyPlaying,
-        channelTitle: 'Now Playing',
-        videoId: 'current',
-        isNowPlaying: true
+        channelTitle: "Now Playing",
+        videoId: "current",
+        isNowPlaying: true,
       });
     }
-    
+
     // Add priority queue
-    playlist.push(...state.priorityQueue.map(req => ({
-      ...req,
-      isUserRequest: true
-    })));
-    
+    playlist.push(
+      ...state.priorityQueue.map((req) => ({
+        ...req,
+        isUserRequest: true,
+      })),
+    );
+
     // Add next songs from in-memory playlist, but skip if it's the currently playing song
-    playlist.push(...state.inMemoryPlaylist.filter(song => song.title !== state.currentlyPlaying).map(song => ({
-      ...song,
-      isUserRequest: false
-    })));
-    
+    playlist.push(
+      ...state.inMemoryPlaylist
+        .filter((song) => song.title !== state.currentlyPlaying)
+        .map((song) => ({
+          ...song,
+          isUserRequest: false,
+        })),
+    );
+
     return playlist;
   };
 
@@ -263,6 +325,6 @@ export const useJukeboxState = () => {
     handleBackgroundUpload,
     getUpcomingTitles,
     isCurrentSongUserRequest,
-    getCurrentPlaylistForDisplay
+    getCurrentPlaylistForDisplay,
   };
 };
