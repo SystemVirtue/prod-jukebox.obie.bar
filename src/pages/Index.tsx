@@ -493,16 +493,24 @@ const Index = () => {
     toast,
   ]);
 
-  // Enhanced autoplay logic - only start when player is ready and playlist has songs
+  // Enhanced autoplay logic - start songs when playlist is ready
   const hasStartedFirstSongRef = useRef(false);
   useEffect(() => {
+    console.log("[Autoplay] Checking autoplay conditions:", {
+      inMemoryLength: state.inMemoryPlaylist.length,
+      priorityQueueLength: state.priorityQueue.length,
+      isPlayerRunning: state.isPlayerRunning,
+      isPlayerPaused: state.isPlayerPaused,
+      hasPlayerWindow: !!state.playerWindow,
+      windowClosed: state.playerWindow?.closed,
+      currentlyPlaying: state.currentlyPlaying,
+      hasStarted: hasStartedFirstSongRef.current,
+    });
+
     if (
       state.inMemoryPlaylist.length > 0 &&
       state.priorityQueue.length === 0 &&
-      state.isPlayerRunning &&
-      !state.isPlayerPaused &&
-      state.playerWindow &&
-      !state.playerWindow.closed
+      !state.isPlayerPaused
     ) {
       // Only auto-start if nothing is currently playing and not already started
       if (
@@ -511,17 +519,40 @@ const Index = () => {
         !hasStartedFirstSongRef.current
       ) {
         hasStartedFirstSongRef.current = true;
-        console.log("Auto-starting first song from playlist...");
-        console.log("Current playlist state:", {
+        console.log("[Autoplay] Auto-starting first song from playlist...");
+        console.log("[Autoplay] Current playlist state:", {
           inMemoryLength: state.inMemoryPlaylist.length,
           firstSong: state.inMemoryPlaylist[0]?.title,
           priorityQueue: state.priorityQueue.length,
         });
-        // Defer to next tick to prevent setState during render
-        setTimeout(() => playNextSong(), 0);
+
+        // If player window is closed or not running, try to initialize it first
+        if (
+          !state.playerWindow ||
+          state.playerWindow.closed ||
+          !state.isPlayerRunning
+        ) {
+          console.log(
+            "[Autoplay] Player window closed/not running, initializing...",
+          );
+          initializePlayer()
+            .then(() => {
+              // After player initializes, start the song
+              setTimeout(() => playNextSong(), 1000);
+            })
+            .catch(() => {
+              console.error(
+                "[Autoplay] Failed to initialize player, starting song anyway",
+              );
+              setTimeout(() => playNextSong(), 0);
+            });
+        } else {
+          // Player is ready, start immediately
+          setTimeout(() => playNextSong(), 0);
+        }
       }
-    } else {
-      // Reset flag if player or playlist is not ready
+    } else if (state.inMemoryPlaylist.length === 0) {
+      // Reset flag if playlist is empty
       hasStartedFirstSongRef.current = false;
     }
   }, [
