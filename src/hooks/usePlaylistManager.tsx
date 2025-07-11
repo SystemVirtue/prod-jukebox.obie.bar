@@ -1,4 +1,5 @@
 import { JukeboxState, PlaylistItem, LogEntry } from "./useJukeboxState";
+import { youtubeQuotaService } from "@/services/youtubeQuota";
 
 export const usePlaylistManager = (
   state: JukeboxState,
