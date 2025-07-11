@@ -81,7 +81,7 @@ class MusicSearchService {
 
       const data = await response.json();
 
-      // Track API usage
+      // Track API usage (rotation will be handled at higher level)
       youtubeQuotaService.trackApiUsage(apiKey, "search", 1);
 
       if (!data.items || data.items.length === 0) {
@@ -94,7 +94,7 @@ class MusicSearchService {
       const detailsResponse = await fetch(detailsUrl);
       const detailsData = await detailsResponse.json();
 
-      // Track API usage for video details
+      // Track API usage for video details (rotation will be handled at higher level)
       youtubeQuotaService.trackApiUsage(apiKey, "videos", 1);
 
       // Create details map
