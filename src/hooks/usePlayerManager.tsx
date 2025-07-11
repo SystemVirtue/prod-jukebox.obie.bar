@@ -234,10 +234,11 @@ export const usePlayerManager = (
       } catch (fallbackError) {
         console.error("[InitPlayer] Fallback also failed:", fallbackError);
         toast({
-          title: "Player Error",
+          title: "Player Window Blocked",
           description:
-            "Failed to initialize player window. Please try manually opening from admin panel.",
-          variant: "destructive",
+            "Browser blocked the player window. Please allow popups for this site, then click the Settings icon (bottom-left) → 'Open Player'.",
+          variant: "default",
+          duration: 8000,
         });
       }
     }
