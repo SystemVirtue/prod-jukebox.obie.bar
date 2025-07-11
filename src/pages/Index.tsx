@@ -279,19 +279,11 @@ const Index = () => {
       windowClosed: state.playerWindow?.closed,
     });
 
-    // Check if we got a fallback playlist (indicates API failure)
-    const hasFallbackPlaylist =
-      state.defaultPlaylistVideos.length > 0 &&
-      state.defaultPlaylistVideos.some(
-        (video) =>
-          video.title.includes("(Offline Mode)") ||
-          video.title.includes("Demo Song"),
-      );
+    // Check if playlist is empty (indicates API failure since we removed demo songs)
+    const hasEmptyPlaylist = state.defaultPlaylistVideos.length === 0;
 
-    if (hasFallbackPlaylist && !state.isAdminOpen) {
-      console.log(
-        "[Auto-init] Fallback playlist detected, auto-opening admin panel",
-      );
+    if (hasEmptyPlaylist && !state.isAdminOpen && state.apiKey) {
+      console.log("[Auto-init] Empty playlist detected, likely API failure");
       toast({
         title: "API Configuration Needed",
         description:
