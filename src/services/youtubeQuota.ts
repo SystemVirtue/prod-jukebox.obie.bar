@@ -34,7 +34,16 @@ class YouTubeQuotaService {
     try {
       // Check if API key is properly formatted before making request
       if (!apiKey || !apiKey.startsWith("AIza") || apiKey.length < 20) {
-        throw new Error("Invalid API key format");
+        console.warn(
+          `[QuotaService] Invalid API key format: '${apiKey}' - returning default quota`,
+        );
+        // Return a safe default instead of throwing
+        return {
+          used: 0,
+          limit: this.QUOTA_LIMIT,
+          percentage: 0,
+          lastUpdated: new Date().toISOString(),
+        };
       }
 
       // Rate limiting: prevent rapid successive calls for the same key
