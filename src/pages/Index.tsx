@@ -82,6 +82,20 @@ const Index = () => {
     getAllKeysStatus,
   } = useApiKeyRotation(state, setState, toast);
 
+  // Periodic check for rotation (every 5 minutes)
+  useEffect(() => {
+    if (!state.autoRotateApiKeys) return;
+
+    const interval = setInterval(
+      () => {
+        checkAndRotateIfNeeded();
+      },
+      5 * 60 * 1000,
+    ); // 5 minutes
+
+    return () => clearInterval(interval);
+  }, [state.autoRotateApiKeys, checkAndRotateIfNeeded]);
+
   // Use refs to store latest values for the storage event handler
   const stateRef = useRef(state);
   const handleVideoEndedRef = useRef(handleVideoEnded);
