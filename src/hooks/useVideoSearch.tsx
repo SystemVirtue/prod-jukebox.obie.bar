@@ -94,6 +94,36 @@ export const useVideoSearch = (
     } catch (error) {
       console.error("Search error:", error);
 
+      // Check if this is a quota exceeded error
+      const isQuotaError =
+        error instanceof Error &&
+        (error.message.includes("quota exceeded") ||
+          error.message.includes("Admin panel will open"));
+
+      if (isQuotaError) {
+        toast({
+          title: "Quota Exceeded - Auto-opening Admin Panel",
+          description:
+            "YouTube API quota exceeded. Opening admin panel for configuration.",
+          variant: "default",
+        });
+
+        // Auto-open admin panel and close search
+        setTimeout(() => {
+          setState((prev) => ({
+            ...prev,
+            isAdminOpen: true,
+            isSearchOpen: false,
+            showKeyboard: false,
+            showSearchResults: false,
+            searchQuery: "",
+            searchResults: [],
+          }));
+        }, 2000);
+
+        return;
+      }
+
       // If ytmusic-api fails, try fallback to YouTube API
       if (state.searchMethod === "ytmusic_api") {
         console.log("YtMusic search failed, falling back to YouTube API...");
@@ -121,11 +151,39 @@ export const useVideoSearch = (
           });
         } catch (fallbackError) {
           console.error("Fallback search also failed:", fallbackError);
-          toast({
-            title: "Search Error",
-            description: "Both search methods failed. Please try again.",
-            variant: "destructive",
-          });
+
+          // Check if fallback also failed due to quota
+          const isFallbackQuotaError =
+            fallbackError instanceof Error &&
+            (fallbackError.message.includes("quota exceeded") ||
+              fallbackError.message.includes("Admin panel will open"));
+
+          if (isFallbackQuotaError) {
+            toast({
+              title: "Quota Exceeded - Auto-opening Admin Panel",
+              description:
+                "YouTube API quota exceeded on fallback. Opening admin panel for configuration.",
+              variant: "default",
+            });
+
+            setTimeout(() => {
+              setState((prev) => ({
+                ...prev,
+                isAdminOpen: true,
+                isSearchOpen: false,
+                showKeyboard: false,
+                showSearchResults: false,
+                searchQuery: "",
+                searchResults: [],
+              }));
+            }, 2000);
+          } else {
+            toast({
+              title: "Search Error",
+              description: "Both search methods failed. Please try again.",
+              variant: "destructive",
+            });
+          }
         }
       } else {
         toast({
