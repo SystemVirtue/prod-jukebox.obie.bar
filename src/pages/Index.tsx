@@ -859,44 +859,84 @@ const Index = () => {
         </DialogContent>
       </Dialog>
 
-      <SearchInterface
-        isOpen={state.isSearchOpen}
-        onClose={() => {
-          console.log("Search interface closing");
-          setState((prev) => ({
-            ...prev,
-            isSearchOpen: false,
-            showKeyboard: false,
-            showSearchResults: false,
-            searchQuery: "",
-            searchResults: [],
-          }));
-        }}
-        searchQuery={state.searchQuery}
-        onSearchQueryChange={(query) => {
-          console.log("Search query changed:", query);
-          setState((prev) => ({ ...prev, searchQuery: query }));
-        }}
-        searchResults={state.searchResults}
-        isSearching={state.isSearching}
-        showKeyboard={state.showKeyboard}
-        showSearchResults={state.showSearchResults}
-        onKeyboardInput={handleKeyboardInput}
-        onVideoSelect={handleVideoSelect}
-        onBackToSearch={() => {
-          console.log("Back to search pressed");
-          setState((prev) => ({
-            ...prev,
-            showSearchResults: false,
-            showKeyboard: true,
-          }));
-        }}
-        mode={state.mode}
-        credits={state.credits}
-        onInsufficientCredits={() =>
-          setState((prev) => ({ ...prev, showInsufficientCredits: true }))
-        }
-      />
+      {/* Conditionally render search interface based on search method */}
+      {state.searchMethod === "iframe_search" ? (
+        <IframeSearchInterface
+          isOpen={state.isSearchOpen}
+          onClose={() => {
+            console.log("Iframe search interface closing");
+            setState((prev) => ({
+              ...prev,
+              isSearchOpen: false,
+              showKeyboard: false,
+              showSearchResults: false,
+              searchQuery: "",
+              searchResults: [],
+            }));
+          }}
+          searchQuery={state.searchQuery}
+          onSearchQueryChange={(query) => {
+            console.log("Iframe search query changed:", query);
+            setState((prev) => ({ ...prev, searchQuery: query }));
+          }}
+          showKeyboard={state.showKeyboard}
+          showSearchResults={state.showSearchResults}
+          onKeyboardInput={handleKeyboardInput}
+          onVideoSelect={handleVideoSelect}
+          onBackToSearch={() => {
+            console.log("Back to iframe search pressed");
+            setState((prev) => ({
+              ...prev,
+              showSearchResults: false,
+              showKeyboard: true,
+            }));
+          }}
+          mode={state.mode}
+          credits={state.credits}
+          onInsufficientCredits={() =>
+            setState((prev) => ({ ...prev, showInsufficientCredits: true }))
+          }
+        />
+      ) : (
+        <SearchInterface
+          isOpen={state.isSearchOpen}
+          onClose={() => {
+            console.log("API search interface closing");
+            setState((prev) => ({
+              ...prev,
+              isSearchOpen: false,
+              showKeyboard: false,
+              showSearchResults: false,
+              searchQuery: "",
+              searchResults: [],
+            }));
+          }}
+          searchQuery={state.searchQuery}
+          onSearchQueryChange={(query) => {
+            console.log("API search query changed:", query);
+            setState((prev) => ({ ...prev, searchQuery: query }));
+          }}
+          searchResults={state.searchResults}
+          isSearching={state.isSearching}
+          showKeyboard={state.showKeyboard}
+          showSearchResults={state.showSearchResults}
+          onKeyboardInput={handleKeyboardInput}
+          onVideoSelect={handleVideoSelect}
+          onBackToSearch={() => {
+            console.log("Back to API search pressed");
+            setState((prev) => ({
+              ...prev,
+              showSearchResults: false,
+              showKeyboard: true,
+            }));
+          }}
+          mode={state.mode}
+          credits={state.credits}
+          onInsufficientCredits={() =>
+            setState((prev) => ({ ...prev, showInsufficientCredits: true }))
+          }
+        />
+      )}
 
       {/* Insufficient Credits Dialog */}
       <InsufficientCreditsDialog
