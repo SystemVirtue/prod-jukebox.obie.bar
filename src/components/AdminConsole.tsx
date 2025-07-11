@@ -256,7 +256,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
   // Load quota usage when API key changes
   useEffect(() => {
-    if (apiKey && isOpen) {
+    if (apiKey && isOpen && apiKey.startsWith("AIza") && apiKey.length >= 20) {
       handleRefreshQuota();
     }
   }, [apiKey, isOpen]);
