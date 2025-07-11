@@ -691,6 +691,12 @@ const Index = () => {
             apiKey: prev.selectedApiKeyOption === "custom" ? key : prev.apiKey,
           }));
         }}
+        autoRotateApiKeys={state.autoRotateApiKeys}
+        onAutoRotateChange={(enabled) =>
+          setState((prev) => ({ ...prev, autoRotateApiKeys: enabled }))
+        }
+        rotationHistory={state.rotationHistory}
+        lastRotationTime={state.lastRotationTime}
         searchMethod={state.searchMethod}
         onSearchMethodChange={(searchMethod) =>
           setState((prev) => ({ ...prev, searchMethod }))
