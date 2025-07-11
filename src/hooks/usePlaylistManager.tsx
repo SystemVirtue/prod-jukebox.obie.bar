@@ -62,61 +62,32 @@ export const usePlaylistManager = (
 
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50&key=${encodeURIComponent(state.apiKey)}${nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : ""}`;
 
-        let responseText;
-        let responseStatus;
-        let fetchSuccessful = false;
+        console.log(`[LoadPlaylist] Fetching: ${url}`);
 
-        while (!fetchSuccessful && retryCount <= maxRetries) {
-          try {
-            console.log(
-              `Attempting to fetch playlist data (attempt ${retryCount + 1}/${maxRetries + 1})`,
-            );
-            console.log("Fetch URL:", url);
+        // Simple fetch approach to avoid body stream issues
+        let data;
+        try {
+          const response = await fetch(url);
 
-            // Create a fresh fetch for each attempt
-            const response = await fetch(url);
-            responseStatus = response.status;
-
-            // Try to read response body with additional error handling
-            try {
-              responseText = await response.text();
-              fetchSuccessful = true;
-
-              // Track API usage only after successful read
-              youtubeQuotaService.trackApiUsage(
-                state.apiKey,
-                "playlistItems",
-                1,
-              );
-            } catch (bodyError) {
-              console.error("Error reading response body:", bodyError);
-              // If we can't read the body, treat as network error and retry
-              throw bodyError;
-            }
-          } catch (networkError) {
-            console.error(
-              "Network error loading playlist:",
-              networkError.message || networkError,
-            );
-            console.error("Failed URL:", url);
-            retryCount++;
-
-            if (retryCount <= maxRetries) {
-              console.log(
-                `Retrying in 2 seconds... (${retryCount}/${maxRetries})`,
-              );
-              await new Promise((resolve) => setTimeout(resolve, 2000));
-            } else {
-              console.log("Using fallback playlist due to network errors");
-              // Trigger fallback mode
-              allVideos = [];
+          if (!response.ok) {
+            if (response.status === 403) {
+              console.log("Quota exceeded, using fallback playlist");
+              allVideos = []; // Trigger fallback
               break;
             }
+            console.error(`HTTP ${response.status} error`);
+            allVideos = []; // Trigger fallback for any error
+            break;
           }
-        }
 
-        // If we couldn't fetch successfully, skip this iteration
-        if (!fetchSuccessful) {
+          data = await response.json();
+
+          // Track API usage
+          youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
+        } catch (error) {
+          console.error("Error fetching playlist:", error.message || error);
+          // Any error triggers fallback
+          allVideos = [];
           break;
         }
 
