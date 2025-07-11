@@ -419,27 +419,36 @@ export const usePlayerManager = (
   };
 
   const performSkip = () => {
-    console.log(
-      `[PerformSkip] Skipping current video: ${state.currentVideoId}`,
-    );
+    setState((currentState) => {
+      console.log(
+        `[PerformSkip] Skipping current video: ${currentState.currentVideoId}`,
+      );
+      console.log(
+        `[PerformSkip] Currently playing: ${currentState.currentlyPlaying}`,
+      );
 
-    if (state.playerWindow && !state.playerWindow.closed) {
-      const command = {
-        action: "fadeOutAndBlack",
-        fadeDuration: 3000,
-        timestamp: Date.now(),
-      };
-      try {
-        state.playerWindow.localStorage.setItem(
-          "jukeboxCommand",
-          JSON.stringify(command),
-        );
-        addLog("SONG_PLAYED", `SKIPPING: ${state.currentlyPlaying}`);
-      } catch (error) {
-        console.error("Error sending skip command:", error);
+      if (currentState.playerWindow && !currentState.playerWindow.closed) {
+        const command = {
+          action: "fadeOutAndBlack",
+          fadeDuration: 2000, // Shorter fade for better UX
+          timestamp: Date.now(),
+        };
+        try {
+          currentState.playerWindow.localStorage.setItem(
+            "jukeboxCommand",
+            JSON.stringify(command),
+          );
+          addLog("SONG_PLAYED", `SKIPPING: ${currentState.currentlyPlaying}`);
+          console.log("[PerformSkip] Skip command sent successfully");
+        } catch (error) {
+          console.error("Error sending skip command:", error);
+        }
+      } else {
+        console.error("[PerformSkip] No player window available for skip");
       }
-    }
-    setState((prev) => ({ ...prev, showSkipConfirmation: false }));
+
+      return { ...currentState, showSkipConfirmation: false };
+    });
   };
 
   return {
