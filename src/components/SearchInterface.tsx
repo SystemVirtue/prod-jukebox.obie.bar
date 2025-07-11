@@ -96,34 +96,34 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-slate-900/20 backdrop-blur-sm border-slate-600 max-w-[95vw] w-[1200px] h-[calc(100vh-200px)] top-[100px] translate-y-0 p-0">
-        {/* Close button */}
+      <DialogContent className="bg-slate-900/20 backdrop-blur-sm border-slate-600 max-w-[95vw] w-full sm:w-[1200px] h-[calc(100vh-50px)] sm:h-[calc(100vh-200px)] top-[25px] sm:top-[100px] translate-y-0 p-0">
+        {/* Responsive close button */}
         <Button
           onClick={onClose}
-          className="absolute top-4 right-4 z-50 w-12 h-12 bg-red-600/80 hover:bg-red-700/80 border-2 border-red-500 shadow-lg"
+          className="absolute top-2 right-2 sm:top-4 sm:right-4 z-50 w-8 h-8 sm:w-12 sm:h-12 bg-red-600/80 hover:bg-red-700/80 border-2 border-red-500 shadow-lg"
           style={{ filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))" }}
         >
-          <X className="w-6 h-6" />
+          <X className="w-4 h-4 sm:w-6 sm:h-6" />
         </Button>
 
         {showKeyboard && (
-          <div className="h-full bg-slate-900/20 backdrop-blur-sm text-white p-6 flex flex-col">
-            <DialogHeader className="mb-6">
-              <DialogTitle className="text-3xl text-center text-amber-200">
+          <div className="h-full bg-slate-900/20 backdrop-blur-sm text-white p-3 sm:p-6 flex flex-col">
+            <DialogHeader className="mb-3 sm:mb-6">
+              <DialogTitle className="text-xl sm:text-3xl text-center text-amber-200">
                 Search for Music
               </DialogTitle>
-              <DialogDescription className="text-center text-amber-300">
+              <DialogDescription className="text-center text-amber-300 text-sm sm:text-base">
                 Use the keyboard below to search for songs and add them to your
                 playlist.
               </DialogDescription>
             </DialogHeader>
 
-            <div className="mb-8">
+            <div className="mb-4 sm:mb-8">
               <Input
                 value={searchQuery}
                 onChange={(e) => onSearchQueryChange(e.target.value)}
                 placeholder="Enter song or artist..."
-                className="w-full h-16 text-2xl bg-slate-800/60 backdrop-blur border-slate-600 text-white placeholder-slate-400"
+                className="w-full h-12 sm:h-16 text-lg sm:text-2xl bg-slate-800/60 backdrop-blur border-slate-600 text-white placeholder-slate-400"
                 readOnly
               />
             </div>
