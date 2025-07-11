@@ -25,6 +25,8 @@ interface IframeSearchInterfaceProps {
   onClose: () => void;
   searchQuery: string;
   onSearchQueryChange: (query: string) => void;
+  searchResults: SearchResult[];
+  isSearching: boolean;
   showKeyboard: boolean;
   showSearchResults: boolean;
   onKeyboardInput: (key: string) => void;
