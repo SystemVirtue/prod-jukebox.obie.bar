@@ -27,19 +27,17 @@ class MusicSearchService {
   }
 
   private async initYtMusic() {
+    // YtMusic API is not compatible with browser environments due to CORS restrictions
+    // Always skip initialization in browser environment to prevent console warnings
+    if (typeof window !== "undefined") {
+      this.isYtMusicInitialized = false;
+      this.ytMusic = null;
+      return;
+    }
+
+    // This code would only run in a server-side environment
     try {
       if (!this.isYtMusicInitialized) {
-        // YtMusic API doesn't work in browser environments due to CORS restrictions
-        // It's designed for server-side use only
-        if (typeof window !== "undefined") {
-          console.warn(
-            "YtMusic API is not compatible with browser environments due to CORS restrictions.",
-          );
-          throw new Error(
-            "YtMusic API requires a server-side environment to function properly.",
-          );
-        }
-
         this.ytMusic = new YTMusic();
         await this.ytMusic.initialize();
         this.isYtMusicInitialized = true;
