@@ -218,6 +218,30 @@ export const usePlayerManager = (
       }
     } else {
       console.error("[PlaySong] Player window not available");
+      toast({
+        title: "Player Window Missing",
+        description: "Player window was closed. Attempting to reopen...",
+        variant: "default",
+      });
+
+      // Attempt to reinitialize the player
+      console.log("[PlaySong] Attempting to reinitialize player window");
+      initializePlayer();
+
+      // Retry playing the song after a short delay
+      setTimeout(() => {
+        if (state.playerWindow && !state.playerWindow.closed) {
+          console.log("[PlaySong] Retrying song play after player recovery");
+          playSong(videoId, title, artist, logType);
+        } else {
+          toast({
+            title: "Player Recovery Failed",
+            description:
+              "Could not reopen player window. Please check popup blockers.",
+            variant: "destructive",
+          });
+        }
+      }, 3000);
     }
   };
 
