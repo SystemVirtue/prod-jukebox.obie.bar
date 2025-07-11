@@ -107,15 +107,16 @@ export const usePlaylistManager = (
           if (response.status === 403) {
             // Check if it's quota exceeded or invalid key
             if (errorText.includes("quotaExceeded")) {
-              console.log("Quota exceeded, triggering fallback playlist");
+              console.log("Quota exceeded, proceeding to fallback playlist");
               toast({
                 title: "Quota Exceeded",
                 description:
                   "YouTube API quota exceeded. Using fallback playlist.",
                 variant: "default",
               });
-              // Instead of throwing, trigger fallback mode immediately
-              throw new Error("Quota exceeded: Using fallback playlist");
+              // Set a flag to trigger fallback and break out of the loop
+              allVideos = []; // Empty array will trigger fallback after the loop
+              break; // Exit the retry loop
             } else {
               toast({
                 title: "Invalid API Key",
