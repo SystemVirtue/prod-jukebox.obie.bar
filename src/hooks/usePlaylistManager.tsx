@@ -83,16 +83,11 @@ export const usePlaylistManager = (
             "[LoadPlaylist] Invalid or missing API key, using fallback",
           );
           toast({
-            title: "Configuration Error - Auto-opening Admin Panel",
+            title: "Configuration Error",
             description:
-              "YouTube API key is missing or invalid. Opening admin panel for configuration.",
+              "YouTube API key is missing or invalid. Please check admin settings.",
             variant: "default",
           });
-
-          // Auto-open admin panel after a short delay
-          setTimeout(() => {
-            setState((prev) => ({ ...prev, isAdminOpen: true }));
-          }, 2000);
 
           allVideos = [];
           break;
@@ -168,10 +163,7 @@ export const usePlaylistManager = (
                 variant: "default",
               });
 
-              // Auto-open admin panel after a short delay
-              setTimeout(() => {
-                setState((prev) => ({ ...prev, isAdminOpen: true }));
-              }, 2000);
+              // Don't auto-open admin - API key test dialog already handled this
 
               allVideos = []; // Trigger fallback
               break;
