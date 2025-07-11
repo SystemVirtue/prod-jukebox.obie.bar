@@ -311,6 +311,18 @@ class YouTubeQuotaService {
     availableKeys: string[],
   ): Promise<string | null> {
     try {
+      // Validate current key before proceeding
+      if (
+        !currentKey ||
+        !currentKey.startsWith("AIza") ||
+        currentKey.length < 20
+      ) {
+        console.warn(
+          `[QuotaService] Invalid current key for rotation: '${currentKey}' - returning as-is`,
+        );
+        return currentKey;
+      }
+
       // First check current quota status
       await this.checkQuotaUsage(currentKey);
 
