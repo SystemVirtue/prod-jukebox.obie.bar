@@ -1,21 +1,47 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useRef, useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import { Upload, Play, Pause, SkipForward, Download, List, GripVertical, X, Shuffle, Clock, Users, Monitor, Timer, Coins } from 'lucide-react';
+import {
+  Upload,
+  Play,
+  Pause,
+  SkipForward,
+  Download,
+  List,
+  GripVertical,
+  X,
+  Shuffle,
+  Clock,
+  Users,
+  Monitor,
+  Timer,
+  Coins,
+} from "lucide-react";
 
 // Helper function to clean title text by removing content in brackets
 const cleanTitle = (title: string): string => {
-  return title.replace(/\([^)]*\)/g, '').trim();
+  return title.replace(/\([^)]*\)/g, "").trim();
 };
 
 interface LogEntry {
   timestamp: string;
-  type: 'SONG_PLAYED' | 'USER_SELECTION' | 'CREDIT_ADDED' | 'CREDIT_REMOVED';
+  type: "SONG_PLAYED" | "USER_SELECTION" | "CREDIT_ADDED" | "CREDIT_REMOVED";
   description: string;
   videoId?: string;
   creditAmount?: number;
@@ -31,7 +57,7 @@ interface UserRequest {
 interface CreditHistory {
   timestamp: string;
   amount: number;
-  type: 'ADDED' | 'REMOVED';
+  type: "ADDED" | "REMOVED";
   description: string;
 }
 
@@ -44,7 +70,7 @@ interface BackgroundFile {
   id: string;
   name: string;
   url: string;
-  type: 'image' | 'video';
+  type: "image" | "video";
 }
 
 interface QueuedRequest {
@@ -58,12 +84,14 @@ interface QueuedRequest {
 interface AdminConsoleProps {
   isOpen: boolean;
   onClose: () => void;
-  mode: 'FREEPLAY' | 'PAID';
-  onModeChange: (mode: 'FREEPLAY' | 'PAID') => void;
+  mode: "FREEPLAY" | "PAID";
+  onModeChange: (mode: "FREEPLAY" | "PAID") => void;
   credits: number;
   onCreditsChange: (credits: number) => void;
   apiKey: string;
   onApiKeyChange: (key: string) => void;
+  searchMethod: "youtube_api" | "ytmusic_api";
+  onSearchMethodChange: (method: "youtube_api" | "ytmusic_api") => void;
   selectedCoinAcceptor: string;
   onCoinAcceptorChange: (device: string) => void;
   logs: LogEntry[];
@@ -77,9 +105,22 @@ interface AdminConsoleProps {
   bounceVideos: boolean;
   onBounceVideosChange: (bounce: boolean) => void;
   onBackgroundUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
-  onAddLog: (type: LogEntry['type'], description: string, videoId?: string, creditAmount?: number) => void;
-  onAddUserRequest: (title: string, videoId: string, channelTitle: string) => void;
-  onAddCreditHistory: (amount: number, type: 'ADDED' | 'REMOVED', description: string) => void;
+  onAddLog: (
+    type: LogEntry["type"],
+    description: string,
+    videoId?: string,
+    creditAmount?: number,
+  ) => void;
+  onAddUserRequest: (
+    title: string,
+    videoId: string,
+    channelTitle: string,
+  ) => void;
+  onAddCreditHistory: (
+    amount: number,
+    type: "ADDED" | "REMOVED",
+    description: string,
+  ) => void;
   playerWindow: Window | null;
   isPlayerRunning: boolean;
   onPlayerToggle: () => void;
@@ -104,11 +145,11 @@ interface AdminConsoleProps {
 }
 
 const AVAILABLE_PLAYLISTS: PlaylistInfo[] = [
-  { id: 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH', title: 'Obie Playlist' },
-  { id: 'PLN9QqCogPsXLAtgvLQ0tvpLv820R7PQsM', title: 'Playlist 1' },
-  { id: 'PLN9QqCogPsXLsv5D5ZswnOSnRIbGU80IS', title: 'Playlist 2' },
-  { id: 'PLN9QqCogPsXKZsYwYEpHKUhjCJlvVB44h', title: 'Playlist 3' },
-  { id: 'PLN9QqCogPsXIqfwdfe4hf3qWM1mFweAXP', title: 'Playlist 4' }
+  { id: "PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH", title: "Obie Playlist" },
+  { id: "PLN9QqCogPsXLAtgvLQ0tvpLv820R7PQsM", title: "Playlist 1" },
+  { id: "PLN9QqCogPsXLsv5D5ZswnOSnRIbGU80IS", title: "Playlist 2" },
+  { id: "PLN9QqCogPsXKZsYwYEpHKUhjCJlvVB44h", title: "Playlist 3" },
+  { id: "PLN9QqCogPsXIqfwdfe4hf3qWM1mFweAXP", title: "Playlist 4" },
 ];
 
 export const AdminConsole: React.FC<AdminConsoleProps> = ({
@@ -156,23 +197,25 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   coinValueA,
   onCoinValueAChange,
   coinValueB,
-  onCoinValueBChange
+  onCoinValueBChange,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
-  const [playlistTitles, setPlaylistTitles] = useState<{ [key: string]: string }>({});
+  const [playlistTitles, setPlaylistTitles] = useState<{
+    [key: string]: string;
+  }>({});
 
   // Load playlist titles on mount
   useEffect(() => {
     const loadPlaylistTitles = async () => {
       const titles: { [key: string]: string } = {};
-      
+
       for (const playlist of AVAILABLE_PLAYLISTS) {
         try {
           const response = await fetch(
-            `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlist.id}&key=${apiKey}`
+            `https://www.googleapis.com/youtube/v3/playlists?part=snippet&id=${playlist.id}&key=${apiKey}`,
           );
-          
+
           if (response.ok) {
             const data = await response.json();
             if (data.items && data.items.length > 0) {
@@ -188,7 +231,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
           titles[playlist.id] = playlist.title;
         }
       }
-      
+
       setPlaylistTitles(titles);
     };
 
@@ -198,41 +241,52 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   }, [apiKey, isOpen]);
 
   const handleBackgroundSelectChange = (value: string) => {
-    if (value === 'add-new') {
+    if (value === "add-new") {
       fileInputRef.current?.click();
     } else {
       onBackgroundChange(value);
     }
   };
 
-  const exportLogs = (logType: 'event' | 'user_requests' | 'credit_history') => {
-    let content = '';
-    let filename = '';
-    
+  const exportLogs = (
+    logType: "event" | "user_requests" | "credit_history",
+  ) => {
+    let content = "";
+    let filename = "";
+
     switch (logType) {
-      case 'event':
-        content = logs.map(log => 
-          `${log.timestamp} [${log.type}] ${log.description}${log.videoId ? ` (${log.videoId})` : ''}${log.creditAmount ? ` Amount: ${log.creditAmount}` : ''}`
-        ).join('\n');
-        filename = 'event_log.txt';
+      case "event":
+        content = logs
+          .map(
+            (log) =>
+              `${log.timestamp} [${log.type}] ${log.description}${log.videoId ? ` (${log.videoId})` : ""}${log.creditAmount ? ` Amount: ${log.creditAmount}` : ""}`,
+          )
+          .join("\n");
+        filename = "event_log.txt";
         break;
-      case 'user_requests':
-        content = userRequests.map(req => 
-          `${req.timestamp} "${req.title}" by ${req.channelTitle} (${req.videoId})`
-        ).join('\n');
-        filename = 'user_requests.txt';
+      case "user_requests":
+        content = userRequests
+          .map(
+            (req) =>
+              `${req.timestamp} "${req.title}" by ${req.channelTitle} (${req.videoId})`,
+          )
+          .join("\n");
+        filename = "user_requests.txt";
         break;
-      case 'credit_history':
-        content = creditHistory.map(credit => 
-          `${credit.timestamp} ${credit.type} ${credit.amount} - ${credit.description}`
-        ).join('\n');
-        filename = 'credit_history.txt';
+      case "credit_history":
+        content = creditHistory
+          .map(
+            (credit) =>
+              `${credit.timestamp} ${credit.type} ${credit.amount} - ${credit.description}`,
+          )
+          .join("\n");
+        filename = "credit_history.txt";
         break;
     }
-    
-    const blob = new Blob([content], { type: 'text/plain' });
+
+    const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = filename;
     document.body.appendChild(a);
@@ -243,7 +297,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
   // Calculate total playlist length including priority queue
   const getTotalPlaylistLength = () => {
-    const defaultPlaylistLength = currentPlaylistVideos.filter(video => !video.isUserRequest && !video.isNowPlaying).length;
+    const defaultPlaylistLength = currentPlaylistVideos.filter(
+      (video) => !video.isUserRequest && !video.isNowPlaying,
+    ).length;
     return priorityQueue.length + defaultPlaylistLength;
   };
 
@@ -252,9 +308,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="bg-gradient-to-b from-slate-100 to-slate-200 border-slate-600 max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl text-slate-900">Admin Console</DialogTitle>
+            <DialogTitle className="text-xl text-slate-900">
+              Admin Console
+            </DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-6">
             {/* Test Mode - At the top */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -271,7 +329,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   onCheckedChange={onTestModeChange}
                 />
                 <label htmlFor="test-mode" className="text-sm text-yellow-700">
-                  TEST_MODE - 20 sec videos (Videos play for only 20 seconds before auto-advancing)
+                  TEST_MODE - 20 sec videos (Videos play for only 20 seconds
+                  before auto-advancing)
                 </label>
               </div>
             </div>
@@ -296,17 +355,22 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Coin Acceptor Device
               </label>
-              <Select value={selectedCoinAcceptor} onValueChange={onCoinAcceptorChange}>
+              <Select
+                value={selectedCoinAcceptor}
+                onValueChange={onCoinAcceptorChange}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select device..." />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">No Device</SelectItem>
-                  <SelectItem value="usbserial-1420">USB Serial Device (usbserial-1420)</SelectItem>
+                  <SelectItem value="usbserial-1420">
+                    USB Serial Device (usbserial-1420)
+                  </SelectItem>
                 </SelectContent>
               </Select>
-              
-              {selectedCoinAcceptor && selectedCoinAcceptor !== 'none' && (
+
+              {selectedCoinAcceptor && selectedCoinAcceptor !== "none" && (
                 <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <Coins className="w-5 h-5 text-blue-600" />
@@ -324,7 +388,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         min="1"
                         max="10"
                         value={coinValueA ?? 3}
-                        onChange={(e) => onCoinValueAChange(parseInt(e.target.value) || 1)}
+                        onChange={(e) =>
+                          onCoinValueAChange(parseInt(e.target.value) || 1)
+                        }
                         className="w-full"
                       />
                       <span className="text-xs text-blue-600">credit(s)</span>
@@ -338,7 +404,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         min="1"
                         max="10"
                         value={coinValueB ?? 1}
-                        onChange={(e) => onCoinValueBChange(parseInt(e.target.value) || 3)}
+                        onChange={(e) =>
+                          onCoinValueBChange(parseInt(e.target.value) || 3)
+                        }
                         className="w-full"
                       />
                       <span className="text-xs text-blue-600">credit(s)</span>
@@ -352,12 +420,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <label className="block text-sm font-medium text-slate-700 mb-2">
                 Default Playlist
               </label>
-              <Select value={defaultPlaylist} onValueChange={onDefaultPlaylistChange}>
+              <Select
+                value={defaultPlaylist}
+                onValueChange={onDefaultPlaylistChange}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {AVAILABLE_PLAYLISTS.map(playlist => (
+                  {AVAILABLE_PLAYLISTS.map((playlist) => (
                     <SelectItem key={playlist.id} value={playlist.id}>
                       {playlistTitles[playlist.id] || playlist.title}
                     </SelectItem>
@@ -371,7 +442,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   size="sm"
                 >
                   <List className="w-4 h-4" />
-                  Show Queue ({currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length} songs)
+                  Show Queue (
+                  {
+                    currentPlaylistVideos.filter(
+                      (v) => !v.isUserRequest && !v.isNowPlaying,
+                    ).length
+                  }{" "}
+                  songs)
                 </Button>
                 <Button
                   onClick={onPlaylistShuffle}
@@ -384,50 +461,74 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               </div>
             </div>
 
-            {mode === 'PAID' && (
+            {mode === "PAID" && (
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
                   Credit Balance: {credits}
                 </label>
                 <div className="flex gap-2 mb-4">
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => {
                       onCreditsChange(credits + 1);
-                      onAddLog('CREDIT_ADDED', 'ADMIN CREDIT (+1)', undefined, 1);
-                      onAddCreditHistory(1, 'ADDED', 'ADMIN CREDIT (+1)');
+                      onAddLog(
+                        "CREDIT_ADDED",
+                        "ADMIN CREDIT (+1)",
+                        undefined,
+                        1,
+                      );
+                      onAddCreditHistory(1, "ADDED", "ADMIN CREDIT (+1)");
                     }}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     +1
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => {
                       onCreditsChange(credits + 3);
-                      onAddLog('CREDIT_ADDED', 'ADMIN CREDIT (+3)', undefined, 3);
-                      onAddCreditHistory(3, 'ADDED', 'ADMIN CREDIT (+3)');
+                      onAddLog(
+                        "CREDIT_ADDED",
+                        "ADMIN CREDIT (+3)",
+                        undefined,
+                        3,
+                      );
+                      onAddCreditHistory(3, "ADDED", "ADMIN CREDIT (+3)");
                     }}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     +3
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => {
                       onCreditsChange(credits + 5);
-                      onAddLog('CREDIT_ADDED', 'ADMIN CREDIT (+5)', undefined, 5);
-                      onAddCreditHistory(5, 'ADDED', 'ADMIN CREDIT (+5)');
+                      onAddLog(
+                        "CREDIT_ADDED",
+                        "ADMIN CREDIT (+5)",
+                        undefined,
+                        5,
+                      );
+                      onAddCreditHistory(5, "ADDED", "ADMIN CREDIT (+5)");
                     }}
                     className="bg-green-600 hover:bg-green-700"
                   >
                     +5
                   </Button>
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => {
-                      onAddLog('CREDIT_REMOVED', `ADMIN CREDIT CLEAR (was ${credits})`, undefined, -credits);
-                      onAddCreditHistory(credits, 'REMOVED', `ADMIN CREDIT CLEAR (was ${credits})`);
+                      onAddLog(
+                        "CREDIT_REMOVED",
+                        `ADMIN CREDIT CLEAR (was ${credits})`,
+                        undefined,
+                        -credits,
+                      );
+                      onAddCreditHistory(
+                        credits,
+                        "REMOVED",
+                        `ADMIN CREDIT CLEAR (was ${credits})`,
+                      );
                       onCreditsChange(0);
                     }}
                     variant="destructive"
@@ -445,10 +546,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <div className="flex gap-2">
                 <Button
                   onClick={onPlayerToggle}
-                  className={`flex items-center gap-2 ${isPlayerRunning ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+                  className={`flex items-center gap-2 ${isPlayerRunning ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
                 >
-                  {isPlayerRunning ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  {isPlayerRunning ? 'Pause Player' : 'Start Player'}
+                  {isPlayerRunning ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                  {isPlayerRunning ? "Pause Player" : "Start Player"}
                 </Button>
                 <Button
                   onClick={onSkipSong}
@@ -471,13 +576,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   checked={showMiniPlayer}
                   onCheckedChange={onShowMiniPlayerChange}
                 />
-                <label htmlFor="show-mini-player" className="text-sm flex items-center gap-2">
+                <label
+                  htmlFor="show-mini-player"
+                  className="text-sm flex items-center gap-2"
+                >
                   <Monitor className="w-4 h-4" />
                   Show Mini-Player on Jukebox UI
                 </label>
               </div>
               <p className="text-xs text-slate-600 mt-1">
-                Displays a small synchronized video player on the main UI (muted)
+                Displays a small synchronized video player on the main UI
+                (muted)
               </p>
             </div>
 
@@ -516,12 +625,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 Main UI Background
               </label>
               <div className="flex gap-2 items-center mb-2">
-                <Select value={selectedBackground} onValueChange={handleBackgroundSelectChange}>
+                <Select
+                  value={selectedBackground}
+                  onValueChange={handleBackgroundSelectChange}
+                >
                   <SelectTrigger className="flex-1">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {backgrounds.map(bg => (
+                    {backgrounds.map((bg) => (
                       <SelectItem key={bg.id} value={bg.id}>
                         {bg.name} ({bg.type})
                       </SelectItem>
@@ -532,7 +644,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     </SelectItem>
                   </SelectContent>
                 </Select>
-                
+
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-2">
                     <Checkbox
@@ -544,7 +656,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       Cycle Backgrounds
                     </label>
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="bounce-videos"
@@ -561,7 +673,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*"
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
                 onChange={onBackgroundUpload}
               />
             </div>
@@ -573,7 +685,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     Activity Log
                   </label>
                   <Button
-                    onClick={() => exportLogs('event')}
+                    onClick={() => exportLogs("event")}
                     size="sm"
                     variant="outline"
                     className="flex items-center gap-1"
@@ -588,12 +700,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       <span className="text-gray-500">
                         {new Date(log.timestamp).toLocaleString()}
                       </span>
-                      <span className="ml-2 font-semibold">
-                        [{log.type}]
-                      </span>
-                      <span className="ml-2">
-                        {log.description}
-                      </span>
+                      <span className="ml-2 font-semibold">[{log.type}]</span>
+                      <span className="ml-2">{log.description}</span>
                     </div>
                   ))}
                 </ScrollArea>
@@ -605,7 +713,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     User Requests
                   </label>
                   <Button
-                    onClick={() => exportLogs('user_requests')}
+                    onClick={() => exportLogs("user_requests")}
                     size="sm"
                     variant="outline"
                     className="flex items-center gap-1"
@@ -637,7 +745,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     Credit History
                   </label>
                   <Button
-                    onClick={() => exportLogs('credit_history')}
+                    onClick={() => exportLogs("credit_history")}
                     size="sm"
                     variant="outline"
                     className="flex items-center gap-1"
@@ -652,12 +760,13 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       <span className="text-gray-500">
                         {new Date(credit.timestamp).toLocaleString()}
                       </span>
-                      <span className={`ml-2 font-semibold ${credit.type === 'ADDED' ? 'text-green-600' : 'text-red-600'}`}>
-                        {credit.type === 'ADDED' ? '+' : '-'}{credit.amount}
+                      <span
+                        className={`ml-2 font-semibold ${credit.type === "ADDED" ? "text-green-600" : "text-red-600"}`}
+                      >
+                        {credit.type === "ADDED" ? "+" : "-"}
+                        {credit.amount}
                       </span>
-                      <div className="text-gray-600">
-                        {credit.description}
-                      </div>
+                      <div className="text-gray-600">{credit.description}</div>
                     </div>
                   ))}
                 </ScrollArea>
@@ -685,7 +794,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">
             {/* Now Playing Section */}
-            {currentlyPlaying && currentlyPlaying !== 'Loading...' && (
+            {currentlyPlaying && currentlyPlaying !== "Loading..." && (
               <div className="mb-4">
                 <div className="flex items-center gap-3 p-3 bg-green-50 border-green-200 border rounded-md">
                   <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
@@ -696,7 +805,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     <div className="font-semibold text-sm text-green-700">
                       {cleanTitle(currentlyPlaying)} (Now Playing)
                     </div>
-                    <div className="text-xs text-green-600">Currently Playing</div>
+                    <div className="text-xs text-green-600">
+                      Currently Playing
+                    </div>
                   </div>
                 </div>
               </div>
@@ -707,7 +818,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <Users className="w-4 h-4 text-blue-600" />
                 <h3 className="font-semibold text-blue-700">
-                  Priority Queue (Requests): {priorityQueue.length > 0 ? `${priorityQueue.length} songs` : 'Empty'}
+                  Priority Queue (Requests):{" "}
+                  {priorityQueue.length > 0
+                    ? `${priorityQueue.length} songs`
+                    : "Empty"}
                 </h3>
               </div>
               {priorityQueue.length > 0 ? (
@@ -724,7 +838,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                         <div className="font-semibold text-sm text-blue-700">
                           {cleanTitle(request.title)}
                         </div>
-                        <div className="text-xs text-blue-600">{request.channelTitle}</div>
+                        <div className="text-xs text-blue-600">
+                          {request.channelTitle}
+                        </div>
                       </div>
                       <div className="text-xs text-blue-500">
                         <Clock className="w-3 h-3 inline mr-1" />
@@ -745,11 +861,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <div className="flex items-center gap-2 mb-2">
                 <List className="w-4 h-4 text-gray-600" />
                 <h3 className="font-semibold text-gray-700">
-                  Default Playlist: {currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length} songs
+                  Default Playlist:{" "}
+                  {
+                    currentPlaylistVideos.filter(
+                      (v) => !v.isUserRequest && !v.isNowPlaying,
+                    ).length
+                  }{" "}
+                  songs
                 </h3>
               </div>
               {currentPlaylistVideos
-                .filter(video => !video.isUserRequest && !video.isNowPlaying)
+                .filter((video) => !video.isUserRequest && !video.isNowPlaying)
                 .map((video, index) => (
                   <div
                     key={`default-${video.id}-${index}`}
@@ -762,11 +884,15 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       <div className="font-semibold text-sm">
                         {cleanTitle(video.title)}
                       </div>
-                      <div className="text-xs text-gray-600">{video.channelTitle}</div>
+                      <div className="text-xs text-gray-600">
+                        {video.channelTitle}
+                      </div>
                     </div>
                   </div>
                 ))}
-              {currentPlaylistVideos.filter(v => !v.isUserRequest && !v.isNowPlaying).length === 0 && (
+              {currentPlaylistVideos.filter(
+                (v) => !v.isUserRequest && !v.isNowPlaying,
+              ).length === 0 && (
                 <div className="text-center py-4 text-gray-500">
                   No songs in default playlist
                 </div>
