@@ -1067,6 +1067,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="iframe_search">
+                    Iframe Search (No API Key Required)
+                  </SelectItem>
                   <SelectItem value="youtube_api">
                     YouTube Data API v3
                   </SelectItem>
