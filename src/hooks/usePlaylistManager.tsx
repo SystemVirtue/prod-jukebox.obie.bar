@@ -75,13 +75,37 @@ export const usePlaylistManager = (
             "[LoadPlaylist] Invalid or missing API key, using fallback",
           );
           toast({
-            title: "Configuration Error",
+            title: "Configuration Error - Auto-opening Admin Panel",
             description:
-              "YouTube API key is missing or invalid. Using fallback playlist.",
+              "YouTube API key is missing or invalid. Opening admin panel for configuration.",
             variant: "default",
           });
+
+          // Auto-open admin panel after a short delay
+          setTimeout(() => {
+            setState((prev) => ({ ...prev, isAdminOpen: true }));
+          }, 2000);
+
           allVideos = [];
           break;
+        }
+
+        // Check if quota is exhausted for this API key and skip API calls
+        const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
+        const quotaExhaustedTime = localStorage.getItem(quotaExhaustedKey);
+        if (quotaExhaustedTime) {
+          const timeSinceExhaustion = Date.now() - parseInt(quotaExhaustedTime);
+          // Wait 1 hour before retrying API calls after quota exhaustion
+          if (timeSinceExhaustion < 3600000) {
+            console.log(
+              `[LoadPlaylist] API quota exhausted for this key, using fallback immediately`,
+            );
+            allVideos = [];
+            break;
+          } else {
+            // Clear the flag after 1 hour to allow retry
+            localStorage.removeItem(quotaExhaustedKey);
+          }
         }
 
         // If we've had persistent fetch failures, skip to fallback immediately
@@ -125,12 +149,22 @@ export const usePlaylistManager = (
               console.log(
                 "[LoadPlaylist] Quota exceeded, using fallback playlist",
               );
+              // Set flag to prevent future API calls until reset
+              const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
+              localStorage.setItem(quotaExhaustedKey, Date.now().toString());
+
               toast({
-                title: "Quota Exceeded",
+                title: "Quota Exceeded - Auto-opening Admin Panel",
                 description:
-                  "YouTube API quota exceeded. Using fallback playlist.",
+                  "YouTube API quota exceeded. Opening admin panel for configuration.",
                 variant: "default",
               });
+
+              // Auto-open admin panel after a short delay
+              setTimeout(() => {
+                setState((prev) => ({ ...prev, isAdminOpen: true }));
+              }, 2000);
+
               allVideos = []; // Trigger fallback
               break;
             } else if (response.status === 404) {
@@ -316,12 +350,16 @@ export const usePlaylistManager = (
           currentVideoIndex: 0,
         }));
 
-        toast({
-          title: "Quota Exceeded - Fallback Mode",
-          description:
-            "YouTube API quota exceeded. Using fallback playlist. Enable API key rotation in admin settings for better reliability.",
-          variant: "default",
-        });
+        // Only show this toast if we haven't already shown the quota exhausted message
+        const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
+        if (!localStorage.getItem(quotaExhaustedKey)) {
+          toast({
+            title: "Quota Exceeded - Fallback Mode",
+            description:
+              "YouTube API quota exceeded. Using fallback playlist. Enable API key rotation in admin settings for better reliability.",
+            variant: "default",
+          });
+        }
 
         addLog(
           "SONG_PLAYED",
