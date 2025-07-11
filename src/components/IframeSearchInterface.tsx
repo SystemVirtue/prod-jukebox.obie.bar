@@ -224,89 +224,118 @@ export const IframeSearchInterface: React.FC<IframeSearchInterfaceProps> = ({
                 </div>
               </div>
 
-              {/* Manual Selection Panel */}
+              {/* Search Results Panel */}
               <div className="w-80 p-4 border-l border-slate-700 bg-slate-800/40 backdrop-blur">
                 <h3 className="text-xl font-bold text-amber-200 mb-4">
-                  Add to Playlist
+                  Search Results
                 </h3>
 
-                <div className="space-y-4">
-                  <div className="bg-blue-900/40 p-4 rounded-lg border border-blue-600">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Info className="w-4 h-4 text-blue-400" />
-                      <span className="text-blue-300 font-semibold">
-                        How to use:
-                      </span>
-                    </div>
-                    <ol className="text-blue-200 text-sm space-y-1 list-decimal list-inside">
-                      <li>Find a video you like in the search results</li>
-                      <li>Right-click the video and copy its URL</li>
-                      <li>Paste the URL below</li>
-                      <li>Enter the song title</li>
-                      <li>Click "Add to Playlist"</li>
-                    </ol>
+                {isSearching ? (
+                  <div className="flex items-center justify-center h-64">
+                    <div className="text-amber-200">Searching...</div>
                   </div>
+                ) : (
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    {searchResults.length > 0 ? (
+                      searchResults.slice(0, 10).map((video) => (
+                        <div
+                          key={video.id}
+                          onClick={() => {
+                            if (mode === "PAID" && credits === 0) {
+                              onInsufficientCredits();
+                              return;
+                            }
+                            onVideoSelect(video);
+                          }}
+                          className="bg-slate-700/60 rounded-lg p-3 cursor-pointer hover:bg-slate-600/60 transition-colors border border-slate-600 hover:border-amber-500"
+                        >
+                          <div className="flex gap-3">
+                            <img
+                              src={video.thumbnailUrl}
+                              alt={video.title}
+                              className="w-16 h-12 object-cover rounded"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-white text-sm font-medium line-clamp-2 mb-1">
+                                {video.title}
+                              </h4>
+                              <p className="text-slate-400 text-xs">
+                                {video.channelTitle}
+                              </p>
+                              {video.duration && (
+                                <p className="text-slate-300 text-xs mt-1">
+                                  {video.duration}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <div className="text-slate-400 mb-4">
+                          No search results found
+                        </div>
+                        <div className="bg-blue-900/40 p-4 rounded-lg border border-blue-600">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Info className="w-4 h-4 text-blue-400" />
+                            <span className="text-blue-300 font-semibold">
+                              Manual Add:
+                            </span>
+                          </div>
+                          <div className="space-y-2">
+                            <Input
+                              value={videoIdInput}
+                              onChange={(e) => setVideoIdInput(e.target.value)}
+                              placeholder="YouTube URL or Video ID"
+                              className="w-full bg-slate-700/60 border-slate-600 text-white placeholder-slate-400 text-xs"
+                            />
+                            <Input
+                              value={videoTitleInput}
+                              onChange={(e) =>
+                                setVideoTitleInput(e.target.value)
+                              }
+                              placeholder="Song title"
+                              className="w-full bg-slate-700/60 border-slate-600 text-white placeholder-slate-400 text-xs"
+                            />
+                            <Button
+                              onClick={handleVideoSelect}
+                              disabled={
+                                !videoIdInput.trim() ||
+                                !videoTitleInput.trim() ||
+                                (mode === "PAID" && credits === 0)
+                              }
+                              className="w-full bg-green-600 hover:bg-green-700 text-white py-2 text-sm disabled:opacity-50"
+                            >
+                              Add to Playlist
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
-                  <div>
-                    <label className="block text-amber-200 font-medium mb-2">
-                      YouTube Video URL or ID:
-                    </label>
-                    <Input
-                      value={videoIdInput}
-                      onChange={(e) => setVideoIdInput(e.target.value)}
-                      placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full bg-slate-700/60 border-slate-600 text-white placeholder-slate-400"
-                    />
+                    {mode === "PAID" && (
+                      <div className="bg-amber-900/40 p-3 rounded border border-amber-600 mt-4">
+                        <p className="text-amber-200 text-sm">
+                          Cost: 1 Credit (You have {credits} credits)
+                        </p>
+                      </div>
+                    )}
+
+                    <Button
+                      onClick={() =>
+                        window.open(
+                          `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
+                          "_blank",
+                        )
+                      }
+                      className="w-full bg-red-600 hover:bg-red-700 text-white py-2 flex items-center justify-center gap-2 mt-4"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      Open in New Tab
+                    </Button>
                   </div>
-
-                  <div>
-                    <label className="block text-amber-200 font-medium mb-2">
-                      Song Title:
-                    </label>
-                    <Input
-                      value={videoTitleInput}
-                      onChange={(e) => setVideoTitleInput(e.target.value)}
-                      placeholder="Enter song title..."
-                      className="w-full bg-slate-700/60 border-slate-600 text-white placeholder-slate-400"
-                    />
-                  </div>
-
-                  {mode === "PAID" && (
-                    <div className="bg-amber-900/40 p-3 rounded border border-amber-600">
-                      <p className="text-amber-200 text-sm">
-                        Cost: 1 Credit (You have {credits} credits)
-                      </p>
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleVideoSelect}
-                    disabled={
-                      !videoIdInput.trim() ||
-                      !videoTitleInput.trim() ||
-                      (mode === "PAID" && credits === 0)
-                    }
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{
-                      filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
-                    }}
-                  >
-                    Add to Playlist
-                  </Button>
-
-                  <Button
-                    onClick={() =>
-                      window.open(
-                        `https://www.youtube.com/results?search_query=${encodeURIComponent(searchQuery)}`,
-                        "_blank",
-                      )
-                    }
-                    className="w-full bg-red-600 hover:bg-red-700 text-white py-2 flex items-center justify-center gap-2"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Open in New Tab
-                  </Button>
-                </div>
+                )}
               </div>
             </div>
           </div>
