@@ -43,38 +43,31 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
     console.log("Testing API key with search endpoint...");
     const response = await fetch(testUrl);
 
-    // Clone the response to avoid "body stream already read" errors
-    const responseClone = response.clone();
+    // Read response body once and handle all cases
+    let responseData = null;
+    let responseText = "";
+
+    try {
+      responseText = await response.text();
+      // Try to parse as JSON
+      if (responseText) {
+        responseData = JSON.parse(responseText);
+      }
+    } catch (parseError) {
+      // responseText contains the raw response, responseData is null
+    }
 
     if (response.ok) {
-      try {
-        const data = await response.json();
-        return {
-          isValid: true,
-          status: 200,
-          message: "API key is valid and functional",
-          quotaUsed: false,
-          canSearch: true,
-          canAccessPlaylists: true, // Assume true if search works
-        };
-      } catch (jsonError) {
-        // If JSON parsing fails, still consider it valid since we got 200
-        return {
-          isValid: true,
-          status: 200,
-          message: "API key is valid (response not JSON)",
-          quotaUsed: false,
-          canSearch: true,
-          canAccessPlaylists: true,
-        };
-      }
+      return {
+        isValid: true,
+        status: 200,
+        message: "API key is valid and functional",
+        quotaUsed: false,
+        canSearch: true,
+        canAccessPlaylists: true,
+      };
     } else {
-      let errorText = "";
-      try {
-        errorText = await responseClone.text();
-      } catch (textError) {
-        errorText = `HTTP ${response.status} - Unable to read error details`;
-      }
+      // Use the already-read responseText
 
       if (response.status === 403) {
         if (errorText.includes("quotaExceeded")) {
