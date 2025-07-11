@@ -1,4 +1,5 @@
 import YTMusic from "ytmusic-api";
+import { youtubeQuotaService } from "./youtubeQuota";
 
 export interface SearchResult {
   id: string;
@@ -80,6 +81,9 @@ class MusicSearchService {
 
       const data = await response.json();
 
+      // Track API usage
+      youtubeQuotaService.trackApiUsage(apiKey, "search", 1);
+
       if (!data.items || data.items.length === 0) {
         return [];
       }
@@ -89,6 +93,9 @@ class MusicSearchService {
       const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${videoIds}&key=${apiKey}`;
       const detailsResponse = await fetch(detailsUrl);
       const detailsData = await detailsResponse.json();
+
+      // Track API usage for video details
+      youtubeQuotaService.trackApiUsage(apiKey, "videos", 1);
 
       // Create details map
       const detailsMap: Record<string, any> = {};
