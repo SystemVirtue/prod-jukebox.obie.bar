@@ -555,21 +555,19 @@ export const usePlaylistManager = (
         nextVideo.videoId,
       );
 
-      // Send song to player FIRST
+      // Move the song to end of playlist FIRST (circular playlist)
+      setState((prev) => ({
+        ...prev,
+        inMemoryPlaylist: [...prev.inMemoryPlaylist.slice(1), nextVideo],
+      }));
+
+      // THEN send song to player
       playSong(
         nextVideo.videoId,
         nextVideo.title,
         nextVideo.channelTitle,
         "SONG_PLAYED",
       );
-
-      // THEN move played song to end of playlist (circular playlist) after a short delay
-      setTimeout(() => {
-        setState((prev) => ({
-          ...prev,
-          inMemoryPlaylist: [...prev.inMemoryPlaylist.slice(1), nextVideo],
-        }));
-      }, 100);
     } else {
       console.warn(
         "[PlayNext] No songs available in playlist or priority queue!",
