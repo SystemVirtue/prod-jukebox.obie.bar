@@ -204,9 +204,9 @@ const Index = () => {
         "videos. Initializing player...",
       );
 
-      // Try initialization immediately and retry if needed
+      // Try initialization with a more permissive approach
       let retryCount = 0;
-      const maxRetries = 1; // Reduce retries to avoid being too aggressive
+      const maxRetries = 0; // Don't retry automatically to avoid being aggressive
 
       const tryInitialization = async () => {
         console.log(`[Auto-init] Attempt ${retryCount + 1}/${maxRetries + 1}`);
