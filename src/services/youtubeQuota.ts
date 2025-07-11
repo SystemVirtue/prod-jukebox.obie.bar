@@ -27,8 +27,14 @@ class YouTubeQuotaService {
 
   async checkQuotaUsage(apiKey: string): Promise<QuotaUsage> {
     try {
+      // Check if API key is properly formatted before making request
+      if (!apiKey || !apiKey.startsWith("AIza") || apiKey.length < 20) {
+        throw new Error("Invalid API key format");
+      }
+
       // Try a minimal API call to check if key is valid and estimate usage
-      const testUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=test&maxResults=1&key=${apiKey}`;
+      // Use a more specific search query and ensure proper encoding
+      const testUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent("music")}&type=video&maxResults=1&key=${encodeURIComponent(apiKey)}`;
       const response = await fetch(testUrl);
 
       if (!response.ok) {
@@ -56,7 +62,15 @@ class YouTubeQuotaService {
             };
           }
         }
-        throw new Error(`API Error: ${response.status}`);
+        // For other errors, try to get more specific error information
+        try {
+          const errorData = await response.json();
+          const errorMessage =
+            errorData.error?.message || `HTTP ${response.status}`;
+          throw new Error(`API Error: ${response.status} - ${errorMessage}`);
+        } catch (jsonError) {
+          throw new Error(`API Error: ${response.status}`);
+        }
       }
 
       // Consume the response to prevent body stream issues
