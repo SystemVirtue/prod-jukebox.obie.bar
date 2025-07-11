@@ -138,6 +138,41 @@ const Index = () => {
     }));
   }, [setState]);
 
+  // Handle API key test dialog completion
+  const handleApiKeyTestComplete = useCallback(
+    (results: any[]) => {
+      console.log("[Init] API key test results:", results);
+
+      // Find the first working key
+      const workingKey = results.find((r) => r.status === "success");
+      if (workingKey) {
+        console.log(
+          `[Init] Setting working key: ...${workingKey.key.slice(-8)}`,
+        );
+        setState((prev) => ({
+          ...prev,
+          apiKey: workingKey.key,
+          selectedApiKeyOption: workingKey.keyName.includes("1")
+            ? "key1"
+            : workingKey.keyName.includes("2")
+              ? "key2"
+              : workingKey.keyName.includes("3")
+                ? "key3"
+                : "key4",
+          showApiKeyTestDialog: false,
+        }));
+      } else {
+        console.log("[Init] No working keys found, opening admin panel");
+        setState((prev) => ({
+          ...prev,
+          showApiKeyTestDialog: false,
+          isAdminOpen: true,
+        }));
+      }
+    },
+    [setState],
+  );
+
   const {
     performSearch,
     filterForOfficial,
