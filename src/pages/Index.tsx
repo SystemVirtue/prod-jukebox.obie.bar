@@ -185,10 +185,19 @@ const Index = () => {
     // Check if we have a valid API key before attempting to load
     if (!state.apiKey || state.apiKey.length < 20) {
       console.log("No valid API key found, auto-opening admin panel");
+
+      // Set a default API key to key1 when none is configured
+      const defaultKey = "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4";
+      setState((prev) => ({
+        ...prev,
+        apiKey: defaultKey,
+        selectedApiKeyOption: "key1",
+      }));
+
       toast({
         title: "Configuration Required",
         description:
-          "YouTube API key is missing. Opening admin panel for setup.",
+          "YouTube API key was missing. Set to default key1. Configure in admin panel if needed.",
         variant: "default",
       });
 
