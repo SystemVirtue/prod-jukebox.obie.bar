@@ -182,7 +182,7 @@ const Index = () => {
   useEffect(() => {
     console.log("Loading initial playlist...");
     loadPlaylistVideos(state.defaultPlaylist);
-  }, []);
+  }, [state.defaultPlaylist, loadPlaylistVideos]);
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
