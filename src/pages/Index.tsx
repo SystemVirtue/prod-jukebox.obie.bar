@@ -679,6 +679,20 @@ const Index = () => {
                 setState((prev) => ({ ...prev }));
               }, 500);
             }, 500);
+
+            // Safety timeout for fade complete
+            setTimeout(() => {
+              setState((currentState) => {
+                if (currentState.currentlyPlaying === "Loading...") {
+                  console.warn(
+                    "[StorageEvent] Still loading after fade timeout, forcing next song",
+                  );
+                  handleVideoEndedRef.current();
+                  return { ...currentState, currentlyPlaying: "Recovering..." };
+                }
+                return currentState;
+              });
+            }, 10000);
           }
         }
 
