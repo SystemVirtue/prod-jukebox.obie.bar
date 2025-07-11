@@ -100,62 +100,91 @@ export const usePlaylistManager = (
           }
         }
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API Error ${response.status}:`, errorText);
+        let data;
+        try {
+          if (!response.ok) {
+            let errorText;
+            try {
+              const errorData = await response.json();
+              errorText = JSON.stringify(errorData);
+              console.error(`API Error ${response.status}:`, errorData);
+            } catch (jsonError) {
+              errorText = await response.text();
+              console.error(`API Error ${response.status}:`, errorText);
+            }
 
-          if (response.status === 403) {
-            // Check if it's quota exceeded or invalid key
-            if (errorText.includes("quotaExceeded")) {
-              console.log("Quota exceeded, proceeding to fallback playlist");
+            if (response.status === 403) {
+              // Check if it's quota exceeded or invalid key
+              if (errorText.includes("quotaExceeded")) {
+                console.log("Quota exceeded, proceeding to fallback playlist");
+                toast({
+                  title: "Quota Exceeded",
+                  description:
+                    "YouTube API quota exceeded. Using fallback playlist.",
+                  variant: "default",
+                });
+                // Set a flag to trigger fallback and break out of the loop
+                allVideos = []; // Empty array will trigger fallback after the loop
+                break; // Exit the retry loop
+              } else {
+                toast({
+                  title: "Invalid API Key",
+                  description:
+                    "YouTube API key is invalid. Please check admin settings.",
+                  variant: "destructive",
+                });
+                throw new Error("YouTube API key is invalid or access denied.");
+              }
+            } else if (response.status === 404) {
               toast({
-                title: "Quota Exceeded",
-                description:
-                  "YouTube API quota exceeded. Using fallback playlist.",
-                variant: "default",
-              });
-              // Set a flag to trigger fallback and break out of the loop
-              allVideos = []; // Empty array will trigger fallback after the loop
-              break; // Exit the retry loop
-            } else {
-              toast({
-                title: "Invalid API Key",
-                description:
-                  "YouTube API key is invalid. Please check admin settings.",
+                title: "Playlist Not Found",
+                description: `Playlist ${playlistId} not found or is private.`,
                 variant: "destructive",
               });
-              throw new Error("YouTube API key is invalid or access denied.");
+              throw new Error(
+                "Playlist not found. Please check the playlist ID.",
+              );
+            } else if (response.status === 400) {
+              toast({
+                title: "Bad Request",
+                description:
+                  "Invalid playlist request. Please check the playlist configuration.",
+                variant: "destructive",
+              });
+              throw new Error("Invalid playlist request parameters.");
+            } else {
+              toast({
+                title: "API Error",
+                description: `YouTube API returned error ${response.status}. Please try again.`,
+                variant: "destructive",
+              });
+              throw new Error(
+                `Failed to load playlist (HTTP ${response.status}): ${errorText}`,
+              );
             }
-          } else if (response.status === 404) {
-            toast({
-              title: "Playlist Not Found",
-              description: `Playlist ${playlistId} not found or is private.`,
-              variant: "destructive",
-            });
-            throw new Error(
-              "Playlist not found. Please check the playlist ID.",
-            );
-          } else if (response.status === 400) {
-            toast({
-              title: "Bad Request",
-              description:
-                "Invalid playlist request. Please check the playlist configuration.",
-              variant: "destructive",
-            });
-            throw new Error("Invalid playlist request parameters.");
           } else {
-            toast({
-              title: "API Error",
-              description: `YouTube API returned error ${response.status}. Please try again.`,
-              variant: "destructive",
-            });
-            throw new Error(
-              `Failed to load playlist (HTTP ${response.status}): ${errorText}`,
-            );
+            data = await response.json();
+          }
+        } catch (responseError) {
+          if (
+            responseError.message &&
+            responseError.message.includes("body stream")
+          ) {
+            console.error("Response body already read, creating new request");
+            // If body stream error, restart the fetch with a new request
+            retryCount++;
+            if (retryCount <= maxRetries) {
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              continue; // Restart the while loop with a new fetch
+            } else {
+              throw new Error(
+                "Failed to fetch after multiple body stream errors",
+              );
+            }
+          } else {
+            throw responseError;
           }
         }
-
-        const data = await response.json();
         const videos: PlaylistItem[] = data.items
           .filter((item: any) => {
             // Filter out private/unavailable videos
