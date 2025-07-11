@@ -124,7 +124,7 @@ export const useJukeboxState = () => {
     selectedCoinAcceptor: "",
     playerWindow: null,
     apiKey: DEFAULT_API_KEY,
-    searchMethod: "ytmusic_api" as SearchMethod,
+    searchMethod: "youtube_api" as SearchMethod,
     logs: [],
     userRequests: [],
     creditHistory: [],
