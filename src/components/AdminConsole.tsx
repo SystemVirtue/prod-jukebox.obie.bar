@@ -330,6 +330,12 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   const handleTestApiKey = async () => {
     if (!apiKey) return;
 
+    // Prevent multiple simultaneous tests
+    if (testingApiKey) {
+      console.log("API key test already in progress, ignoring request");
+      return;
+    }
+
     setTestingApiKey(true);
     setApiKeyTestResult(null);
 
