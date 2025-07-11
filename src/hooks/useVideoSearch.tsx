@@ -51,6 +51,16 @@ export const useVideoSearch = (
       return;
     }
 
+    // If using iframe search, just switch to search results view without API call
+    if (state.searchMethod === "iframe_search") {
+      setState((prev) => ({
+        ...prev,
+        showKeyboard: false,
+        showSearchResults: true,
+      }));
+      return;
+    }
+
     setState((prev) => ({
       ...prev,
       isSearching: true,
