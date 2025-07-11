@@ -12,7 +12,7 @@ export interface SearchResult {
   durationMinutes?: number;
 }
 
-export type SearchMethod = "youtube_api" | "ytmusic_api";
+export type SearchMethod = "youtube_api" | "ytmusic_api" | "iframe_search";
 
 class MusicSearchService {
   private ytMusic: YTMusic | null = null;
