@@ -143,34 +143,58 @@ const Index = () => {
     (results: any[]) => {
       console.log("[Init] API key test results:", results);
 
-      // Find the first working key
+      // Find the first working key (status === "success")
       const workingKey = results.find((r) => r.status === "success");
+
       if (workingKey) {
         console.log(
-          `[Init] Setting working key: ...${workingKey.key.slice(-8)}`,
+          `[Init] Found working key: ...${workingKey.key.slice(-8)} (${workingKey.keyName})`,
         );
+
+        // Map the key name to the correct option
+        let selectedOption = "key1";
+        if (workingKey.keyName.includes("Key 1")) selectedOption = "key1";
+        else if (workingKey.keyName.includes("Key 2")) selectedOption = "key2";
+        else if (workingKey.keyName.includes("Key 3")) selectedOption = "key3";
+        else if (workingKey.keyName.includes("Key 4")) selectedOption = "key4";
+
+        console.log(
+          `[Init] Setting API key to ${selectedOption} with key ...${workingKey.key.slice(-8)}`,
+        );
+
         setState((prev) => ({
           ...prev,
           apiKey: workingKey.key,
-          selectedApiKeyOption: workingKey.keyName.includes("1")
-            ? "key1"
-            : workingKey.keyName.includes("2")
-              ? "key2"
-              : workingKey.keyName.includes("3")
-                ? "key3"
-                : "key4",
+          selectedApiKeyOption: selectedOption,
           showApiKeyTestDialog: false,
         }));
+
+        // Show success message
+        toast({
+          title: "API Key Selected",
+          description: `Using ${workingKey.keyName} - Quota: ${workingKey.quotaUsage?.used || 0}/${workingKey.quotaUsage?.limit || 10000} (${workingKey.quotaUsage?.percentage?.toFixed(1) || 0}%)`,
+          variant: "default",
+        });
       } else {
-        console.log("[Init] No working keys found, opening admin panel");
+        console.log(
+          "[Init] NO working keys found - ALL keys failed! Opening admin panel",
+        );
         setState((prev) => ({
           ...prev,
           showApiKeyTestDialog: false,
           isAdminOpen: true,
         }));
+
+        // Show error message
+        toast({
+          title: "All API Keys Failed",
+          description:
+            "All YouTube API keys are either invalid or quota exceeded. Please configure working keys in the admin panel.",
+          variant: "destructive",
+        });
       }
     },
-    [setState],
+    [setState, toast],
   );
 
   const {
