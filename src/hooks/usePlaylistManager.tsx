@@ -242,16 +242,22 @@ export const usePlaylistManager = (
           currentVideoIndex: 0,
         }));
 
+        const isQuotaIssue = error.message.includes("Quota exceeded");
         toast({
-          title: "Offline Mode",
-          description:
-            "Using fallback playlist due to YouTube API connectivity issues. Check your API key in admin settings.",
+          title: isQuotaIssue
+            ? "Quota Exceeded - Fallback Mode"
+            : "Offline Mode",
+          description: isQuotaIssue
+            ? "YouTube API quota exceeded. Using fallback playlist. Enable API key rotation in admin settings for better reliability."
+            : "Using fallback playlist due to YouTube API connectivity issues. Check your API key in admin settings.",
           variant: "default",
         });
 
         addLog(
           "SONG_PLAYED",
-          "Loaded fallback playlist due to API unavailability",
+          isQuotaIssue
+            ? "Loaded fallback playlist due to quota exhaustion"
+            : "Loaded fallback playlist due to API unavailability",
         );
       } else {
         toast({
