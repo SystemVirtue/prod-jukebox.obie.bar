@@ -75,6 +75,12 @@ const Index = () => {
     toast,
   );
 
+  const {
+    trackApiUsageWithRotation,
+    checkAndRotateIfNeeded,
+    getAllKeysStatus,
+  } = useApiKeyRotation(state, setState, toast);
+
   // Use refs to store latest values for the storage event handler
   const stateRef = useRef(state);
   const handleVideoEndedRef = useRef(handleVideoEnded);
