@@ -15,6 +15,7 @@ class YouTubeQuotaService {
   private onQuotaExhaustedCallback:
     | ((exhaustedKey: string, nextKey: string) => void)
     | null = null;
+  private onAllKeysExhaustedCallback: (() => void) | null = null;
 
   // Estimate quota costs for different operations
   private readonly QUOTA_COSTS = {
@@ -173,6 +174,11 @@ class YouTubeQuotaService {
     this.onQuotaExhaustedCallback = callback;
   }
 
+  // Set callback for when ALL keys are exhausted
+  setAllKeysExhaustedCallback(callback: () => void) {
+    this.onAllKeysExhaustedCallback = callback;
+  }
+
   // Check if a key is exhausted (90% threshold to be safe)
   isKeyExhausted(apiKey: string): boolean {
     const usage = this.quotaCache[apiKey];
@@ -236,6 +242,12 @@ class YouTubeQuotaService {
     }
 
     console.log(`[API Rotation] ALL keys have been tested - none available`);
+
+    // Trigger all keys exhausted callback
+    if (this.onAllKeysExhaustedCallback) {
+      this.onAllKeysExhaustedCallback();
+    }
+
     return null; // All keys are exhausted
   }
 
