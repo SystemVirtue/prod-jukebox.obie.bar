@@ -232,10 +232,11 @@ const Index = () => {
                     "[Auto-init] Failed to initialize player after all retries",
                   );
                   toast({
-                    title: "Player Initialization Failed",
+                    title: "Player Window Blocked",
                     description:
-                      "Could not open player window automatically. Please use the 'Open Player' button in the admin panel.",
-                    variant: "destructive",
+                      "Browser blocked the player window. Please allow popups for this site, then click 'Open Player' in the admin panel (Settings icon bottom-left).",
+                    variant: "default",
+                    duration: 8000,
                   });
                 }
               } else {
