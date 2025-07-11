@@ -193,10 +193,29 @@ const Index = () => {
       windowClosed: state.playerWindow?.closed,
     });
 
+    // Only auto-initialize if user hasn't manually closed the player recently
+    const playerWindowState = localStorage.getItem("jukeboxPlayerWindowState");
+    let shouldAutoInit = true;
+
+    if (playerWindowState) {
+      try {
+        const parsedState = JSON.parse(playerWindowState);
+        const timeSinceClose = Date.now() - parsedState.timestamp;
+        // Don't auto-init if user closed it recently (within 5 minutes)
+        if (parsedState.isClosed && timeSinceClose < 300000) {
+          shouldAutoInit = false;
+        }
+      } catch (error) {
+        // If we can't parse, assume we should auto-init
+        shouldAutoInit = true;
+      }
+    }
+
     if (
       state.defaultPlaylistVideos.length > 0 &&
       (!state.playerWindow || state.playerWindow.closed) &&
-      !state.isPlayerRunning
+      !state.isPlayerRunning &&
+      shouldAutoInit
     ) {
       console.log(
         "[Auto-init] Playlist loaded with",
