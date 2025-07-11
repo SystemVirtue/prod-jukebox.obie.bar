@@ -185,22 +185,37 @@ const Index = () => {
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
+    console.log("[Auto-init] Checking player initialization conditions:", {
+      playlistLength: state.defaultPlaylistVideos.length,
+      hasPlayerWindow: !!state.playerWindow,
+      isPlayerRunning: state.isPlayerRunning,
+      windowClosed: state.playerWindow?.closed,
+    });
+
     if (
       state.defaultPlaylistVideos.length > 0 &&
-      !state.playerWindow &&
+      (!state.playerWindow || state.playerWindow.closed) &&
       !state.isPlayerRunning
     ) {
       console.log(
-        "Playlist loaded with",
+        "[Auto-init] Playlist loaded with",
         state.defaultPlaylistVideos.length,
         "videos. Initializing player...",
       );
-      initializePlayer();
+
+      // Add a small delay to ensure state is settled
+      setTimeout(() => {
+        console.log("[Auto-init] Executing player initialization");
+        initializePlayer();
+      }, 1000);
+    } else {
+      console.log("[Auto-init] Skipping initialization - conditions not met");
     }
   }, [
     state.defaultPlaylistVideos.length,
     state.playerWindow,
     state.isPlayerRunning,
+    initializePlayer,
   ]);
 
   // Enhanced autoplay logic - only start when player is ready and playlist has songs
