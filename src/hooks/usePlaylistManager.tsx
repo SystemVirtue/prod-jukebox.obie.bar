@@ -62,6 +62,8 @@ export const usePlaylistManager = (
             console.log(
               `Attempting to fetch playlist data (attempt ${retryCount + 1}/${maxRetries + 1})`,
             );
+            console.log("Fetch URL:", url);
+
             response = await fetch(url);
             fetchSuccessful = true;
 
@@ -69,6 +71,12 @@ export const usePlaylistManager = (
             youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
           } catch (networkError) {
             console.error("Network error loading playlist:", networkError);
+            console.error("Failed URL:", url);
+            console.error("Error details:", {
+              name: networkError.name,
+              message: networkError.message,
+              stack: networkError.stack,
+            });
             retryCount++;
 
             if (retryCount <= maxRetries) {
@@ -77,15 +85,9 @@ export const usePlaylistManager = (
               );
               await new Promise((resolve) => setTimeout(resolve, 2000));
             } else {
-              toast({
-                title: "Network Error",
-                description:
-                  "Unable to connect to YouTube API after multiple attempts. Please check your connection.",
-                variant: "destructive",
-              });
-              throw new Error(
-                "Network error: Unable to connect to YouTube API after multiple attempts. Please check your internet connection or try a different API key.",
-              );
+              console.log("Using fallback playlist due to network errors");
+              // Instead of throwing, trigger fallback mode immediately
+              throw new Error("Network error: Failed to fetch");
             }
           }
         }
