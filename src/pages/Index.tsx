@@ -562,6 +562,8 @@ const Index = () => {
     state.isPlayerPaused,
     state.playerWindow,
     state.currentlyPlaying,
+    initializePlayer,
+    playNextSong,
   ]);
 
   // Enhanced video end handling with proper queue management and improved sync
