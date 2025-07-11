@@ -180,21 +180,30 @@ const Index = () => {
         });
       } else {
         console.log(
-          "[Init] NO working keys found - ALL keys failed! Opening admin panel",
+          "[Init] NO working keys found - ALL keys failed! Using HTML parser fallback mode",
         );
+
+        // DO NOT open admin panel - use HTML parser instead
         setState((prev) => ({
           ...prev,
           showApiKeyTestDialog: false,
-          isAdminOpen: true,
+          // DO NOT set isAdminOpen: true
         }));
 
-        // Show error message
+        // Show fallback mode message
         toast({
-          title: "All API Keys Failed",
+          title: "Fallback Mode Active",
           description:
-            "All YouTube API keys are either invalid or quota exceeded. Please configure working keys in the admin panel.",
-          variant: "destructive",
+            "All YouTube API keys quota exceeded. Loading curated playlist without API usage.",
+          variant: "default",
         });
+
+        // Immediately load playlist using HTML parser
+        console.log(
+          "[Init] Triggering HTML parser playlist load for default playlist:",
+          state.defaultPlaylist,
+        );
+        loadPlaylistVideos(state.defaultPlaylist);
       }
     },
     [setState, toast],
