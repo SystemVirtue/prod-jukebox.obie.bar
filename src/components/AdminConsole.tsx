@@ -286,13 +286,35 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     } catch (error) {
       console.error("Failed to fetch quota usage:", error);
 
-      // Set a safe default state when quota check fails
-      setQuotaUsage({
-        used: 0,
-        limit: 10000,
-        percentage: 0,
-        lastUpdated: new Date().toISOString(),
-      });
+      // Show user-friendly error based on the type
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      if (errorMessage.includes("400")) {
+        console.warn("API key appears to be invalid or malformed");
+        setQuotaUsage({
+          used: 0,
+          limit: 10000,
+          percentage: 0,
+          lastUpdated: "Error: Invalid API key",
+        });
+      } else if (errorMessage.includes("403")) {
+        console.warn("API key quota exceeded or access denied");
+        setQuotaUsage({
+          used: 10000,
+          limit: 10000,
+          percentage: 100,
+          lastUpdated: "Error: Quota exceeded",
+        });
+      } else {
+        // Set a safe default state when quota check fails
+        setQuotaUsage({
+          used: 0,
+          limit: 10000,
+          percentage: 0,
+          lastUpdated: "Error: Could not check",
+        });
+      }
     } finally {
       setQuotaLoading(false);
     }
