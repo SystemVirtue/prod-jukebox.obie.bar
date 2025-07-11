@@ -73,6 +73,7 @@ const Index = () => {
     addUserRequest,
     addCreditHistory,
     toast,
+    checkAndRotateIfNeeded,
   );
 
   const {
