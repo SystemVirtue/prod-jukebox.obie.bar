@@ -206,7 +206,7 @@ const Index = () => {
 
       // Try initialization immediately and retry if needed
       let retryCount = 0;
-      const maxRetries = 3;
+      const maxRetries = 1; // Reduce retries to avoid being too aggressive
 
       const tryInitialization = async () => {
         console.log(`[Auto-init] Attempt ${retryCount + 1}/${maxRetries + 1}`);
