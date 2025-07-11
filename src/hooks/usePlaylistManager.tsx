@@ -103,14 +103,17 @@ export const usePlaylistManager = (
         let data;
         try {
           if (!response.ok) {
-            let errorText;
+            // Read response body once as text to avoid body stream issues
+            const errorText = await response.text();
+            console.error(`API Error ${response.status}:`, errorText);
+
+            // Try to parse as JSON for better error details
+            let errorData;
             try {
-              const errorData = await response.json();
-              errorText = JSON.stringify(errorData);
-              console.error(`API Error ${response.status}:`, errorData);
-            } catch (jsonError) {
-              errorText = await response.text();
-              console.error(`API Error ${response.status}:`, errorText);
+              errorData = JSON.parse(errorText);
+            } catch (parseError) {
+              // If not JSON, use the text as is
+              errorData = { message: errorText };
             }
 
             if (response.status === 403) {
