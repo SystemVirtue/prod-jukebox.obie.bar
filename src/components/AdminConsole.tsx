@@ -1180,6 +1180,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 Shuffle Default Playlist
               </Button>
             </DialogTitle>
+            <DialogDescription className="text-slate-700">
+              View and manage the current playlist queue including user requests
+              and default songs.
+            </DialogDescription>
           </DialogHeader>
           <ScrollArea className="h-96 border rounded-md p-4 bg-white">
             {/* Now Playing Section */}
