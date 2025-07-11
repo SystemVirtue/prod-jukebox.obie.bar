@@ -111,8 +111,10 @@ interface AdminConsoleProps {
     reason: string;
   }>;
   lastRotationTime: string;
-  searchMethod: "youtube_api" | "ytmusic_api";
-  onSearchMethodChange: (method: "youtube_api" | "ytmusic_api") => void;
+  searchMethod: "youtube_api" | "ytmusic_api" | "iframe_search";
+  onSearchMethodChange: (
+    method: "youtube_api" | "ytmusic_api" | "iframe_search",
+  ) => void;
   selectedCoinAcceptor: string;
   onCoinAcceptorChange: (device: string) => void;
   logs: LogEntry[];
