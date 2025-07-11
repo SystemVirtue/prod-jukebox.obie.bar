@@ -94,6 +94,40 @@ export const usePlayerManager = (
 
         if (playerWindow) {
           console.log("[InitPlayer] Player window opened successfully");
+
+          // Track player window close events
+          const handlePlayerWindowClose = () => {
+            console.log("[InitPlayer] Player window closed by user");
+            localStorage.setItem(
+              "jukeboxPlayerWindowState",
+              JSON.stringify({
+                isClosed: true,
+                timestamp: Date.now(),
+                closedByUser: true,
+              }),
+            );
+          };
+
+          // Set up close event listener
+          playerWindow.addEventListener(
+            "beforeunload",
+            handlePlayerWindowClose,
+          );
+
+          // Also monitor for window being closed via polling
+          const closeCheckInterval = setInterval(() => {
+            if (playerWindow.closed) {
+              console.log("[InitPlayer] Detected player window was closed");
+              clearInterval(closeCheckInterval);
+              handlePlayerWindowClose();
+              setState((prev) => ({
+                ...prev,
+                playerWindow: null,
+                isPlayerRunning: false,
+              }));
+            }
+          }, 1000);
+
           setState((prev) => ({
             ...prev,
             playerWindow,
