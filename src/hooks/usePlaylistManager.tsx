@@ -185,6 +185,15 @@ export const usePlaylistManager = (
             throw responseError;
           }
         }
+
+        // Skip processing if we don't have data (e.g., quota exceeded case)
+        if (!data || !data.items) {
+          console.log(
+            "No data to process, continuing to next iteration or fallback",
+          );
+          break;
+        }
+
         const videos: PlaylistItem[] = data.items
           .filter((item: any) => {
             // Filter out private/unavailable videos
