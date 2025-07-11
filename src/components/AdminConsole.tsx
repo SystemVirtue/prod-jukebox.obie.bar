@@ -212,6 +212,43 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false);
+  const [quotaUsage, setQuotaUsage] = useState<QuotaUsage>({
+    used: 0,
+    limit: 10000,
+    percentage: 0,
+    lastUpdated: "",
+  });
+  const [quotaLoading, setQuotaLoading] = useState(false);
+
+  // API Key mappings
+  const API_KEY_OPTIONS = {
+    key1: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4",
+    key2: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY",
+    key3: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU",
+    key4: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk",
+    custom: customApiKey,
+  };
+
+  // Load quota usage when API key changes
+  useEffect(() => {
+    if (apiKey && isOpen) {
+      handleRefreshQuota();
+    }
+  }, [apiKey, isOpen]);
+
+  const handleRefreshQuota = async () => {
+    if (!apiKey) return;
+
+    setQuotaLoading(true);
+    try {
+      const usage = await youtubeQuotaService.checkQuotaUsage(apiKey);
+      setQuotaUsage(usage);
+    } catch (error) {
+      console.error("Failed to fetch quota usage:", error);
+    } finally {
+      setQuotaLoading(false);
+    }
+  };
   const [playlistTitles, setPlaylistTitles] = useState<{
     [key: string]: string;
   }>({});
