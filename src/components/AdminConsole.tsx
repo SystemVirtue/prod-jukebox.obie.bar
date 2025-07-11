@@ -1059,9 +1059,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               </label>
               <Select
                 value={searchMethod}
-                onValueChange={(value: "youtube_api" | "ytmusic_api") =>
-                  onSearchMethodChange(value)
-                }
+                onValueChange={(
+                  value: "youtube_api" | "ytmusic_api" | "iframe_search",
+                ) => onSearchMethodChange(value)}
               >
                 <SelectTrigger>
                   <SelectValue />
