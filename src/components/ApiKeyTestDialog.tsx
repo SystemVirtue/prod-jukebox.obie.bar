@@ -229,25 +229,27 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
               <h3 className="font-semibold text-blue-900 mb-2">
                 Test Complete
               </h3>
-              <p className="text-blue-800 text-sm">
+              <p className="text-blue-800 text-sm mb-2">
                 {successfulKeys > 0
                   ? `${successfulKeys} out of ${API_KEYS.length} API keys are available for use.`
                   : "No API keys are currently available. All keys are either quota exceeded or invalid."}
               </p>
+              {selectedKey && (
+                <p className="text-green-700 text-sm font-semibold mb-2">
+                  ✓ {selectedKey} selected for use.
+                </p>
+              )}
+              {dismissCountdown > 0 && (
+                <p className="text-blue-600 text-sm">
+                  Continuing in {dismissCountdown} second
+                  {dismissCountdown !== 1 ? "s" : ""}...
+                </p>
+              )}
             </div>
           )}
         </div>
 
-        {isComplete && (
-          <div className="flex justify-center">
-            <Button
-              onClick={() => onComplete(testResults)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2"
-            >
-              Continue
-            </Button>
-          </div>
-        )}
+        {/* Continue button removed - auto-dismiss after 3 seconds */}
       </DialogContent>
     </Dialog>
   );
