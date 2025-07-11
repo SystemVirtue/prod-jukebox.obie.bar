@@ -116,7 +116,9 @@ class MusicSearchService {
       await this.initYtMusic();
 
       if (!this.ytMusic || !this.isYtMusicInitialized) {
-        throw new Error("YtMusic API not initialized");
+        throw new Error(
+          "YtMusic API not available. This may be due to browser compatibility or network restrictions.",
+        );
       }
 
       const searchResults = await this.ytMusic.searchSongs(query);
@@ -151,7 +153,10 @@ class MusicSearchService {
       return results;
     } catch (error) {
       console.error("YtMusic API search error:", error);
-      throw error;
+      if (error instanceof Error) {
+        throw new Error(`YtMusic search failed: ${error.message}`);
+      }
+      throw new Error("YtMusic search failed due to an unknown error");
     }
   }
 
