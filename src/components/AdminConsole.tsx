@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -406,6 +407,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
             <DialogTitle className="text-xl text-slate-900">
               Admin Console
             </DialogTitle>
+            <DialogDescription className="text-slate-700">
+              Configure jukebox settings, manage playlists, and control
+              playback.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6">
