@@ -399,18 +399,39 @@ export const usePlaylistManager = (
           error.message.includes("No videos available"))
       ) {
         console.log(
-          "API unavailable or quota exceeded, providing fallback playlist content",
+          "API unavailable or quota exceeded, providing HTML parser fallback playlist content",
         );
 
-        // Don't create fallback playlist - leave empty to prevent annoying demo songs
-        const fallbackVideos: PlaylistItem[] = [];
+        try {
+          // Use HTML parser service to generate a fallback playlist
+          const fallbackVideos =
+            await youtubeHtmlParserService.parsePlaylist(playlistId);
 
-        setState((prev) => ({
-          ...prev,
-          defaultPlaylistVideos: fallbackVideos,
-          inMemoryPlaylist: fallbackVideos,
-          currentVideoIndex: 0,
-        }));
+          console.log(
+            `[LoadPlaylist] HTML parser generated ${fallbackVideos.length} fallback videos for error case`,
+          );
+
+          setState((prev) => ({
+            ...prev,
+            defaultPlaylistVideos: fallbackVideos,
+            inMemoryPlaylist: [...fallbackVideos],
+            currentVideoIndex: 0,
+          }));
+        } catch (fallbackError) {
+          console.error(
+            "HTML parser fallback also failed in error case:",
+            fallbackError,
+          );
+
+          // Last resort: create minimal empty playlist
+          const emptyPlaylist: PlaylistItem[] = [];
+          setState((prev) => ({
+            ...prev,
+            defaultPlaylistVideos: emptyPlaylist,
+            inMemoryPlaylist: emptyPlaylist,
+            currentVideoIndex: 0,
+          }));
+        }
 
         const isQuotaIssue = error.message.includes("Quota exceeded");
         toast({
