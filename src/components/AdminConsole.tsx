@@ -697,6 +697,69 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                   Open Player
                 </Button>
               </div>
+
+              {/* Debug Controls */}
+              <div className="mt-3 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                <div className="text-xs font-medium text-yellow-800 mb-2">
+                  Debug Controls:
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      console.log("[Debug] Current player state:", {
+                        playerWindow: !!playerWindow,
+                        closed: playerWindow?.closed,
+                        running: isPlayerRunning,
+                      });
+                      if (playerWindow) {
+                        console.log(
+                          "[Debug] Player window details:",
+                          playerWindow.location?.href,
+                        );
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                    className="text-xs"
+                  >
+                    Log State
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      if (playerWindow && !playerWindow.closed) {
+                        try {
+                          const testCommand = {
+                            action: "play",
+                            videoId: "dQw4w9WgXcQ",
+                            title: "Debug Test Song",
+                            artist: "Debug Artist",
+                            timestamp: Date.now(),
+                          };
+                          playerWindow.localStorage.setItem(
+                            "jukeboxCommand",
+                            JSON.stringify(testCommand),
+                          );
+                          console.log("[Debug] Test command sent to player");
+                        } catch (error) {
+                          console.error(
+                            "[Debug] Error sending test command:",
+                            error,
+                          );
+                        }
+                      } else {
+                        console.error(
+                          "[Debug] No player window available for test",
+                        );
+                      }
+                    }}
+                    size="sm"
+                    className="text-xs bg-yellow-600 hover:bg-yellow-700"
+                    disabled={!playerWindow || playerWindow.closed}
+                  >
+                    Test Command
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div>
