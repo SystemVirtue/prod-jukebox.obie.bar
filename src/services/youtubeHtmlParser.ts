@@ -340,11 +340,7 @@ class YouTubeHtmlParserService {
         title: "Uptown Funk",
         channelTitle: "Mark Ronson ft. Bruno Mars",
       },
-      {
-        id: "rOjHhS5MtvA",
-        title: "Canon in D",
-        channelTitle: "Classical Music",
-      },
+
       {
         id: "CHekNnySAfM",
         title: "No Woman No Cry",
