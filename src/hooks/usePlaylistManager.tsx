@@ -62,7 +62,8 @@ export const usePlaylistManager = (
 
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50&key=${encodeURIComponent(state.apiKey)}${nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : ""}`;
 
-        let response;
+        let responseText;
+        let responseStatus;
         let fetchSuccessful = false;
 
         while (!fetchSuccessful && retryCount <= maxRetries) {
@@ -72,7 +73,12 @@ export const usePlaylistManager = (
             );
             console.log("Fetch URL:", url);
 
-            response = await fetch(url);
+            // Create a fresh fetch for each attempt
+            const response = await fetch(url);
+            responseStatus = response.status;
+
+            // Read the response body immediately to avoid any stream issues
+            responseText = await response.text();
             fetchSuccessful = true;
 
             // Track API usage for successful requests
@@ -94,19 +100,15 @@ export const usePlaylistManager = (
               await new Promise((resolve) => setTimeout(resolve, 2000));
             } else {
               console.log("Using fallback playlist due to network errors");
-              // Instead of throwing, trigger fallback mode immediately
-              throw new Error("Network error: Failed to fetch");
+              // Trigger fallback mode
+              allVideos = [];
+              break;
             }
           }
         }
 
-        // Read response body only once to avoid body stream issues
-        let responseText;
-        try {
-          responseText = await response.text();
-        } catch (readError) {
-          console.error("Error reading response body:", readError);
-          allVideos = []; // Trigger fallback
+        // If we couldn't fetch successfully, skip this iteration
+        if (!fetchSuccessful) {
           break;
         }
 
