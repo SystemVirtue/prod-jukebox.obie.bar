@@ -90,6 +90,10 @@ interface AdminConsoleProps {
   onCreditsChange: (credits: number) => void;
   apiKey: string;
   onApiKeyChange: (key: string) => void;
+  selectedApiKeyOption: string;
+  onApiKeyOptionChange: (option: string) => void;
+  customApiKey: string;
+  onCustomApiKeyChange: (key: string) => void;
   searchMethod: "youtube_api" | "ytmusic_api";
   onSearchMethodChange: (method: "youtube_api" | "ytmusic_api") => void;
   selectedCoinAcceptor: string;
