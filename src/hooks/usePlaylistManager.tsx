@@ -30,6 +30,9 @@ export const usePlaylistManager = (
         let response;
         try {
           response = await fetch(url);
+
+          // Track API usage for successful requests
+          youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
         } catch (networkError) {
           console.error("Network error loading playlist:", networkError);
           throw new Error(
