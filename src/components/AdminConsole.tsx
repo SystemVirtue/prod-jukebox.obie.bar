@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { youtubeQuotaService, QuotaUsage } from "@/services/youtubeQuota";
 import { testApiKey, ApiKeyTestResult } from "@/utils/apiKeyTester";
+import { displayManager, DisplayInfo } from "@/services/displayManager";
 import {
   Dialog,
   DialogContent,
@@ -35,6 +36,9 @@ import {
   Timer,
   Coins,
   Settings2,
+  ExternalLink,
+  Maximize,
+  Minimize,
 } from "lucide-react";
 
 // Helper function to clean title text by removing content in brackets
