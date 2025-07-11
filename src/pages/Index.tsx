@@ -542,10 +542,10 @@ const Index = () => {
         <div className="text-center mb-8">
           {/* Main UI text has been hidden as requested */}
 
-          {/* Mini Player - positioned between subtitle and search button */}
+          {/* Mini Player - Responsive sizing */}
           {state.showMiniPlayer && state.currentVideoId && (
-            <div className="flex justify-center mb-8">
-              <div className="relative w-48 h-27 rounded-lg overflow-hidden shadow-2xl">
+            <div className="flex justify-center mb-4 sm:mb-8 px-4">
+              <div className="relative w-40 h-24 sm:w-48 sm:h-27 rounded-lg overflow-hidden shadow-2xl">
                 {/* Vignette overlay for feathered edges */}
                 <div className="absolute inset-0 rounded-lg shadow-[inset_0_0_30px_10px_rgba(0,0,0,0.6)] z-10 pointer-events-none"></div>
                 <iframe
