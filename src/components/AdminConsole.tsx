@@ -95,6 +95,15 @@ interface AdminConsoleProps {
   onApiKeyOptionChange: (option: string) => void;
   customApiKey: string;
   onCustomApiKeyChange: (key: string) => void;
+  autoRotateApiKeys: boolean;
+  onAutoRotateChange: (enabled: boolean) => void;
+  rotationHistory: Array<{
+    timestamp: string;
+    from: string;
+    to: string;
+    reason: string;
+  }>;
+  lastRotationTime: string;
   searchMethod: "youtube_api" | "ytmusic_api";
   onSearchMethodChange: (method: "youtube_api" | "ytmusic_api") => void;
   selectedCoinAcceptor: string;
@@ -170,6 +179,10 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onApiKeyOptionChange,
   customApiKey,
   onCustomApiKeyChange,
+  autoRotateApiKeys,
+  onAutoRotateChange,
+  rotationHistory,
+  lastRotationTime,
   searchMethod,
   onSearchMethodChange,
   selectedCoinAcceptor,
