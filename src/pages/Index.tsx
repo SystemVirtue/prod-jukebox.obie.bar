@@ -26,6 +26,7 @@ import { useVideoSearch } from "@/hooks/useVideoSearch";
 import { useApiKeyRotation } from "@/hooks/useApiKeyRotation";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
+import { DisplayConfirmationDialog } from "@/components/DisplayConfirmationDialog";
 
 const Index = () => {
   const { toast } = useToast();
@@ -81,6 +82,38 @@ const Index = () => {
     checkAndRotateIfNeeded,
     getAllKeysStatus,
   } = useApiKeyRotation(state, setState, toast);
+
+  // Display confirmation callbacks
+  const [pendingDisplayConfirmation, setPendingDisplayConfirmation] = useState<{
+    displayInfo: any;
+    onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void;
+    onCancel: () => void;
+  } | null>(null);
+
+  const handleDisplayConfirmationNeeded = (
+    displayInfo: any,
+    onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void,
+    onCancel: () => void,
+  ) => {
+    setPendingDisplayConfirmation({ displayInfo, onConfirm, onCancel });
+  };
+
+  const handleDisplayConfirmationResponse = (
+    useFullscreen: boolean,
+    rememberChoice: boolean,
+  ) => {
+    if (pendingDisplayConfirmation) {
+      pendingDisplayConfirmation.onConfirm(useFullscreen, rememberChoice);
+      setPendingDisplayConfirmation(null);
+    }
+  };
+
+  const handleDisplayConfirmationCancel = () => {
+    if (pendingDisplayConfirmation) {
+      pendingDisplayConfirmation.onCancel();
+      setPendingDisplayConfirmation(null);
+    }
+  };
 
   // Periodic check for rotation (every 5 minutes)
   useEffect(() => {
