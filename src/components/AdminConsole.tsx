@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { youtubeQuotaService, QuotaUsage } from "@/services/youtubeQuota";
+import { testApiKey, ApiKeyTestResult } from "@/utils/apiKeyTester";
 import {
   Dialog,
   DialogContent,
@@ -232,6 +233,9 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     lastUpdated: "",
   });
   const [quotaLoading, setQuotaLoading] = useState(false);
+  const [apiKeyTestResult, setApiKeyTestResult] =
+    useState<ApiKeyTestResult | null>(null);
+  const [testingApiKey, setTestingApiKey] = useState(false);
 
   // API Key mappings
   const API_KEY_OPTIONS = {
@@ -260,6 +264,26 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
       console.error("Failed to fetch quota usage:", error);
     } finally {
       setQuotaLoading(false);
+    }
+  };
+
+  const handleTestApiKey = async () => {
+    if (!apiKey) return;
+
+    setTestingApiKey(true);
+    setApiKeyTestResult(null);
+
+    try {
+      const result = await testApiKey(apiKey);
+      setApiKeyTestResult(result);
+    } catch (error) {
+      setApiKeyTestResult({
+        isValid: false,
+        status: 0,
+        message: `Test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
+    } finally {
+      setTestingApiKey(false);
     }
   };
   const [playlistTitles, setPlaylistTitles] = useState<{
@@ -737,26 +761,56 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                       </div>
                     )}
                   </div>
-                  <Button
-                    onClick={handleRefreshQuota}
-                    size="sm"
-                    variant="ghost"
-                    className="text-xs h-6 px-2"
-                  >
-                    Refresh
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleRefreshQuota}
+                      size="sm"
+                      variant="ghost"
+                      className="text-xs h-6 px-2"
+                    >
+                      Refresh
+                    </Button>
+                    <Button
+                      onClick={handleTestApiKey}
+                      disabled={testingApiKey || !apiKey}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs h-6 px-2"
+                    >
+                      {testingApiKey ? "Testing..." : "Test Key"}
+                    </Button>
+                  </div>
                 </div>
 
-                <p className="text-xs text-slate-500">
-                  Active Key:{" "}
-                  {apiKey ? `...${apiKey.slice(-8)}` : "None selected"}
-                  {quotaUsage.lastUpdated && (
-                    <span className="ml-2">
-                      (Updated:{" "}
-                      {new Date(quotaUsage.lastUpdated).toLocaleTimeString()})
-                    </span>
+                <div className="space-y-2">
+                  <p className="text-xs text-slate-500">
+                    Active Key:{" "}
+                    {apiKey ? `...${apiKey.slice(-8)}` : "None selected"}
+                    {quotaUsage.lastUpdated && (
+                      <span className="ml-2">
+                        (Updated:{" "}
+                        {new Date(quotaUsage.lastUpdated).toLocaleTimeString()})
+                      </span>
+                    )}
+                  </p>
+
+                  {apiKeyTestResult && (
+                    <div
+                      className={`text-xs p-2 rounded ${
+                        apiKeyTestResult.isValid
+                          ? apiKeyTestResult.quotaUsed
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
+                      <span className="font-medium">
+                        {apiKeyTestResult.isValid ? "✓" : "✗"} API Key Test:
+                      </span>{" "}
+                      {apiKeyTestResult.message}
+                    </div>
                   )}
-                </p>
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
