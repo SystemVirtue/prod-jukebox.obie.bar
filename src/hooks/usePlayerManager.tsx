@@ -55,9 +55,14 @@ export const usePlayerManager = (
     }
 
     try {
-      // Check for available displays and prefer secondary display
+      // Check for available displays and prefer secondary display with timeout
       console.log("[InitPlayer] Detecting available displays...");
-      const displays = await displayManager.getDisplays();
+      const displayPromise = displayManager.getDisplays();
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Display detection timeout")), 3000),
+      );
+
+      const displays = await Promise.race([displayPromise, timeoutPromise]);
       console.log("[InitPlayer] Available displays:", displays);
 
       let targetDisplay = null;
