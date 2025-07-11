@@ -240,6 +240,33 @@ const Index = () => {
       windowClosed: state.playerWindow?.closed,
     });
 
+    // Check if we got a fallback playlist (indicates API failure)
+    const hasFallbackPlaylist =
+      state.defaultPlaylistVideos.length > 0 &&
+      state.defaultPlaylistVideos.some(
+        (video) =>
+          video.title.includes("(Offline Mode)") ||
+          video.title.includes("Demo Song"),
+      );
+
+    if (hasFallbackPlaylist && !state.isAdminOpen) {
+      console.log(
+        "[Auto-init] Fallback playlist detected, auto-opening admin panel",
+      );
+      toast({
+        title: "API Configuration Needed",
+        description:
+          "YouTube API failed to load playlist. Opening admin panel to configure API keys.",
+        variant: "default",
+      });
+
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, isAdminOpen: true }));
+      }, 3000); // Wait a bit longer since this happens after playlist load
+
+      return;
+    }
+
     // Only auto-initialize if user hasn't manually closed the player recently
     const playerWindowState = localStorage.getItem("jukeboxPlayerWindowState");
     let shouldAutoInit = true;
