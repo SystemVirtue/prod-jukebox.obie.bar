@@ -180,6 +180,11 @@ export const usePlayerManager = (
     logType: "SONG_PLAYED" | "USER_SELECTION",
   ) => {
     console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist}`);
+    console.log(`[PlaySong] Player window state:`, {
+      exists: !!state.playerWindow,
+      closed: state.playerWindow?.closed,
+      isPlayerRunning: state.isPlayerRunning,
+    });
 
     if (state.playerWindow && !state.playerWindow.closed) {
       const command = {
