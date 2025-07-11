@@ -112,6 +112,7 @@ export interface JukeboxState {
   coinValueB: number;
   allKeysExhausted: boolean;
   isAppPaused: boolean;
+  showApiKeyTestDialog: boolean;
 }
 
 // Set KEY 1 as the primary default key
@@ -205,6 +206,7 @@ export const useJukeboxState = () => {
     coinValueB: 1,
     allKeysExhausted: false,
     isAppPaused: false,
+    showApiKeyTestDialog: true,
   });
 
   const addLog = (
