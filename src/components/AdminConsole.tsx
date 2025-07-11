@@ -262,7 +262,22 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   }, [apiKey, isOpen]);
 
   const handleRefreshQuota = async () => {
-    if (!apiKey) return;
+    if (!apiKey) {
+      console.warn("No API key available for quota check");
+      return;
+    }
+
+    // Check for basic API key format before making request
+    if (!apiKey.startsWith("AIza") || apiKey.length < 20) {
+      console.warn("Invalid API key format, skipping quota check");
+      setQuotaUsage({
+        used: 0,
+        limit: 10000,
+        percentage: 0,
+        lastUpdated: new Date().toISOString(),
+      });
+      return;
+    }
 
     setQuotaLoading(true);
     try {
@@ -270,6 +285,14 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
       setQuotaUsage(usage);
     } catch (error) {
       console.error("Failed to fetch quota usage:", error);
+
+      // Set a safe default state when quota check fails
+      setQuotaUsage({
+        used: 0,
+        limit: 10000,
+        percentage: 0,
+        lastUpdated: new Date().toISOString(),
+      });
     } finally {
       setQuotaLoading(false);
     }
