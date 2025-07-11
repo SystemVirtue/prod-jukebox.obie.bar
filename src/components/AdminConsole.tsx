@@ -624,6 +624,33 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">
+                Search Method
+              </label>
+              <Select
+                value={searchMethod}
+                onValueChange={(value: "youtube_api" | "ytmusic_api") =>
+                  onSearchMethodChange(value)
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="youtube_api">
+                    YouTube Data API v3
+                  </SelectItem>
+                  <SelectItem value="ytmusic_api">YouTube Music API</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-slate-500 mt-1">
+                {searchMethod === "youtube_api"
+                  ? "Uses official YouTube Data API v3 (requires API key)"
+                  : "Uses YouTube Music API (no API key needed, may have better music results)"}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
                 Main UI Background
               </label>
               <div className="flex gap-2 items-center mb-2">
