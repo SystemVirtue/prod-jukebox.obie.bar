@@ -509,14 +509,14 @@ const Index = () => {
           </Card>
         </div>
 
-        {/* Player Closed Notification - Top Right */}
+        {/* Player Closed Notification - Responsive positioning */}
         {(!state.playerWindow || state.playerWindow.closed) &&
           state.isPlayerRunning && (
-            <div className="absolute top-4 right-4 z-20">
+            <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-20 max-w-[calc(100vw-1rem)] sm:max-w-none">
               <Card className="bg-red-900/80 border-red-400 shadow-lg backdrop-blur-sm">
-                <CardContent className="p-3">
-                  <div className="flex items-center gap-3">
-                    <div className="text-red-100 font-medium text-sm">
+                <CardContent className="p-2 sm:p-3">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-col sm:flex-row">
+                    <div className="text-red-100 font-medium text-xs sm:text-sm text-center sm:text-left">
                       ⚠️ Player Window Closed
                     </div>
                     <Button
@@ -527,7 +527,7 @@ const Index = () => {
                         initializePlayer();
                       }}
                       size="sm"
-                      className="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1 h-auto"
+                      className="bg-red-600 hover:bg-red-700 text-white text-xs px-2 py-1 sm:px-3 sm:py-1 h-auto w-full sm:w-auto"
                     >
                       Reopen Player
                     </Button>
