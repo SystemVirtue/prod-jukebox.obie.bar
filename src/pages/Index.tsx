@@ -801,6 +801,7 @@ const Index = () => {
         isPlayerRunning={state.isPlayerRunning}
         onPlayerToggle={handlePlayerToggle}
         onSkipSong={handleSkipSong}
+        onInitializePlayer={initializePlayer}
         maxSongLength={state.maxSongLength}
         onMaxSongLengthChange={(minutes) =>
           setState((prev) => ({ ...prev, maxSongLength: minutes }))
