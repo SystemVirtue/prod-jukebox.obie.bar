@@ -656,6 +656,43 @@ const Index = () => {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [handleStorageChange]);
 
+  // Emergency recovery event listener
+  useEffect(() => {
+    const handleEmergencyPlaylistInject = (event: any) => {
+      console.log("[Emergency] Received emergency playlist injection");
+      const { playlist } = event.detail;
+
+      if (playlist && Array.isArray(playlist)) {
+        setState((prev) => ({
+          ...prev,
+          defaultPlaylistVideos: playlist,
+          inMemoryPlaylist: [...playlist],
+          currentVideoIndex: 0,
+        }));
+
+        toast({
+          title: "Emergency Recovery",
+          description: `Injected ${playlist.length} songs from emergency fallback playlist.`,
+          variant: "default",
+        });
+
+        console.log(
+          `[Emergency] Successfully injected ${playlist.length} songs`,
+        );
+      }
+    };
+
+    window.addEventListener(
+      "emergency-playlist-inject",
+      handleEmergencyPlaylistInject,
+    );
+    return () =>
+      window.removeEventListener(
+        "emergency-playlist-inject",
+        handleEmergencyPlaylistInject,
+      );
+  }, [setState, toast]);
+
   const currentBackground = getCurrentBackground();
 
   // Determine when to show the loading indicator
