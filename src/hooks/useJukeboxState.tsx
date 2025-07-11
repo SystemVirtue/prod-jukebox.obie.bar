@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchMethod } from "@/services/musicSearch";
 
 export interface SearchResult {
   id: string;
@@ -73,6 +74,7 @@ export interface JukeboxState {
   selectedCoinAcceptor: string;
   playerWindow: Window | null;
   apiKey: string;
+  searchMethod: SearchMethod;
   logs: LogEntry[];
   userRequests: UserRequest[];
   creditHistory: CreditHistory[];
