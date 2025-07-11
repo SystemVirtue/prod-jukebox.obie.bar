@@ -146,10 +146,10 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 </div>
               ))}
 
-              <div className="flex justify-center gap-2 mt-4">
+              <div className="flex justify-center gap-1 sm:gap-2 mt-2 sm:mt-4">
                 <Button
                   onClick={() => handleKeyPress("SPACE")}
-                  className="w-40 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                  className="w-20 h-8 sm:w-40 sm:h-16 text-sm sm:text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
                   style={{
                     filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
                   }}
@@ -158,7 +158,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 </Button>
                 <Button
                   onClick={() => handleKeyPress("BACKSPACE")}
-                  className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-2 border-red-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                  className="w-16 h-8 sm:w-32 sm:h-16 text-sm sm:text-xl font-bold bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-2 border-red-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
                   style={{
                     filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
                   }}
@@ -168,7 +168,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                 <Button
                   onClick={() => handleKeyPress("SEARCH")}
                   disabled={!searchQuery.trim()}
-                  className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-2 border-green-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-16 h-8 sm:w-32 sm:h-16 text-sm sm:text-xl font-bold bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-2 border-green-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
                   style={{
                     filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
                   }}
