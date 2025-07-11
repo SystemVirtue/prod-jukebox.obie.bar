@@ -162,43 +162,6 @@ export const useVideoSearch = (
     }
   };
 
-  const filterForOfficial = (videos: any[], originalQuery: string) => {
-    const officialKeywords = [
-      "official video",
-      "official music video",
-      "official audio",
-      "official lyric video",
-      "vevo",
-      "official channel",
-    ];
-
-    return videos
-      .map((video) => {
-        let score = 0;
-        const titleLower = video.snippet.title.toLowerCase();
-        const channelTitleLower = video.snippet.channelTitle.toLowerCase();
-
-        if (channelTitleLower.includes("vevo")) score += 10;
-
-        for (const keyword of officialKeywords) {
-          if (titleLower.includes(keyword)) {
-            score += 3;
-            break;
-          }
-        }
-
-        if (channelTitleLower.includes("official")) score += 3;
-        if (titleLower.includes("cover") || titleLower.includes("remix"))
-          score -= 5;
-        if (titleLower.includes("karaoke")) score += 3;
-
-        video.officialScore = score;
-        return video;
-      })
-      .filter((video) => video.officialScore >= 0)
-      .sort((a, b) => b.officialScore - a.officialScore);
-  };
-
   const handleVideoSelect = (video: SearchResult) => {
     console.log("Video selected:", video);
 
@@ -309,7 +272,6 @@ export const useVideoSearch = (
 
   return {
     performSearch,
-    filterForOfficial,
     handleVideoSelect,
     confirmAddToPlaylist,
     handleKeyboardInput,
