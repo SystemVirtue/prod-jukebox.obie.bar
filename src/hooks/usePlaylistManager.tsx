@@ -315,34 +315,64 @@ export const usePlaylistManager = (
 
       // Check if we got any videos, if not, proceed directly to fallback
       if (allVideos.length === 0) {
-        console.log("No videos loaded, proceeding to fallback playlist");
-        // Don't create fallback playlist - leave empty to prevent annoying demo songs
-        const fallbackVideos: PlaylistItem[] = [];
-
-        setState((prev) => ({
-          ...prev,
-          defaultPlaylistVideos: fallbackVideos,
-          inMemoryPlaylist: fallbackVideos,
-          currentVideoIndex: 0,
-        }));
-
-        // Only show this toast if we haven't already shown the quota exhausted message
-        const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
-        if (!localStorage.getItem(quotaExhaustedKey)) {
-          toast({
-            title: "Quota Exceeded - Fallback Mode",
-            description:
-              "YouTube API quota exceeded. Using fallback playlist. Enable API key rotation in admin settings for better reliability.",
-            variant: "default",
-          });
-        }
-
-        addLog(
-          "SONG_PLAYED",
-          "Loaded fallback playlist due to quota exhaustion",
+        console.log(
+          "No videos loaded, proceeding to HTML parser fallback playlist",
         );
 
-        return; // Exit the function successfully
+        try {
+          // Use HTML parser service to generate a fallback playlist
+          const fallbackVideos =
+            await youtubeHtmlParserService.parsePlaylist(playlistId);
+
+          console.log(
+            `[LoadPlaylist] HTML parser generated ${fallbackVideos.length} fallback videos`,
+          );
+
+          setState((prev) => ({
+            ...prev,
+            defaultPlaylistVideos: fallbackVideos,
+            inMemoryPlaylist: [...fallbackVideos], // Use a copy to avoid mutation issues
+            currentVideoIndex: 0,
+          }));
+
+          // Only show this toast if we haven't already shown the quota exhausted message
+          const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
+          if (!localStorage.getItem(quotaExhaustedKey)) {
+            toast({
+              title: "Fallback Mode Active",
+              description:
+                "YouTube API unavailable. Using curated music playlist with popular songs. No API quota used!",
+              variant: "default",
+            });
+          }
+
+          addLog(
+            "SONG_PLAYED",
+            `Loaded HTML parser fallback playlist with ${fallbackVideos.length} songs`,
+          );
+
+          return; // Exit the function successfully
+        } catch (fallbackError) {
+          console.error("HTML parser fallback also failed:", fallbackError);
+
+          // Last resort: create minimal empty playlist to prevent hanging
+          const emptyPlaylist: PlaylistItem[] = [];
+          setState((prev) => ({
+            ...prev,
+            defaultPlaylistVideos: emptyPlaylist,
+            inMemoryPlaylist: emptyPlaylist,
+            currentVideoIndex: 0,
+          }));
+
+          toast({
+            title: "Offline Mode",
+            description:
+              "All music services unavailable. Please check your connection or try again later.",
+            variant: "destructive",
+          });
+
+          return;
+        }
       }
 
       // Shuffle playlist ONCE after loading
