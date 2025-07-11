@@ -27,6 +27,18 @@ export const usePlayerManager = (
       isRunning: state.isPlayerRunning,
     });
 
+    // Add cooldown to prevent rapid initialization attempts
+    const lastInitAttempt = localStorage.getItem("lastInitAttempt");
+    if (lastInitAttempt) {
+      const timeSinceLastInit = Date.now() - parseInt(lastInitAttempt);
+      if (timeSinceLastInit < 5000) {
+        // 5 second cooldown
+        console.log("[InitPlayer] Cooldown active, skipping initialization");
+        return;
+      }
+    }
+    localStorage.setItem("lastInitAttempt", Date.now().toString());
+
     // Check if player window state exists in localStorage
     const playerWindowState = localStorage.getItem("jukeboxPlayerWindowState");
     if (playerWindowState) {
