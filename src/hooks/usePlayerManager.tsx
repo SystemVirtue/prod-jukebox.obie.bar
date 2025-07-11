@@ -200,6 +200,13 @@ export const usePlayerManager = (
     } catch (error) {
       console.error("[InitPlayer] Error during player initialization:", error);
 
+      // If it's a display detection timeout, provide specific guidance
+      if (error.message.includes("timeout")) {
+        console.log(
+          "[InitPlayer] Display detection timed out, using basic fallback",
+        );
+      }
+
       // Fallback to basic window opening
       console.log("[InitPlayer] Falling back to basic window opening...");
       try {
