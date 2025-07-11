@@ -135,7 +135,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                     <Button
                       key={key}
                       onClick={() => handleKeyPress(key)}
-                      className="w-20 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
+                      className="w-8 h-8 sm:w-20 sm:h-16 text-sm sm:text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
                       style={{
                         filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
                       }}
