@@ -16,6 +16,8 @@ class YouTubeQuotaService {
     | ((exhaustedKey: string, nextKey: string) => void)
     | null = null;
   private onAllKeysExhaustedCallback: (() => void) | null = null;
+  private lastCheckTimes: { [key: string]: number } = {};
+  private readonly MIN_CHECK_INTERVAL = 2000; // Minimum 2 seconds between checks for same key
 
   // Estimate quota costs for different operations
   private readonly QUOTA_COSTS = {
@@ -32,6 +34,31 @@ class YouTubeQuotaService {
       if (!apiKey || !apiKey.startsWith("AIza") || apiKey.length < 20) {
         throw new Error("Invalid API key format");
       }
+
+      // Rate limiting: prevent rapid successive calls for the same key
+      const keyId = apiKey.slice(-8);
+      const now = Date.now();
+      const lastCheck = this.lastCheckTimes[keyId] || 0;
+
+      if (now - lastCheck < this.MIN_CHECK_INTERVAL) {
+        console.log(
+          `[QuotaService] Rate limited quota check for key ...${keyId}`,
+        );
+        // Return cached result if available
+        const cached = this.quotaCache[apiKey];
+        if (cached) {
+          return cached;
+        }
+        // If no cached result, create a default one
+        return {
+          used: 0,
+          limit: this.QUOTA_LIMIT,
+          percentage: 0,
+          lastUpdated: new Date().toISOString(),
+        };
+      }
+
+      this.lastCheckTimes[keyId] = now;
 
       // Try a minimal API call to check if key is valid and estimate usage
       // Use a more specific search query and ensure proper encoding
