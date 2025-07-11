@@ -112,6 +112,10 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               <DialogTitle className="text-3xl text-center text-amber-200">
                 Search for Music
               </DialogTitle>
+              <DialogDescription className="text-center text-amber-300">
+                Use the keyboard below to search for songs and add them to your
+                playlist.
+              </DialogDescription>
             </DialogHeader>
 
             <div className="mb-8">
