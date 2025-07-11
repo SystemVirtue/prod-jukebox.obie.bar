@@ -110,6 +110,8 @@ export interface JukeboxState {
   testMode: boolean;
   coinValueA: number;
   coinValueB: number;
+  allKeysExhausted: boolean;
+  isAppPaused: boolean;
 }
 
 // Set KEY 1 as the primary default key
@@ -201,6 +203,8 @@ export const useJukeboxState = () => {
     testMode: false,
     coinValueA: 3,
     coinValueB: 1,
+    allKeysExhausted: false,
+    isAppPaused: false,
   });
 
   const addLog = (
