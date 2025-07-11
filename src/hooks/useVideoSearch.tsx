@@ -157,25 +157,39 @@ export const useVideoSearch = (
           error.message.includes("Admin panel will open"));
 
       if (isQuotaError) {
-        toast({
-          title: "Quota Exceeded - Auto-opening Admin Panel",
-          description:
-            "YouTube API quota exceeded. Opening admin panel for configuration.",
-          variant: "default",
-        });
+        // Check if we have any working playlist loaded (fallback mode active)
+        const hasFallbackPlaylist = state.defaultPlaylistVideos.length > 0;
 
-        // Auto-open admin panel and close search
-        setTimeout(() => {
-          setState((prev) => ({
-            ...prev,
-            isAdminOpen: true,
-            isSearchOpen: false,
-            showKeyboard: false,
-            showSearchResults: false,
-            searchQuery: "",
-            searchResults: [],
-          }));
-        }, 2000);
+        if (hasFallbackPlaylist) {
+          // We're in fallback mode, don't open admin panel
+          toast({
+            title: "Search Quota Exceeded",
+            description:
+              "YouTube API quota exceeded for search. Try using iframe search mode instead.",
+            variant: "default",
+          });
+        } else {
+          // No fallback playlist available, open admin panel
+          toast({
+            title: "Quota Exceeded - Auto-opening Admin Panel",
+            description:
+              "YouTube API quota exceeded. Opening admin panel for configuration.",
+            variant: "default",
+          });
+
+          // Auto-open admin panel and close search
+          setTimeout(() => {
+            setState((prev) => ({
+              ...prev,
+              isAdminOpen: true,
+              isSearchOpen: false,
+              showKeyboard: false,
+              showSearchResults: false,
+              searchQuery: "",
+              searchResults: [],
+            }));
+          }, 2000);
+        }
 
         return;
       }
