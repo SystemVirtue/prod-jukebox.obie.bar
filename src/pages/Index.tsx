@@ -565,8 +565,8 @@ const Index = () => {
           {/* This div keeps the original centering in the flex-1 space */}
         </div>
 
-        {/* Absolutely positioned search button */}
-        <div className="fixed bottom-[calc(2rem+50px)] left-0 right-0 flex justify-center z-20">
+        {/* Responsive search button */}
+        <div className="fixed bottom-[calc(2rem+50px)] left-4 right-4 sm:left-0 sm:right-0 flex justify-center z-20">
           <Button
             onClick={() => {
               console.log("Search button clicked - opening search interface");
@@ -577,7 +577,7 @@ const Index = () => {
                 showSearchResults: false,
               }));
             }}
-            className="w-96 h-24 text-3xl font-bold bg-black/60 text-white shadow-lg border-4 border-yellow-400 rounded-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
+            className="w-full max-w-96 h-16 sm:h-24 text-xl sm:text-3xl font-bold bg-black/60 text-white shadow-lg border-2 sm:border-4 border-yellow-400 rounded-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
             style={{ filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))" }}
           >
             <span
