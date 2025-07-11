@@ -1077,9 +1077,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 </SelectContent>
               </Select>
               <p className="text-xs text-slate-500 mt-1">
-                {searchMethod === "youtube_api"
-                  ? "Uses official YouTube Data API v3 (requires API key)"
-                  : "⚠️ YouTube Music API is not compatible with browser environments. Will fallback to YouTube API."}
+                {searchMethod === "iframe_search"
+                  ? "🎉 No API quotas! Uses YouTube's embedded search - no rate limits"
+                  : searchMethod === "youtube_api"
+                    ? "Uses official YouTube Data API v3 (requires API key)"
+                    : "⚠️ YouTube Music API is not compatible with browser environments. Will fallback to YouTube API."}
               </p>
             </div>
 
