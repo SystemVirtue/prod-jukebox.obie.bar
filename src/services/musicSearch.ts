@@ -56,6 +56,22 @@ class MusicSearchService {
     maxResults: number = 48,
   ): Promise<SearchResult[]> {
     try {
+      // Check if quota is exhausted for this API key
+      const quotaExhaustedKey = `quota-exhausted-${apiKey.slice(-8)}`;
+      const quotaExhaustedTime = localStorage.getItem(quotaExhaustedKey);
+      if (quotaExhaustedTime) {
+        const timeSinceExhaustion = Date.now() - parseInt(quotaExhaustedTime);
+        // Wait 1 hour before retrying API calls after quota exhaustion
+        if (timeSinceExhaustion < 3600000) {
+          throw new Error(
+            "YouTube API quota exceeded for this key. Please wait or use a different API key.",
+          );
+        } else {
+          // Clear the flag after 1 hour to allow retry
+          localStorage.removeItem(quotaExhaustedKey);
+        }
+      }
+
       const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&q=${encodeURIComponent(query)}&type=video&videoCategoryId=10&maxResults=${maxResults}&key=${apiKey}`;
 
       let response;
@@ -70,8 +86,10 @@ class MusicSearchService {
 
       if (!response.ok) {
         if (response.status === 403) {
+          // Set quota exhaustion flag to prevent repeated API calls
+          localStorage.setItem(quotaExhaustedKey, Date.now().toString());
           throw new Error(
-            "YouTube API key is invalid or has exceeded quota limits.",
+            "YouTube API quota exceeded. Admin panel will open automatically.",
           );
         } else if (response.status === 400) {
           throw new Error("Invalid search query or parameters.");
@@ -93,6 +111,16 @@ class MusicSearchService {
       const videoIds = data.items.map((item: any) => item.id.videoId).join(",");
       const detailsUrl = `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${videoIds}&key=${apiKey}`;
       const detailsResponse = await fetch(detailsUrl);
+
+      if (!detailsResponse.ok && detailsResponse.status === 403) {
+        // Set quota exhaustion flag for subsequent API calls
+        const quotaExhaustedKey = `quota-exhausted-${apiKey.slice(-8)}`;
+        localStorage.setItem(quotaExhaustedKey, Date.now().toString());
+        throw new Error(
+          "YouTube API quota exceeded during video details fetch. Admin panel will open automatically.",
+        );
+      }
+
       const detailsData = await detailsResponse.json();
 
       // Track API usage for video details (rotation will be handled at higher level)
