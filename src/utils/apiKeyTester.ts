@@ -68,9 +68,8 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
       };
     } else {
       // Use the already-read responseText
-
       if (response.status === 403) {
-        if (errorText.includes("quotaExceeded")) {
+        if (responseText.includes("quotaExceeded")) {
           return {
             isValid: true,
             status: 403,
@@ -80,8 +79,8 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
             canAccessPlaylists: false,
           };
         } else if (
-          errorText.includes("keyInvalid") ||
-          errorText.includes("invalid")
+          responseText.includes("keyInvalid") ||
+          responseText.includes("invalid")
         ) {
           return {
             isValid: false,
@@ -105,7 +104,7 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
         return {
           isValid: false,
           status: response.status,
-          message: `API returned error ${response.status}: ${errorText}`,
+          message: `API returned error ${response.status}: ${responseText.substring(0, 100)}`,
         };
       }
     }
