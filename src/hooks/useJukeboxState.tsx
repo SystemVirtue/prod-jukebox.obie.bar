@@ -143,7 +143,7 @@ export const useJukeboxState = () => {
     autoRotateApiKeys: true,
     lastRotationTime: "",
     rotationHistory: [],
-    searchMethod: "youtube_api" as SearchMethod,
+    searchMethod: "iframe_search" as SearchMethod,
     logs: [],
     userRequests: [],
     creditHistory: [],
