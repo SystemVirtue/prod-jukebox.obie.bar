@@ -645,7 +645,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
               <p className="text-xs text-slate-500 mt-1">
                 {searchMethod === "youtube_api"
                   ? "Uses official YouTube Data API v3 (requires API key)"
-                  : "Uses YouTube Music API (no API key needed, may have better music results)"}
+                  : "⚠️ YouTube Music API is not compatible with browser environments. Will fallback to YouTube API."}
               </p>
             </div>
 

@@ -25,9 +25,15 @@ class MusicSearchService {
   private async initYtMusic() {
     try {
       if (!this.isYtMusicInitialized) {
-        // Check if we're in a browser environment
-        if (typeof window === "undefined") {
-          throw new Error("YtMusic API not supported in this environment");
+        // YtMusic API doesn't work in browser environments due to CORS restrictions
+        // It's designed for server-side use only
+        if (typeof window !== "undefined") {
+          console.warn(
+            "YtMusic API is not compatible with browser environments due to CORS restrictions.",
+          );
+          throw new Error(
+            "YtMusic API requires a server-side environment to function properly.",
+          );
         }
 
         this.ytMusic = new YTMusic();
@@ -112,52 +118,11 @@ class MusicSearchService {
   }
 
   async searchWithYtMusicAPI(query: string): Promise<SearchResult[]> {
-    try {
-      await this.initYtMusic();
-
-      if (!this.ytMusic || !this.isYtMusicInitialized) {
-        throw new Error(
-          "YtMusic API not available. This may be due to browser compatibility or network restrictions.",
-        );
-      }
-
-      const searchResults = await this.ytMusic.search(query);
-
-      if (!searchResults || searchResults.length === 0) {
-        return [];
-      }
-
-      const results: SearchResult[] = searchResults
-        .filter((song: any) => song.videoId && song.title && song.artist)
-        .slice(0, 48) // Limit to match YouTube API results
-        .map((song: any) => {
-          const durationMinutes = song.duration
-            ? this.parseYtMusicDuration(song.duration)
-            : 0;
-
-          return {
-            id: song.videoId,
-            title: song.title,
-            channelTitle: Array.isArray(song.artist)
-              ? song.artist.map((a: any) => a.name || a).join(", ")
-              : song.artist?.name || song.artist || "Unknown Artist",
-            thumbnailUrl:
-              song.thumbnail?.[0]?.url || song.thumbnails?.[0]?.url || "",
-            videoUrl: `https://www.youtube.com/watch?v=${song.videoId}`,
-            duration: song.duration || "",
-            durationMinutes,
-            officialScore: 5, // YtMusic results are generally more "official"
-          };
-        });
-
-      return results;
-    } catch (error) {
-      console.error("YtMusic API search error:", error);
-      if (error instanceof Error) {
-        throw new Error(`YtMusic search failed: ${error.message}`);
-      }
-      throw new Error("YtMusic search failed due to an unknown error");
-    }
+    // YtMusic API is not compatible with browser environments
+    // Always throw an error to trigger fallback to YouTube API
+    throw new Error(
+      "YtMusic API is not supported in browser environments. Please use YouTube Data API v3 instead.",
+    );
   }
 
   async search(
