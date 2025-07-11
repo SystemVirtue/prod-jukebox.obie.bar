@@ -327,9 +327,14 @@ const Index = () => {
       return;
     }
 
-    // Don't initialize if no valid API key is set
-    if (!state.apiKey || state.apiKey.length < 20) {
-      console.log("[Init] Skipping playlist load - no valid API key set");
+    // Don't initialize if no valid API key is set AND we don't have a fallback playlist loaded
+    if (
+      (!state.apiKey || state.apiKey.length < 20) &&
+      state.defaultPlaylistVideos.length === 0
+    ) {
+      console.log(
+        "[Init] No valid API key and no fallback playlist - waiting for API key test completion or fallback load",
+      );
       return;
     }
 
