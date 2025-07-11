@@ -190,7 +190,7 @@ export const usePlayerManager = (
     }
   };
 
-    const playSong = (
+  const playSong = (
     videoId: string,
     title: string,
     artist: string,
@@ -199,7 +199,9 @@ export const usePlayerManager = (
   ) => {
     const MAX_RETRIES = 2;
 
-    console.log(`[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`);
+    console.log(
+      `[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`,
+    );
     console.log(`[PlaySong] Player window state:`, {
       exists: !!state.playerWindow,
       closed: state.playerWindow?.closed,
@@ -211,7 +213,8 @@ export const usePlayerManager = (
       console.error("[PlaySong] Maximum retry attempts reached, stopping");
       toast({
         title: "Player Error",
-        description: "Unable to play song after multiple attempts. Please open player manually.",
+        description:
+          "Unable to play song after multiple attempts. Please open player manually.",
         variant: "destructive",
       });
       return;
@@ -307,7 +310,7 @@ export const usePlayerManager = (
         variant: "default",
       });
 
-            // Only attempt recovery if we haven't exceeded retry limit
+      // Only attempt recovery if we haven't exceeded retry limit
       if (retryCount < MAX_RETRIES) {
         console.log("[PlaySong] Attempting to reinitialize player window");
         try {
@@ -341,7 +344,8 @@ export const usePlayerManager = (
                   );
                   // Retry the song with a small delay and increment retry count
                   setTimeout(
-                    () => playSong(videoId, title, artist, logType, retryCount + 1),
+                    () =>
+                      playSong(videoId, title, artist, logType, retryCount + 1),
                     500,
                   );
 
@@ -368,12 +372,23 @@ export const usePlayerManager = (
           };
 
           retryWithRecovery();
-      } catch (error) {
-        console.error("[PlaySong] Error during player recovery:", error);
+        } catch (error) {
+          console.error("[PlaySong] Error during player recovery:", error);
+          toast({
+            title: "Player Error",
+            description:
+              "Failed to initialize player. Please manually start the player from admin controls.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        console.error(
+          "[PlaySong] Maximum retries exceeded, cannot recover player",
+        );
         toast({
           title: "Player Error",
           description:
-            "Failed to initialize player. Please manually start the player from admin controls.",
+            "Unable to open player window after multiple attempts. Please manually open from admin panel.",
           variant: "destructive",
         });
       }
