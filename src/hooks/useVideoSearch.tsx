@@ -27,6 +27,7 @@ export const useVideoSearch = (
     description: string,
   ) => void,
   toast: any,
+  checkAndRotateIfNeeded?: () => Promise<void>,
 ) => {
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
@@ -59,6 +60,11 @@ export const useVideoSearch = (
     }));
 
     try {
+      // Check for rotation before making API calls
+      if (checkAndRotateIfNeeded) {
+        await checkAndRotateIfNeeded();
+      }
+
       console.log(`Starting search with ${state.searchMethod} for:`, query);
 
       const searchResults = await musicSearchService.search(
