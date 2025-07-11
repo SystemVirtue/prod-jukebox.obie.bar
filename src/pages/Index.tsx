@@ -43,6 +43,41 @@ const Index = () => {
     getCurrentPlaylistForDisplay,
   } = useJukeboxState();
 
+  // Display confirmation callbacks - must be defined before usePlayerManager
+  const [pendingDisplayConfirmation, setPendingDisplayConfirmation] = useState<{
+    displayInfo: DisplayInfo;
+    onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void;
+    onCancel: () => void;
+  } | null>(null);
+
+  const handleDisplayConfirmationNeeded = useCallback(
+    (
+      displayInfo: DisplayInfo,
+      onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void,
+      onCancel: () => void,
+    ) => {
+      setPendingDisplayConfirmation({ displayInfo, onConfirm, onCancel });
+    },
+    [],
+  );
+
+  const handleDisplayConfirmationResponse = useCallback(
+    (useFullscreen: boolean, rememberChoice: boolean) => {
+      if (pendingDisplayConfirmation) {
+        pendingDisplayConfirmation.onConfirm(useFullscreen, rememberChoice);
+        setPendingDisplayConfirmation(null);
+      }
+    },
+    [pendingDisplayConfirmation],
+  );
+
+  const handleDisplayConfirmationCancel = useCallback(() => {
+    if (pendingDisplayConfirmation) {
+      pendingDisplayConfirmation.onCancel();
+      setPendingDisplayConfirmation(null);
+    }
+  }, [pendingDisplayConfirmation]);
+
   const {
     initializePlayer,
     playSong,
@@ -66,6 +101,12 @@ const Index = () => {
   } = usePlaylistManager(state, setState, addLog, playSong, toast);
 
   const {
+    trackApiUsageWithRotation,
+    checkAndRotateIfNeeded,
+    getAllKeysStatus,
+  } = useApiKeyRotation(state, setState, toast);
+
+  const {
     performSearch,
     filterForOfficial,
     handleVideoSelect,
@@ -82,44 +123,6 @@ const Index = () => {
     toast,
     checkAndRotateIfNeeded,
   );
-
-  const {
-    trackApiUsageWithRotation,
-    checkAndRotateIfNeeded,
-    getAllKeysStatus,
-  } = useApiKeyRotation(state, setState, toast);
-
-  // Display confirmation callbacks
-  const [pendingDisplayConfirmation, setPendingDisplayConfirmation] = useState<{
-    displayInfo: DisplayInfo;
-    onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void;
-    onCancel: () => void;
-  } | null>(null);
-
-  const handleDisplayConfirmationNeeded = (
-    displayInfo: DisplayInfo,
-    onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void,
-    onCancel: () => void,
-  ) => {
-    setPendingDisplayConfirmation({ displayInfo, onConfirm, onCancel });
-  };
-
-  const handleDisplayConfirmationResponse = (
-    useFullscreen: boolean,
-    rememberChoice: boolean,
-  ) => {
-    if (pendingDisplayConfirmation) {
-      pendingDisplayConfirmation.onConfirm(useFullscreen, rememberChoice);
-      setPendingDisplayConfirmation(null);
-    }
-  };
-
-  const handleDisplayConfirmationCancel = () => {
-    if (pendingDisplayConfirmation) {
-      pendingDisplayConfirmation.onCancel();
-      setPendingDisplayConfirmation(null);
-    }
-  };
 
   // Periodic check for rotation (every 5 minutes)
   useEffect(() => {
