@@ -1,3 +1,5 @@
+import { circuitBreaker } from "./circuitBreaker";
+
 interface QuotaUsage {
   used: number;
   limit: number;
@@ -59,6 +61,14 @@ class YouTubeQuotaService {
       }
 
       this.lastCheckTimes[keyId] = now;
+
+      // Circuit breaker check
+      const endpoint = `quota-check-${keyId}`;
+      if (!circuitBreaker.canMakeCall(endpoint)) {
+        throw new Error("Circuit breaker activated - too many quota checks");
+      }
+
+      circuitBreaker.recordCall(endpoint);
 
       // Try a minimal API call to check if key is valid and estimate usage
       // Use a more specific search query and ensure proper encoding
