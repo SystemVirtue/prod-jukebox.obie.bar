@@ -140,6 +140,7 @@ interface AdminConsoleProps {
   isPlayerRunning: boolean;
   onPlayerToggle: () => void;
   onSkipSong: () => void;
+  onInitializePlayer: () => void;
   maxSongLength: number;
   onMaxSongLengthChange: (minutes: number) => void;
   defaultPlaylist: string;
@@ -206,6 +207,7 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   isPlayerRunning,
   onPlayerToggle,
   onSkipSong,
+  onInitializePlayer,
   maxSongLength,
   onMaxSongLengthChange,
   defaultPlaylist,
@@ -650,6 +652,17 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                 >
                   <SkipForward className="w-4 h-4" />
                   Skip Song
+                </Button>
+                <Button
+                  onClick={onInitializePlayer}
+                  disabled={
+                    isPlayerRunning && playerWindow && !playerWindow.closed
+                  }
+                  className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 disabled:opacity-50"
+                  title="Manually open/reopen the player window"
+                >
+                  <Settings2 className="w-4 h-4" />
+                  Open Player
                 </Button>
               </div>
             </div>
