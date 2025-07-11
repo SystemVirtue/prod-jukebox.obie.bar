@@ -102,6 +102,8 @@ export interface JukeboxState {
   showInsufficientCredits: boolean;
   showDuplicateSong: boolean;
   duplicateSongTitle: string;
+  showDisplayConfirmation: boolean;
+  pendingDisplayInfo: any;
   isPlayerPaused: boolean;
   showSkipConfirmation: boolean;
   showMiniPlayer: boolean;
@@ -188,6 +190,8 @@ export const useJukeboxState = () => {
     showInsufficientCredits: false,
     showDuplicateSong: false,
     duplicateSongTitle: "",
+    showDisplayConfirmation: false,
+    pendingDisplayInfo: null,
     isPlayerPaused: false,
     showSkipConfirmation: false,
     showMiniPlayer: false,
