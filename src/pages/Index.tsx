@@ -284,6 +284,11 @@ const Index = () => {
       ) {
         hasStartedFirstSongRef.current = true;
         console.log("Auto-starting first song from playlist...");
+        console.log("Current playlist state:", {
+          inMemoryLength: state.inMemoryPlaylist.length,
+          firstSong: state.inMemoryPlaylist[0]?.title,
+          priorityQueue: state.priorityQueue.length,
+        });
         playNextSong();
       }
     } else {
