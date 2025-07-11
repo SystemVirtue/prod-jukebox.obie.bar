@@ -103,7 +103,7 @@ export interface JukeboxState {
   showDuplicateSong: boolean;
   duplicateSongTitle: string;
   showDisplayConfirmation: boolean;
-  pendingDisplayInfo: any;
+  pendingDisplayInfo: any | null;
   isPlayerPaused: boolean;
   showSkipConfirmation: boolean;
   showMiniPlayer: boolean;

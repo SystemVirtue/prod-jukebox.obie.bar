@@ -27,6 +27,7 @@ import { useApiKeyRotation } from "@/hooks/useApiKeyRotation";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
 import { DisplayConfirmationDialog } from "@/components/DisplayConfirmationDialog";
+import { DisplayInfo } from "@/services/displayManager";
 
 const Index = () => {
   const { toast } = useToast();
@@ -90,13 +91,13 @@ const Index = () => {
 
   // Display confirmation callbacks
   const [pendingDisplayConfirmation, setPendingDisplayConfirmation] = useState<{
-    displayInfo: any;
+    displayInfo: DisplayInfo;
     onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void;
     onCancel: () => void;
   } | null>(null);
 
   const handleDisplayConfirmationNeeded = (
-    displayInfo: any,
+    displayInfo: DisplayInfo,
     onConfirm: (useFullscreen: boolean, rememberChoice: boolean) => void,
     onCancel: () => void,
   ) => {
