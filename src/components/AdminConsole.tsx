@@ -1290,3 +1290,172 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
     </>
   );
 };
+
+// Display Controls Component
+interface DisplayControlsProps {
+  playerWindow: Window | null;
+  onInitializePlayer: () => void;
+}
+
+const DisplayControls: React.FC<DisplayControlsProps> = ({
+  playerWindow,
+  onInitializePlayer,
+}) => {
+  const [availableDisplays, setAvailableDisplays] = useState<DisplayInfo[]>([]);
+  const [selectedDisplay, setSelectedDisplay] = useState<string>("");
+  const [useFullscreen, setUseFullscreen] = useState(true);
+  const [autoDetect, setAutoDetect] = useState(true);
+
+  useEffect(() => {
+    const loadDisplays = async () => {
+      const displays = await displayManager.getDisplays();
+      setAvailableDisplays(displays);
+
+      // Auto-select secondary display if available and auto-detect is enabled
+      if (autoDetect) {
+        const secondaryDisplay = displays.find((d) => !d.isPrimary);
+        if (secondaryDisplay) {
+          setSelectedDisplay(secondaryDisplay.id);
+          setUseFullscreen(true);
+        } else {
+          const primaryDisplay =
+            displays.find((d) => d.isPrimary) || displays[0];
+          if (primaryDisplay) {
+            setSelectedDisplay(primaryDisplay.id);
+            setUseFullscreen(false);
+          }
+        }
+      }
+    };
+
+    loadDisplays();
+  }, [autoDetect]);
+
+  const handleOpenPlayerOnDisplay = () => {
+    const display = availableDisplays.find((d) => d.id === selectedDisplay);
+    if (!display) return;
+
+    console.log(
+      `[DisplayControls] Opening player on ${display.name} (${useFullscreen ? "fullscreen" : "windowed"})`,
+    );
+
+    // Close existing player window if open
+    if (playerWindow && !playerWindow.closed) {
+      playerWindow.close();
+    }
+
+    // Open player on selected display
+    const features = displayManager.generateWindowFeatures(
+      display,
+      useFullscreen,
+    );
+    const newPlayerWindow = window.open(
+      "/player.html",
+      "JukeboxPlayer",
+      features,
+    );
+
+    if (newPlayerWindow && useFullscreen) {
+      newPlayerWindow.addEventListener("load", () => {
+        setTimeout(() => {
+          try {
+            newPlayerWindow.document.documentElement.requestFullscreen();
+          } catch (error) {
+            console.warn("Could not enter fullscreen mode:", error);
+          }
+        }, 1000);
+      });
+    }
+  };
+
+  return (
+    <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
+      <div className="flex items-center gap-2 mb-3">
+        <Monitor className="w-4 h-4 text-blue-600" />
+        <label className="text-sm font-medium text-blue-800">
+          Display Management
+        </label>
+      </div>
+
+      <div className="space-y-3">
+        {/* Auto-detect toggle */}
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={autoDetect}
+            onCheckedChange={setAutoDetect}
+            id="auto-detect-display"
+          />
+          <label
+            htmlFor="auto-detect-display"
+            className="text-sm text-blue-700"
+          >
+            Auto-select secondary display (recommended)
+          </label>
+        </div>
+
+        {/* Display selection */}
+        <div>
+          <label className="block text-xs font-medium text-blue-700 mb-1">
+            Target Display:
+          </label>
+          <Select value={selectedDisplay} onValueChange={setSelectedDisplay}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select display..." />
+            </SelectTrigger>
+            <SelectContent>
+              {availableDisplays.map((display) => (
+                <SelectItem key={display.id} value={display.id}>
+                  {display.name}{" "}
+                  {display.isPrimary ? "(Primary)" : "(Secondary)"} -{" "}
+                  {display.width}x{display.height}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Fullscreen toggle */}
+        <div className="flex items-center gap-2">
+          <Checkbox
+            checked={useFullscreen}
+            onCheckedChange={setUseFullscreen}
+            id="use-fullscreen"
+          />
+          <label htmlFor="use-fullscreen" className="text-sm text-blue-700">
+            Open in fullscreen mode
+          </label>
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex gap-2">
+          <Button
+            onClick={handleOpenPlayerOnDisplay}
+            disabled={!selectedDisplay}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            size="sm"
+          >
+            <ExternalLink className="w-4 h-4" />
+            Open on Selected Display
+          </Button>
+          <Button
+            onClick={() =>
+              displayManager.getDisplays().then(setAvailableDisplays)
+            }
+            className="flex items-center gap-2 bg-slate-600 hover:bg-slate-700"
+            size="sm"
+            variant="outline"
+          >
+            Refresh Displays
+          </Button>
+        </div>
+
+        {/* Display info */}
+        <div className="text-xs text-blue-600">
+          {availableDisplays.length > 1
+            ? `${availableDisplays.length} displays detected. Secondary display ${useFullscreen ? "fullscreen" : "windowed"} mode recommended.`
+            : "Single display detected. Player will open in windowed mode."}
+        </div>
+      </div>
+    </div>
+  );
+};
