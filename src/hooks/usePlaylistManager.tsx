@@ -19,6 +19,14 @@ export const usePlaylistManager = (
   toast: any,
 ) => {
   const loadPlaylistVideos = async (playlistId: string) => {
+    // Global guard: prevent any playlist loading if we're in a bad state
+    if (state.allKeysExhausted || state.isAppPaused) {
+      console.log(
+        "[PlaylistManager] Skipping playlist load - app is paused or keys exhausted",
+      );
+      return;
+    }
+
     console.log("Loading playlist videos for:", playlistId);
 
     if (!state.apiKey) {
