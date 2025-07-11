@@ -2,6 +2,9 @@
  * Utility to test YouTube API key validity
  */
 
+// Track ongoing tests to prevent concurrent testing of the same key
+const ongoingTests = new Set<string>();
+
 export interface ApiKeyTestResult {
   isValid: boolean;
   status: number;
@@ -19,6 +22,18 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
       message: 'Invalid API key format. Must start with "AIza"',
     };
   }
+
+  // Prevent concurrent testing of the same key
+  const keyId = apiKey.slice(-8);
+  if (ongoingTests.has(keyId)) {
+    return {
+      isValid: false,
+      status: 0,
+      message: "Test already in progress for this key",
+    };
+  }
+
+  ongoingTests.add(keyId);
 
   try {
     // Test with a simple search query (lowest quota cost)
@@ -118,6 +133,9 @@ export const testApiKey = async (apiKey: string): Promise<ApiKeyTestResult> => {
       status: 0,
       message: `Test failed: ${error instanceof Error ? error.message : "Unknown error"}`,
     };
+  } finally {
+    // Always remove from ongoing tests
+    ongoingTests.delete(keyId);
   }
 };
 
