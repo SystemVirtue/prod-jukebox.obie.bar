@@ -900,10 +900,11 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
                     <SelectValue placeholder="Select an API key option" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="key1">API Key 1 (Default)</SelectItem>
-                    <SelectItem value="key2">API Key 2 (Backup)</SelectItem>
-                    <SelectItem value="key3">API Key 3 (Primary)</SelectItem>
-                    <SelectItem value="key4">API Key 4 (Secondary)</SelectItem>
+                    <SelectItem value="key1">API Key 1 (Primary)</SelectItem>
+                    <SelectItem value="key2">API Key 2</SelectItem>
+                    <SelectItem value="key3">API Key 3</SelectItem>
+                    <SelectItem value="key4">API Key 4</SelectItem>
+                    <SelectItem value="key5">API Key 5</SelectItem>
                     <SelectItem value="custom">Custom API Key</SelectItem>
                   </SelectContent>
                 </Select>
