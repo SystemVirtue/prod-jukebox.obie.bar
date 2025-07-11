@@ -115,10 +115,8 @@ export interface JukeboxState {
   showApiKeyTestDialog: boolean;
 }
 
-// Set KEY 1 as the primary default key
-const DEFAULT_API_KEY =
-  import.meta.env.VITE_YOUTUBE_API_KEY ||
-  "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4";
+// Start with empty API key - will be set by API key test dialog
+const DEFAULT_API_KEY = "";
 const DEFAULT_PLAYLIST_ID =
   import.meta.env.VITE_DEFAULT_PLAYLIST_ID ||
   "PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH";
@@ -140,9 +138,7 @@ export const useJukeboxState = () => {
     selectedCoinAcceptor: "",
     playerWindow: null,
     apiKey: DEFAULT_API_KEY,
-    selectedApiKeyOption: import.meta.env.VITE_YOUTUBE_API_KEY
-      ? "custom"
-      : "key1",
+    selectedApiKeyOption: "key1", // Will be properly set by API key test dialog
     customApiKey: "",
     autoRotateApiKeys: true,
     lastRotationTime: "",
