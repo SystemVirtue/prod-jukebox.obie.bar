@@ -181,8 +181,55 @@ const Index = () => {
   // Initialize playlist first, then player when playlist is ready and has songs
   useEffect(() => {
     console.log("Loading initial playlist...");
+
+    // Check if we have a valid API key before attempting to load
+    if (!state.apiKey || state.apiKey.length < 20) {
+      console.log("No valid API key found, auto-opening admin panel");
+      toast({
+        title: "Configuration Required",
+        description:
+          "YouTube API key is missing. Opening admin panel for setup.",
+        variant: "default",
+      });
+
+      setTimeout(() => {
+        setState((prev) => ({ ...prev, isAdminOpen: true }));
+      }, 2000);
+
+      return;
+    }
+
+    // Check if quota is exhausted for current API key
+    const quotaExhaustedKey = `quota-exhausted-${state.apiKey.slice(-8)}`;
+    const quotaExhaustedTime = localStorage.getItem(quotaExhaustedKey);
+    if (quotaExhaustedTime) {
+      const timeSinceExhaustion = Date.now() - parseInt(quotaExhaustedTime);
+      // If quota was exhausted recently (within 1 hour), auto-open admin panel
+      if (timeSinceExhaustion < 3600000) {
+        console.log("API key quota exhausted, auto-opening admin panel");
+        toast({
+          title: "Quota Exhausted - Admin Required",
+          description:
+            "YouTube API quota exceeded. Opening admin panel for configuration.",
+          variant: "default",
+        });
+
+        setTimeout(() => {
+          setState((prev) => ({ ...prev, isAdminOpen: true }));
+        }, 2000);
+
+        return;
+      }
+    }
+
     loadPlaylistVideos(state.defaultPlaylist);
-  }, [state.defaultPlaylist, loadPlaylistVideos]);
+  }, [
+    state.defaultPlaylist,
+    state.apiKey,
+    loadPlaylistVideos,
+    toast,
+    setState,
+  ]);
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
