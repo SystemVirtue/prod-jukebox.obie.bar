@@ -121,7 +121,7 @@ class MusicSearchService {
         );
       }
 
-      const searchResults = await this.ytMusic.searchSongs(query);
+      const searchResults = await this.ytMusic.search(query);
 
       if (!searchResults || searchResults.length === 0) {
         return [];
