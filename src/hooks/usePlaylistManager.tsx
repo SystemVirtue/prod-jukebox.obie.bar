@@ -19,39 +19,127 @@ export const usePlaylistManager = (
   toast: any,
 ) => {
   const loadPlaylistVideos = async (playlistId: string) => {
+    console.log("Loading playlist videos for:", playlistId);
+
+    if (!state.apiKey) {
+      console.error("No API key available");
+      toast({
+        title: "Configuration Error",
+        description:
+          "No YouTube API key configured. Please check admin settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate API key format
+    if (!state.apiKey.startsWith("AIza") || state.apiKey.length < 20) {
+      console.error("Invalid API key format");
+      toast({
+        title: "Configuration Error",
+        description:
+          "Invalid YouTube API key format. Please check admin settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       let allVideos: PlaylistItem[] = [];
       let nextPageToken = "";
+      let retryCount = 0;
+      const maxRetries = 2;
 
       // Load ALL videos without any limits
       do {
         const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}${nextPageToken ? `&pageToken=${nextPageToken}` : ""}`;
 
         let response;
-        try {
-          response = await fetch(url);
+        let fetchSuccessful = false;
 
-          // Track API usage for successful requests
-          youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
-        } catch (networkError) {
-          console.error("Network error loading playlist:", networkError);
-          throw new Error(
-            "Network error: Unable to connect to YouTube API. Please check your internet connection.",
-          );
+        while (!fetchSuccessful && retryCount <= maxRetries) {
+          try {
+            console.log(
+              `Attempting to fetch playlist data (attempt ${retryCount + 1}/${maxRetries + 1})`,
+            );
+            response = await fetch(url);
+            fetchSuccessful = true;
+
+            // Track API usage for successful requests
+            youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
+          } catch (networkError) {
+            console.error("Network error loading playlist:", networkError);
+            retryCount++;
+
+            if (retryCount <= maxRetries) {
+              console.log(
+                `Retrying in 2 seconds... (${retryCount}/${maxRetries})`,
+              );
+              await new Promise((resolve) => setTimeout(resolve, 2000));
+            } else {
+              toast({
+                title: "Network Error",
+                description:
+                  "Unable to connect to YouTube API after multiple attempts. Please check your connection.",
+                variant: "destructive",
+              });
+              throw new Error(
+                "Network error: Unable to connect to YouTube API after multiple attempts. Please check your internet connection or try a different API key.",
+              );
+            }
+          }
         }
 
         if (!response.ok) {
+          const errorText = await response.text();
+          console.error(`API Error ${response.status}:`, errorText);
+
           if (response.status === 403) {
-            throw new Error(
-              "YouTube API key is invalid or has exceeded quota limits.",
-            );
+            // Check if it's quota exceeded or invalid key
+            if (errorText.includes("quotaExceeded")) {
+              toast({
+                title: "Quota Exceeded",
+                description:
+                  "YouTube API quota exceeded. API key rotation may help.",
+                variant: "destructive",
+              });
+              throw new Error(
+                "YouTube API quota exceeded. Please try again later or use a different API key.",
+              );
+            } else {
+              toast({
+                title: "Invalid API Key",
+                description:
+                  "YouTube API key is invalid. Please check admin settings.",
+                variant: "destructive",
+              });
+              throw new Error("YouTube API key is invalid or access denied.");
+            }
           } else if (response.status === 404) {
+            toast({
+              title: "Playlist Not Found",
+              description: `Playlist ${playlistId} not found or is private.`,
+              variant: "destructive",
+            });
             throw new Error(
               "Playlist not found. Please check the playlist ID.",
             );
+          } else if (response.status === 400) {
+            toast({
+              title: "Bad Request",
+              description:
+                "Invalid playlist request. Please check the playlist configuration.",
+              variant: "destructive",
+            });
+            throw new Error("Invalid playlist request parameters.");
           } else {
+            toast({
+              title: "API Error",
+              description: `YouTube API returned error ${response.status}. Please try again.`,
+              variant: "destructive",
+            });
             throw new Error(
-              `Failed to load playlist (HTTP ${response.status})`,
+              `Failed to load playlist (HTTP ${response.status}): ${errorText}`,
             );
           }
         }
