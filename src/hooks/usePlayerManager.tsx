@@ -223,30 +223,88 @@ export const usePlayerManager = (
       }
     } else {
       console.error("[PlaySong] Player window not available");
+      console.log("[PlaySong] Current state details:", {
+        playerWindow: state.playerWindow,
+        isPlayerRunning: state.isPlayerRunning,
+        windowClosed: state.playerWindow?.closed,
+        windowExists: !!state.playerWindow,
+      });
+
       toast({
         title: "Player Window Missing",
-        description: "Player window was closed. Attempting to reopen...",
+        description: "Player window not available. Opening player window...",
         variant: "default",
       });
 
-      // Attempt to reinitialize the player
+      // Immediately attempt to reinitialize the player
       console.log("[PlaySong] Attempting to reinitialize player window");
-      initializePlayer();
+      try {
+        // Force player window state to false to trigger reinitialization
+        setState((prev) => ({
+          ...prev,
+          playerWindow: null,
+          isPlayerRunning: false,
+        }));
 
-      // Retry playing the song after a short delay
-      setTimeout(() => {
-        if (state.playerWindow && !state.playerWindow.closed) {
-          console.log("[PlaySong] Retrying song play after player recovery");
-          playSong(videoId, title, artist, logType);
-        } else {
-          toast({
-            title: "Player Recovery Failed",
-            description:
-              "Could not reopen player window. Please check popup blockers.",
-            variant: "destructive",
-          });
-        }
-      }, 3000);
+        // Initialize player and retry song
+        const retryWithRecovery = async () => {
+          await initializePlayer();
+
+          // Wait for window to be ready, then retry
+          setTimeout(() => {
+            // Use setState callback to get latest state
+            setState((currentState) => {
+              console.log("[PlaySong] Checking recovery status:", {
+                hasWindow: !!currentState.playerWindow,
+                windowClosed: currentState.playerWindow?.closed,
+                isRunning: currentState.isPlayerRunning,
+              });
+
+              if (
+                currentState.playerWindow &&
+                !currentState.playerWindow.closed
+              ) {
+                console.log(
+                  "[PlaySong] Player recovered successfully, retrying song",
+                );
+                // Retry the song with a small delay
+                setTimeout(
+                  () => playSong(videoId, title, artist, logType),
+                  500,
+                );
+
+                toast({
+                  title: "Player Recovered",
+                  description:
+                    "Player window opened successfully. Retrying song...",
+                  variant: "default",
+                });
+              } else {
+                console.error(
+                  "[PlaySong] Player recovery failed - window still not available",
+                );
+                toast({
+                  title: "Player Recovery Failed",
+                  description:
+                    "Could not open player window. Please check popup blockers or manually open player from admin panel.",
+                  variant: "destructive",
+                });
+              }
+              return currentState;
+            });
+          }, 2000);
+        };
+
+        retryWithRecovery();
+      } catch (error) {
+        console.error("[PlaySong] Error during player recovery:", error);
+        toast({
+          title: "Player Error",
+          description:
+            "Failed to initialize player. Please manually start the player from admin controls.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
