@@ -245,7 +245,7 @@ const Index = () => {
         );
       }
     },
-    [setState, toast],
+    [setState, toast, addLog, state.defaultPlaylist],
   );
 
   const {
