@@ -20,63 +20,80 @@ export const usePlayerManager = (
   const { toast } = useToast();
 
   const initializePlayer = async () => {
+    console.log("[InitPlayer] Starting player initialization...");
+    console.log("[InitPlayer] Current state:", {
+      hasWindow: !!state.playerWindow,
+      windowClosed: state.playerWindow?.closed,
+      isRunning: state.isPlayerRunning,
+    });
+
     if (state.playerWindow && !state.playerWindow.closed) {
-      console.log("Player window already exists");
+      console.log("[InitPlayer] Player window already exists and is open");
       return;
     }
 
+    // For now, skip external display detection to ensure player always opens
+    console.log(
+      "[InitPlayer] Using simplified initialization to ensure player opens",
+    );
+
     try {
-      // Check for external displays
-      const displayConfig = await displayManager.getRecommendedDisplayConfig();
-      const externalDisplay = await displayManager.getBestExternalDisplay();
-      const preference = displayManager.getDisplayPreference();
+      // Try to open basic player window first
+      console.log("[InitPlayer] Opening basic player window...");
+      const playerWindow = window.open(
+        "/player.html",
+        "JukeboxPlayer",
+        "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
+      );
 
-      // If external display available and not previously declined
-      if (
-        externalDisplay &&
-        !preference.rememberedChoice &&
-        onDisplayConfirmationNeeded
-      ) {
-        console.log("External display detected, requesting user confirmation");
+      if (playerWindow) {
+        console.log("[InitPlayer] Player window opened successfully");
+        setState((prev) => ({
+          ...prev,
+          playerWindow,
+          isPlayerRunning: true,
+        }));
 
-        onDisplayConfirmationNeeded(
-          externalDisplay,
-          (useFullscreen: boolean, rememberChoice: boolean) => {
-            // User confirmed external display
-            const newPreference = {
-              preferExternal: true,
-              fullscreen: useFullscreen,
-              rememberedChoice: rememberChoice,
-              lastUsedDisplay: externalDisplay.id,
-            };
+        // Start first song after initialization delay
+        setTimeout(() => {
+          console.log("[InitPlayer] Auto-starting first song");
+          if (state.inMemoryPlaylist.length > 0) {
+            const firstSong = state.inMemoryPlaylist[0];
+            playSong(
+              firstSong.videoId,
+              firstSong.title,
+              firstSong.channelTitle,
+              "SONG_PLAYED",
+            );
+          }
+        }, 3000);
 
-            if (rememberChoice) {
-              displayManager.saveDisplayPreference(newPreference);
-            }
+        addLog("SONG_PLAYED", "Player window opened successfully");
 
-            openPlayerWindow(externalDisplay, useFullscreen);
-          },
-          () => {
-            // User declined external display
-            const primaryDisplay = displayConfig.display;
-            openPlayerWindow(primaryDisplay, false);
-          },
+        toast({
+          title: "Player Started",
+          description: "Video player window opened successfully",
+          variant: "default",
+        });
+      } else {
+        console.error(
+          "[InitPlayer] Failed to open player window - likely popup blocked",
         );
-        return;
+        toast({
+          title: "Popup Blocked",
+          description:
+            "Please allow popups for this site and try again using the 'Open Player' button in admin panel.",
+          variant: "destructive",
+        });
       }
-
-      // Use remembered preference or default display
-      const targetDisplay =
-        externalDisplay && preference.preferExternal
-          ? externalDisplay
-          : displayConfig.display;
-      const useFullscreen = preference.preferExternal && preference.fullscreen;
-
-      openPlayerWindow(targetDisplay, useFullscreen);
     } catch (error) {
-      console.error("Error during display detection:", error);
-      // Fallback to basic window opening
-      openBasicPlayerWindow();
+      console.error("[InitPlayer] Error during player initialization:", error);
+      toast({
+        title: "Player Error",
+        description:
+          "Failed to initialize player window. Please try manually opening from admin panel.",
+        variant: "destructive",
+      });
     }
   };
 
