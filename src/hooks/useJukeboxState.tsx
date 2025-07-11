@@ -76,6 +76,14 @@ export interface JukeboxState {
   apiKey: string;
   selectedApiKeyOption: string;
   customApiKey: string;
+  autoRotateApiKeys: boolean;
+  lastRotationTime: string;
+  rotationHistory: Array<{
+    timestamp: string;
+    from: string;
+    to: string;
+    reason: string;
+  }>;
   searchMethod: SearchMethod;
   logs: LogEntry[];
   userRequests: UserRequest[];
@@ -128,6 +136,9 @@ export const useJukeboxState = () => {
     apiKey: DEFAULT_API_KEY,
     selectedApiKeyOption: "key3",
     customApiKey: "",
+    autoRotateApiKeys: true,
+    lastRotationTime: "",
+    rotationHistory: [],
     searchMethod: "youtube_api" as SearchMethod,
     logs: [],
     userRequests: [],
