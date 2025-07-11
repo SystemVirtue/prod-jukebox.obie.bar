@@ -513,10 +513,12 @@ const Index = () => {
       !state.isPlayerPaused
     ) {
       // Only auto-start if nothing is currently playing and not already started
+      // Also prevent autoplay if there's a player error
       if (
         (state.currentlyPlaying === "Loading..." ||
           state.currentlyPlaying === "") &&
-        !hasStartedFirstSongRef.current
+        !hasStartedFirstSongRef.current &&
+        !state.currentlyPlaying.includes("Error")
       ) {
         hasStartedFirstSongRef.current = true;
         console.log("[Autoplay] Auto-starting first song from playlist...");
