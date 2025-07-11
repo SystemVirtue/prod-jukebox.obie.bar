@@ -1,10 +1,15 @@
-
-import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import React, { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, X } from 'lucide-react';
+import { ArrowLeft, X } from "lucide-react";
 
 interface SearchResult {
   id: string;
@@ -28,7 +33,7 @@ interface SearchInterfaceProps {
   onKeyboardInput: (key: string) => void;
   onVideoSelect: (video: SearchResult) => void;
   onBackToSearch: () => void;
-  mode: 'FREEPLAY' | 'PAID';
+  mode: "FREEPLAY" | "PAID";
   credits: number;
   onInsufficientCredits: () => void;
 }
@@ -47,15 +52,21 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   onBackToSearch,
   mode,
   credits,
-  onInsufficientCredits
+  onInsufficientCredits,
 }) => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 8; // 4 columns x 2 rows
 
   // Calculate pagination
-  const totalPages = Math.max(1, Math.ceil(searchResults.length / itemsPerPage));
-  const paginatedResults = searchResults.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const totalPages = Math.max(
+    1,
+    Math.ceil(searchResults.length / itemsPerPage),
+  );
+  const paginatedResults = searchResults.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   // Reset to page 1 when new search results come in
   useEffect(() => {
@@ -63,10 +74,10 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   }, [searchResults]);
 
   const keyboardRows = [
-    ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'],
-    ['Q', 'W', 'E', 'R', 'T', 'Y', 'U', 'I', 'O', 'P'],
-    ['A', 'S', 'D', 'F', 'G', 'H', 'J', 'K', 'L'],
-    ['Z', 'X', 'C', 'V', 'B', 'N', 'M']
+    ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+    ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+    ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+    ["Z", "X", "C", "V", "B", "N", "M"],
   ];
 
   const handleKeyPress = (key: string) => {
@@ -74,7 +85,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
   };
 
   const handleVideoSelect = (video: SearchResult) => {
-    if (mode === 'PAID' && credits === 0) {
+    if (mode === "PAID" && credits === 0) {
       onInsufficientCredits();
       return;
     }
@@ -90,7 +101,7 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
         <Button
           onClick={onClose}
           className="absolute top-4 right-4 z-50 w-12 h-12 bg-red-600/80 hover:bg-red-700/80 border-2 border-red-500 shadow-lg"
-          style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+          style={{ filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))" }}
         >
           <X className="w-6 h-6" />
         </Button>
@@ -98,9 +109,11 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
         {showKeyboard && (
           <div className="h-full bg-slate-900/20 backdrop-blur-sm text-white p-6 flex flex-col">
             <DialogHeader className="mb-6">
-              <DialogTitle className="text-3xl text-center text-amber-200">Search for Music</DialogTitle>
+              <DialogTitle className="text-3xl text-center text-amber-200">
+                Search for Music
+              </DialogTitle>
             </DialogHeader>
-            
+
             <div className="mb-8">
               <Input
                 value={searchQuery}
@@ -119,34 +132,42 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                       key={key}
                       onClick={() => handleKeyPress(key)}
                       className="w-20 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
-                      style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+                      style={{
+                        filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
+                      }}
                     >
                       {key}
                     </Button>
                   ))}
                 </div>
               ))}
-              
+
               <div className="flex justify-center gap-2 mt-4">
                 <Button
-                  onClick={() => handleKeyPress('SPACE')}
+                  onClick={() => handleKeyPress("SPACE")}
                   className="w-40 h-16 text-xl font-bold bg-gradient-to-b from-slate-600 to-slate-700 hover:from-slate-500 hover:to-slate-600 border-2 border-slate-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
-                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+                  style={{
+                    filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
+                  }}
                 >
                   SPACE
                 </Button>
                 <Button
-                  onClick={() => handleKeyPress('BACKSPACE')}
+                  onClick={() => handleKeyPress("BACKSPACE")}
                   className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 border-2 border-red-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100"
-                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+                  style={{
+                    filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
+                  }}
                 >
                   ⌫
                 </Button>
                 <Button
-                  onClick={() => handleKeyPress('SEARCH')}
+                  onClick={() => handleKeyPress("SEARCH")}
                   disabled={!searchQuery.trim()}
                   className="w-32 h-16 text-xl font-bold bg-gradient-to-b from-green-600 to-green-700 hover:from-green-500 hover:to-green-600 border-2 border-green-500 shadow-lg transform hover:scale-95 active:scale-90 transition-all duration-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+                  style={{
+                    filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
+                  }}
                 >
                   SEARCH
                 </Button>
@@ -161,12 +182,13 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               <Button
                 onClick={onBackToSearch}
                 className="flex items-center gap-2 bg-amber-600 hover:bg-amber-700 text-white px-6 py-3 text-lg"
-                style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+                style={{
+                  filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))",
+                }}
               >
                 <ArrowLeft className="w-5 h-5" />
                 Back to Search
               </Button>
-              
             </div>
 
             {isSearching ? (
@@ -175,11 +197,11 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
               </div>
             ) : (
               <div className="flex-1 flex flex-col overflow-hidden">
-                <div 
+                <div
                   className="flex-1 overflow-y-auto p-6 search-results-scrollable"
                   style={{
-                    scrollbarWidth: 'auto',
-                    scrollbarColor: '#f59e0b #374151'
+                    scrollbarWidth: "auto",
+                    scrollbarColor: "#f59e0b #374151",
                   }}
                 >
                   <style>{`
@@ -209,18 +231,26 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                         key={video.id}
                         onClick={() => handleVideoSelect(video)}
                         className="bg-slate-800/80 backdrop-blur rounded-lg overflow-hidden cursor-pointer hover:bg-slate-700/80 transition-colors border border-slate-600 hover:border-amber-500 transform hover:scale-105 transition-all duration-200"
-                        style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.6))' }}
+                        style={{
+                          filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.6))",
+                        }}
                       >
-                        <img 
-                          src={video.thumbnailUrl} 
+                        <img
+                          src={video.thumbnailUrl}
                           alt={video.title}
                           className="w-full h-32 object-cover"
                         />
                         <div className="p-3">
-                          <h3 className="font-semibold text-white text-sm mb-1 line-clamp-2">{video.title}</h3>
-                          <p className="text-slate-400 text-xs">{video.channelTitle}</p>
+                          <h3 className="font-semibold text-white text-sm mb-1 line-clamp-2">
+                            {video.title}
+                          </h3>
+                          <p className="text-slate-400 text-xs">
+                            {video.channelTitle}
+                          </p>
                           {video.duration && (
-                            <p className="text-slate-300 text-xs mt-1">{video.duration}</p>
+                            <p className="text-slate-300 text-xs mt-1">
+                              {video.duration}
+                            </p>
                           )}
                         </div>
                       </div>
@@ -239,7 +269,9 @@ export const SearchInterface: React.FC<SearchInterfaceProps> = ({
                       Page {currentPage} of {totalPages}
                     </span>
                     <Button
-                      onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
                       disabled={currentPage === totalPages}
                       className="px-6 py-2 text-lg font-bold bg-black/60 text-white border-2 border-yellow-400 rounded shadow disabled:opacity-50"
                     >
