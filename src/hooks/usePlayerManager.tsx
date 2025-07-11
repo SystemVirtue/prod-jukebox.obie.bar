@@ -32,72 +32,146 @@ export const usePlayerManager = (
       return;
     }
 
-    // For now, skip external display detection to ensure player always opens
-    console.log(
-      "[InitPlayer] Using simplified initialization to ensure player opens",
-    );
-
     try {
-      // Try to open basic player window first
-      console.log("[InitPlayer] Opening basic player window...");
-      const playerWindow = window.open(
-        "/player.html",
-        "JukeboxPlayer",
-        "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
-      );
+      // Check for available displays and prefer secondary display
+      console.log("[InitPlayer] Detecting available displays...");
+      const displays = await displayManager.getDisplays();
+      console.log("[InitPlayer] Available displays:", displays);
 
-      if (playerWindow) {
-        console.log("[InitPlayer] Player window opened successfully");
-        setState((prev) => ({
-          ...prev,
-          playerWindow,
-          isPlayerRunning: true,
-        }));
+      let targetDisplay = null;
+      let useFullscreen = false;
 
-        // Start first song after initialization delay
-        setTimeout(() => {
-          console.log("[InitPlayer] Auto-starting first song");
-          setState((currentState) => {
-            if (currentState.inMemoryPlaylist.length > 0) {
-              const firstSong = currentState.inMemoryPlaylist[0];
-              playSong(
-                firstSong.videoId,
-                firstSong.title,
-                firstSong.channelTitle,
-                "SONG_PLAYED",
-                0,
-              );
-            }
-            return currentState;
-          });
-        }, 3000);
-
-        addLog("SONG_PLAYED", "Player window opened successfully");
-
-        toast({
-          title: "Player Started",
-          description: "Video player window opened successfully",
-          variant: "default",
-        });
-      } else {
-        console.error(
-          "[InitPlayer] Failed to open player window - likely popup blocked",
+      // Prefer secondary display if available
+      const secondaryDisplay = displays.find((display) => !display.isPrimary);
+      if (secondaryDisplay) {
+        console.log(
+          "[InitPlayer] Secondary display found, using it:",
+          secondaryDisplay.name,
         );
-        toast({
-          title: "Popup Blocked",
-          description:
-            "Please allow popups for this site and try again using the 'Open Player' button in admin panel.",
-          variant: "destructive",
-        });
+        targetDisplay = secondaryDisplay;
+        useFullscreen = true; // Default to fullscreen on secondary display
+      } else {
+        console.log("[InitPlayer] No secondary display found, using primary");
+        targetDisplay = displays.find((d) => d.isPrimary) || displays[0];
+        useFullscreen = false; // Windowed mode on primary display
+      }
+
+      if (targetDisplay) {
+        console.log(
+          `[InitPlayer] Opening player on ${targetDisplay.name} (${useFullscreen ? "fullscreen" : "windowed"})`,
+        );
+        const features = displayManager.generateWindowFeatures(
+          targetDisplay,
+          useFullscreen,
+        );
+        const playerWindow = window.open(
+          "/player.html",
+          "JukeboxPlayer",
+          features,
+        );
+
+        if (playerWindow) {
+          console.log("[InitPlayer] Player window opened successfully");
+          setState((prev) => ({
+            ...prev,
+            playerWindow,
+            isPlayerRunning: true,
+          }));
+
+          // Request fullscreen if needed and supported
+          if (useFullscreen) {
+            playerWindow.addEventListener("load", () => {
+              setTimeout(() => {
+                try {
+                  playerWindow.document.documentElement.requestFullscreen();
+                } catch (error) {
+                  console.warn("Could not enter fullscreen mode:", error);
+                }
+              }, 1000);
+            });
+          }
+
+          // Start first song after initialization delay
+          setTimeout(() => {
+            console.log("[InitPlayer] Auto-starting first song");
+            setState((currentState) => {
+              if (currentState.inMemoryPlaylist.length > 0) {
+                const firstSong = currentState.inMemoryPlaylist[0];
+                playSong(
+                  firstSong.videoId,
+                  firstSong.title,
+                  firstSong.channelTitle,
+                  "SONG_PLAYED",
+                  0,
+                );
+              }
+              return currentState;
+            });
+          }, 3000);
+
+          const displayInfo = secondaryDisplay
+            ? `on ${targetDisplay.name}${useFullscreen ? " (fullscreen)" : ""}`
+            : "on primary display";
+          addLog(
+            "SONG_PLAYED",
+            `Player window opened successfully ${displayInfo}`,
+          );
+
+          toast({
+            title: "Player Started",
+            description: `Video player opened ${displayInfo}`,
+            variant: "default",
+          });
+        } else {
+          console.error(
+            "[InitPlayer] Failed to open player window - likely popup blocked",
+          );
+          toast({
+            title: "Popup Blocked",
+            description:
+              "Please allow popups for this site and try again using the 'Open Player' button in admin panel.",
+            variant: "destructive",
+          });
+        }
+      } else {
+        throw new Error("No displays available");
       }
     } catch (error) {
       console.error("[InitPlayer] Error during player initialization:", error);
-      toast({
-        title: "Player Error",
-        description:
-          "Failed to initialize player window. Please try manually opening from admin panel.",
-        variant: "destructive",
-      });
+
+      // Fallback to basic window opening
+      console.log("[InitPlayer] Falling back to basic window opening...");
+      try {
+        const playerWindow = window.open(
+          "/player.html",
+          "JukeboxPlayer",
+          "width=800,height=600,scrollbars=no,menubar=no,toolbar=no,location=no,status=no",
+        );
+
+        if (playerWindow) {
+          setState((prev) => ({
+            ...prev,
+            playerWindow,
+            isPlayerRunning: true,
+          }));
+          addLog("SONG_PLAYED", "Player window opened (fallback mode)");
+          toast({
+            title: "Player Started",
+            description: "Video player opened in fallback mode",
+            variant: "default",
+          });
+        } else {
+          throw new Error("Could not open player window");
+        }
+      } catch (fallbackError) {
+        console.error("[InitPlayer] Fallback also failed:", fallbackError);
+        toast({
+          title: "Player Error",
+          description:
+            "Failed to initialize player window. Please try manually opening from admin panel.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
