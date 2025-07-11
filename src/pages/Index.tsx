@@ -1,15 +1,24 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check, X, Settings } from 'lucide-react';
+import { Check, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SearchInterface } from "@/components/SearchInterface";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
 import { AdminConsole } from "@/components/AdminConsole";
 import { useSerialCommunication } from "@/components/SerialCommunication";
-import { useBackgroundManager, BackgroundDisplay } from "@/components/BackgroundManager";
+import {
+  useBackgroundManager,
+  BackgroundDisplay,
+} from "@/components/BackgroundManager";
 import { useJukeboxState } from "@/hooks/useJukeboxState";
 import { usePlayerManager } from "@/hooks/usePlayerManager";
 import { usePlaylistManager } from "@/hooks/usePlaylistManager";
@@ -28,7 +37,7 @@ const Index = () => {
     handleBackgroundUpload,
     getUpcomingTitles,
     isCurrentSongUserRequest,
-    getCurrentPlaylistForDisplay
+    getCurrentPlaylistForDisplay,
   } = useJukeboxState();
 
   const {
@@ -36,7 +45,7 @@ const Index = () => {
     playSong,
     handlePlayerToggle,
     handleSkipSong,
-    performSkip
+    performSkip,
   } = usePlayerManager(state, setState, addLog);
 
   const {
@@ -45,7 +54,7 @@ const Index = () => {
     handleVideoEnded,
     handleDefaultPlaylistChange,
     handlePlaylistReorder,
-    handlePlaylistShuffle
+    handlePlaylistShuffle,
   } = usePlaylistManager(state, setState, addLog, playSong, toast);
 
   const {
@@ -55,8 +64,15 @@ const Index = () => {
     confirmAddToPlaylist,
     handleKeyboardInput,
     confirmDialog,
-    setConfirmDialog
-  } = useVideoSearch(state, setState, addLog, addUserRequest, addCreditHistory, toast);
+    setConfirmDialog,
+  } = useVideoSearch(
+    state,
+    setState,
+    addLog,
+    addUserRequest,
+    addCreditHistory,
+    toast,
+  );
 
   // Use refs to store latest values for the storage event handler
   const stateRef = useRef(state);
@@ -78,35 +94,50 @@ const Index = () => {
     cycleBackgrounds: state.cycleBackgrounds,
     backgroundCycleIndex: state.backgroundCycleIndex,
     bounceVideos: state.bounceVideos,
-    onBackgroundCycleIndexChange: (index) => setState(prev => ({ ...prev, backgroundCycleIndex: index })),
-    onSelectedBackgroundChange: (id) => setState(prev => ({ ...prev, selectedBackground: id }))
+    onBackgroundCycleIndexChange: (index) =>
+      setState((prev) => ({ ...prev, backgroundCycleIndex: index })),
+    onSelectedBackgroundChange: (id) =>
+      setState((prev) => ({ ...prev, selectedBackground: id })),
   });
 
   // Use serial communication hook with new props
   useSerialCommunication({
     mode: state.mode,
     selectedCoinAcceptor: state.selectedCoinAcceptor,
-    onCreditsChange: (delta) => setState(prev => ({ ...prev, credits: prev.credits + delta })),
+    onCreditsChange: (delta) =>
+      setState((prev) => ({ ...prev, credits: prev.credits + delta })),
 
     credits: state.credits,
     onAddLog: addLog,
     coinValueA: state.coinValueA,
-    coinValueB: state.coinValueB
+    coinValueB: state.coinValueB,
   });
 
   // Initialize playlist first, then player when playlist is ready and has songs
   useEffect(() => {
-    console.log('Loading initial playlist...');
+    console.log("Loading initial playlist...");
     loadPlaylistVideos(state.defaultPlaylist);
   }, []);
 
   // Initialize player only after playlist is loaded and ready
   useEffect(() => {
-    if (state.defaultPlaylistVideos.length > 0 && !state.playerWindow && !state.isPlayerRunning) {
-      console.log('Playlist loaded with', state.defaultPlaylistVideos.length, 'videos. Initializing player...');
+    if (
+      state.defaultPlaylistVideos.length > 0 &&
+      !state.playerWindow &&
+      !state.isPlayerRunning
+    ) {
+      console.log(
+        "Playlist loaded with",
+        state.defaultPlaylistVideos.length,
+        "videos. Initializing player...",
+      );
       initializePlayer();
     }
-  }, [state.defaultPlaylistVideos.length, state.playerWindow, state.isPlayerRunning]);
+  }, [
+    state.defaultPlaylistVideos.length,
+    state.playerWindow,
+    state.isPlayerRunning,
+  ]);
 
   // Enhanced autoplay logic - only start when player is ready and playlist has songs
   const hasStartedFirstSongRef = useRef(false);
@@ -120,165 +151,213 @@ const Index = () => {
       !state.playerWindow.closed
     ) {
       // Only auto-start if nothing is currently playing and not already started
-      if ((state.currentlyPlaying === 'Loading...' || state.currentlyPlaying === '') && !hasStartedFirstSongRef.current) {
+      if (
+        (state.currentlyPlaying === "Loading..." ||
+          state.currentlyPlaying === "") &&
+        !hasStartedFirstSongRef.current
+      ) {
         hasStartedFirstSongRef.current = true;
-        console.log('Auto-starting first song from playlist...');
+        console.log("Auto-starting first song from playlist...");
         playNextSong();
       }
     } else {
       // Reset flag if player or playlist is not ready
       hasStartedFirstSongRef.current = false;
     }
-  }, [state.inMemoryPlaylist, state.priorityQueue, state.isPlayerRunning, state.isPlayerPaused, state.playerWindow, state.currentlyPlaying]);
+  }, [
+    state.inMemoryPlaylist,
+    state.priorityQueue,
+    state.isPlayerRunning,
+    state.isPlayerPaused,
+    state.playerWindow,
+    state.currentlyPlaying,
+  ]);
 
   // Enhanced video end handling with proper queue management and improved sync
-  const handleStorageChange = useCallback((event: StorageEvent) => {
-    if (event.key === 'jukeboxStatus' && event.newValue) {
-      const status = JSON.parse(event.newValue);
-      const currentState = stateRef.current;
-      console.log('[StorageEvent] Parsed status:', status);
-      console.log('[StorageEvent] Current video ID in state:', currentState.currentVideoId);
-      
-      // Update currently playing based on player window communication - ensure proper sync
-      if (status.status === 'playing' && status.title && status.videoId) {
-        const cleanTitle = status.title.replace(/\([^)]*\)/g, '').trim();
-        console.log('[StorageEvent] Updating currently playing to:', cleanTitle, 'VideoID:', status.videoId);
-        setState(prev => ({ 
-          ...prev, 
-          currentlyPlaying: cleanTitle,
-          currentVideoId: status.videoId
-        }));
-        
-        // Force update of coming up titles by triggering a state refresh
-        setTimeout(() => {
-          setState(prev => ({ ...prev }));
-        }, 100);
-      }
-      
-      // Handle video ended - ensure proper progression to next song
-      if (status.status === 'ended' || status.status === 'testModeComplete') {
-        const statusVideoId = status.id || status.videoId;
-        console.log('[StorageEvent] Video ended/testModeComplete. Status video ID:', statusVideoId);
-        console.log('[StorageEvent] Current state video ID:', currentState.currentVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Video IDs match, processing end event');
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
+  const handleStorageChange = useCallback(
+    (event: StorageEvent) => {
+      if (event.key === "jukeboxStatus" && event.newValue) {
+        const status = JSON.parse(event.newValue);
+        const currentState = stateRef.current;
+        console.log("[StorageEvent] Parsed status:", status);
+        console.log(
+          "[StorageEvent] Current video ID in state:",
+          currentState.currentVideoId,
+        );
+
+        // Update currently playing based on player window communication - ensure proper sync
+        if (status.status === "playing" && status.title && status.videoId) {
+          const cleanTitle = status.title.replace(/\([^)]*\)/g, "").trim();
+          console.log(
+            "[StorageEvent] Updating currently playing to:",
+            cleanTitle,
+            "VideoID:",
+            status.videoId,
+          );
+          setState((prev) => ({
+            ...prev,
+            currentlyPlaying: cleanTitle,
+            currentVideoId: status.videoId,
           }));
-          
-          // Ensure autoplay of next song
+
+          // Force update of coming up titles by triggering a state refresh
           setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded for autoplay');
-            handleVideoEndedRef.current();
-            
-            // Force update of coming up titles after video change
-            setTimeout(() => {
-              setState(prev => ({ ...prev }));
-            }, 500);
-          }, 500);
-        } else {
-          console.log('[StorageEvent] Video ID mismatch, ignoring end event');
+            setState((prev) => ({ ...prev }));
+          }, 100);
         }
-      }
-      
-      // Handle fade complete
-      if (status.status === 'fadeComplete') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Fade complete. Status video ID:', statusVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Fade complete for current video, processing autoplay');
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
-          }));
-          
-          setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded after fade');
-            handleVideoEndedRef.current();
-            
-            // Force update of coming up titles after skip
+
+        // Handle video ended - ensure proper progression to next song
+        if (status.status === "ended" || status.status === "testModeComplete") {
+          const statusVideoId = status.id || status.videoId;
+          console.log(
+            "[StorageEvent] Video ended/testModeComplete. Status video ID:",
+            statusVideoId,
+          );
+          console.log(
+            "[StorageEvent] Current state video ID:",
+            currentState.currentVideoId,
+          );
+
+          if (statusVideoId && statusVideoId === currentState.currentVideoId) {
+            console.log("[StorageEvent] Video IDs match, processing end event");
+            setState((prev) => ({
+              ...prev,
+              currentlyPlaying: "Loading...",
+              currentVideoId: "",
+            }));
+
+            // Ensure autoplay of next song
             setTimeout(() => {
-              setState(prev => ({ ...prev }));
+              console.log(
+                "[StorageEvent] Triggering handleVideoEnded for autoplay",
+              );
+              handleVideoEndedRef.current();
+
+              // Force update of coming up titles after video change
+              setTimeout(() => {
+                setState((prev) => ({ ...prev }));
+              }, 500);
             }, 500);
-          }, 500);
+          } else {
+            console.log("[StorageEvent] Video ID mismatch, ignoring end event");
+          }
         }
-      }
-      
-      // Handle video unavailable/error - auto-skip with enhanced sync
-      if (status.status === 'error' || status.status === 'unavailable') {
-        const statusVideoId = status.id;
-        console.log('[StorageEvent] Video error/unavailable. Status video ID:', statusVideoId);
-        
-        if (statusVideoId && statusVideoId === currentState.currentVideoId) {
-          console.log('[StorageEvent] Auto-skipping unavailable video');
-          addLog('SONG_PLAYED', `Auto-skipping unavailable video: ${currentState.currentlyPlaying}`);
-          setState(prev => ({ 
-            ...prev, 
-            currentlyPlaying: 'Loading...',
-            currentVideoId: ''
-          }));
-          
-          setTimeout(() => {
-            console.log('[StorageEvent] Triggering handleVideoEnded after error');
-            handleVideoEndedRef.current();
-            
-            // Force update of coming up titles after error skip
+
+        // Handle fade complete
+        if (status.status === "fadeComplete") {
+          const statusVideoId = status.id;
+          console.log(
+            "[StorageEvent] Fade complete. Status video ID:",
+            statusVideoId,
+          );
+
+          if (statusVideoId && statusVideoId === currentState.currentVideoId) {
+            console.log(
+              "[StorageEvent] Fade complete for current video, processing autoplay",
+            );
+            setState((prev) => ({
+              ...prev,
+              currentlyPlaying: "Loading...",
+              currentVideoId: "",
+            }));
+
             setTimeout(() => {
-              setState(prev => ({ ...prev }));
+              console.log(
+                "[StorageEvent] Triggering handleVideoEnded after fade",
+              );
+              handleVideoEndedRef.current();
+
+              // Force update of coming up titles after skip
+              setTimeout(() => {
+                setState((prev) => ({ ...prev }));
+              }, 500);
             }, 500);
-          }, 1000);
+          }
+        }
+
+        // Handle video unavailable/error - auto-skip with enhanced sync
+        if (status.status === "error" || status.status === "unavailable") {
+          const statusVideoId = status.id;
+          console.log(
+            "[StorageEvent] Video error/unavailable. Status video ID:",
+            statusVideoId,
+          );
+
+          if (statusVideoId && statusVideoId === currentState.currentVideoId) {
+            console.log("[StorageEvent] Auto-skipping unavailable video");
+            addLog(
+              "SONG_PLAYED",
+              `Auto-skipping unavailable video: ${currentState.currentlyPlaying}`,
+            );
+            setState((prev) => ({
+              ...prev,
+              currentlyPlaying: "Loading...",
+              currentVideoId: "",
+            }));
+
+            setTimeout(() => {
+              console.log(
+                "[StorageEvent] Triggering handleVideoEnded after error",
+              );
+              handleVideoEndedRef.current();
+
+              // Force update of coming up titles after error skip
+              setTimeout(() => {
+                setState((prev) => ({ ...prev }));
+              }, 500);
+            }, 1000);
+          }
+        }
+
+        // Handle player ready status
+        if (status.status === "ready") {
+          console.log("[StorageEvent] Player window ready.");
         }
       }
 
-      // Handle player ready status
-      if (status.status === 'ready') {
-        console.log("[StorageEvent] Player window ready.");
+      // Listen for player window commands to track what's playing - prevent duplication
+      if (event.key === "jukeboxCommand" && event.newValue) {
+        const command = JSON.parse(event.newValue);
+        if (command.action === "play" && command.title && command.videoId) {
+          console.log(
+            "[StorageEvent] Play command detected:",
+            command.videoId,
+            command.title,
+          );
+          const cleanTitle = command.title.replace(/\([^)]*\)/g, "").trim();
+          setState((prev) => ({
+            ...prev,
+            currentlyPlaying: cleanTitle,
+            currentVideoId: command.videoId,
+          }));
+
+          // Force update of coming up titles when new song starts
+          setTimeout(() => {
+            setState((prev) => ({ ...prev }));
+          }, 100);
+        }
       }
-    }
-    
-    // Listen for player window commands to track what's playing - prevent duplication
-    if (event.key === 'jukeboxCommand' && event.newValue) {
-      const command = JSON.parse(event.newValue);
-      if (command.action === 'play' && command.title && command.videoId) {
-        console.log('[StorageEvent] Play command detected:', command.videoId, command.title);
-        const cleanTitle = command.title.replace(/\([^)]*\)/g, '').trim();
-        setState(prev => ({ 
-          ...prev, 
-          currentlyPlaying: cleanTitle,
-          currentVideoId: command.videoId
-        }));
-        
-        // Force update of coming up titles when new song starts
-        setTimeout(() => {
-          setState(prev => ({ ...prev }));
-        }, 100);
-      }
-    }
-  }, [setState, addLog]);
+    },
+    [setState, addLog],
+  );
 
   useEffect(() => {
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [handleStorageChange]);
 
   const currentBackground = getCurrentBackground();
 
   // Determine when to show the loading indicator
-  const isLoading = (
+  const isLoading =
     // When the application is initializing
-    (state.defaultPlaylistVideos.length === 0) ||
+    state.defaultPlaylistVideos.length === 0 ||
     // When playlist is loading
-    (state.currentlyPlaying === 'Loading...') ||
+    state.currentlyPlaying === "Loading..." ||
     // When searching for videos
-    (state.isSearching) ||
+    state.isSearching ||
     // When player is not running yet
-    (!state.isPlayerRunning && state.defaultPlaylistVideos.length > 0)
-  );
+    (!state.isPlayerRunning && state.defaultPlaylistVideos.length > 0);
 
   return (
     <BackgroundDisplay
@@ -303,7 +382,7 @@ const Index = () => {
 
         <div className="text-center mb-8">
           {/* Main UI text has been hidden as requested */}
-          
+
           {/* Mini Player - positioned between subtitle and search button */}
           {state.showMiniPlayer && state.currentVideoId && (
             <div className="flex justify-center mb-8">
@@ -315,7 +394,7 @@ const Index = () => {
                   className="w-full h-full border-0"
                   allow="autoplay; encrypted-media"
                   allowFullScreen={false}
-                  style={{ pointerEvents: 'none' }}
+                  style={{ pointerEvents: "none" }}
                 />
               </div>
             </div>
@@ -326,18 +405,26 @@ const Index = () => {
         <div className="flex-1 flex items-center justify-center">
           {/* This div keeps the original centering in the flex-1 space */}
         </div>
-        
+
         {/* Absolutely positioned search button */}
         <div className="fixed bottom-[calc(2rem+50px)] left-0 right-0 flex justify-center z-20">
           <Button
             onClick={() => {
-              console.log('Search button clicked - opening search interface');
-              setState(prev => ({ ...prev, isSearchOpen: true, showKeyboard: true, showSearchResults: false }));
+              console.log("Search button clicked - opening search interface");
+              setState((prev) => ({
+                ...prev,
+                isSearchOpen: true,
+                showKeyboard: true,
+                showSearchResults: false,
+              }));
             }}
             className="w-96 h-24 text-3xl font-bold bg-black/60 text-white shadow-lg border-4 border-yellow-400 rounded-lg transform hover:scale-105 transition-all duration-200 relative overflow-hidden"
-            style={{ filter: 'drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))' }}
+            style={{ filter: "drop-shadow(-5px -5px 10px rgba(0,0,0,0.8))" }}
           >
-            <span className="absolute inset-0 bg-black/60 pointer-events-none" style={{zIndex:0}}></span>
+            <span
+              className="absolute inset-0 bg-black/60 pointer-events-none"
+              style={{ zIndex: 0 }}
+            ></span>
             <span className="relative z-10">🎵 Search for Music 🎵</span>
           </Button>
         </div>
@@ -357,7 +444,10 @@ const Index = () => {
 
         {/* Coming Up Ticker - Bottom */}
         <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
-          <div className="whitespace-nowrap animate-marquee" key={`${state.currentlyPlaying}-${state.priorityQueue.length}-${state.inMemoryPlaylist.length}`}>
+          <div
+            className="whitespace-nowrap animate-marquee"
+            key={`${state.currentlyPlaying}-${state.priorityQueue.length}-${state.inMemoryPlaylist.length}`}
+          >
             <span className="text-lg font-bold">COMING UP: </span>
             {getUpcomingTitles().map((title, index) => (
               <span key={`${index}-${title}`} className="mx-8 text-lg">
@@ -371,7 +461,7 @@ const Index = () => {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setState(prev => ({ ...prev, isAdminOpen: true }))}
+            onClick={() => setState((prev) => ({ ...prev, isAdminOpen: true }))}
             className="text-amber-200 hover:text-amber-100 opacity-30 hover:opacity-100"
           >
             <Settings className="w-4 h-4" />
@@ -380,22 +470,33 @@ const Index = () => {
       </div>
 
       {/* Skip Confirmation Dialog */}
-      <Dialog open={state.showSkipConfirmation} onOpenChange={(open) => !open && setState(prev => ({ ...prev, showSkipConfirmation: false }))}>
+      <Dialog
+        open={state.showSkipConfirmation}
+        onOpenChange={(open) =>
+          !open &&
+          setState((prev) => ({ ...prev, showSkipConfirmation: false }))
+        }
+      >
         <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
           <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Skip User Selection?</DialogTitle>
+            <DialogTitle className="text-xl text-amber-900">
+              Skip User Selection?
+            </DialogTitle>
           </DialogHeader>
-          
+
           <div className="py-4">
             <p className="text-amber-800">
-              Current song is a user selection. Are you sure you want to skip to the next song?
+              Current song is a user selection. Are you sure you want to skip to
+              the next song?
             </p>
           </div>
-          
+
           <DialogFooter className="flex gap-4">
             <Button
               variant="outline"
-              onClick={() => setState(prev => ({ ...prev, showSkipConfirmation: false }))}
+              onClick={() =>
+                setState((prev) => ({ ...prev, showSkipConfirmation: false }))
+              }
               className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-50"
             >
               <X className="w-4 h-4" />
@@ -415,20 +516,20 @@ const Index = () => {
       <SearchInterface
         isOpen={state.isSearchOpen}
         onClose={() => {
-          console.log('Search interface closing');
-          setState(prev => ({ 
-            ...prev, 
-            isSearchOpen: false, 
-            showKeyboard: false, 
+          console.log("Search interface closing");
+          setState((prev) => ({
+            ...prev,
+            isSearchOpen: false,
+            showKeyboard: false,
             showSearchResults: false,
-            searchQuery: '', 
-            searchResults: [] 
+            searchQuery: "",
+            searchResults: [],
           }));
         }}
         searchQuery={state.searchQuery}
         onSearchQueryChange={(query) => {
-          console.log('Search query changed:', query);
-          setState(prev => ({ ...prev, searchQuery: query }));
+          console.log("Search query changed:", query);
+          setState((prev) => ({ ...prev, searchQuery: query }));
         }}
         searchResults={state.searchResults}
         isSearching={state.isSearching}
@@ -437,64 +538,93 @@ const Index = () => {
         onKeyboardInput={handleKeyboardInput}
         onVideoSelect={handleVideoSelect}
         onBackToSearch={() => {
-          console.log('Back to search pressed');
-          setState(prev => ({ ...prev, showSearchResults: false, showKeyboard: true }));
+          console.log("Back to search pressed");
+          setState((prev) => ({
+            ...prev,
+            showSearchResults: false,
+            showKeyboard: true,
+          }));
         }}
         mode={state.mode}
         credits={state.credits}
-        onInsufficientCredits={() => setState(prev => ({ ...prev, showInsufficientCredits: true }))}
+        onInsufficientCredits={() =>
+          setState((prev) => ({ ...prev, showInsufficientCredits: true }))
+        }
       />
 
       {/* Insufficient Credits Dialog */}
       <InsufficientCreditsDialog
         isOpen={state.showInsufficientCredits}
-        onClose={() => setState(prev => ({ 
-          ...prev, 
-          showInsufficientCredits: false,
-          isSearchOpen: false, 
-          showKeyboard: false, 
-          showSearchResults: false,
-          searchQuery: '', 
-          searchResults: [] 
-        }))}
+        onClose={() =>
+          setState((prev) => ({
+            ...prev,
+            showInsufficientCredits: false,
+            isSearchOpen: false,
+            showKeyboard: false,
+            showSearchResults: false,
+            searchQuery: "",
+            searchResults: [],
+          }))
+        }
       />
 
       {/* Duplicate Song Dialog */}
       <DuplicateSongDialog
         isOpen={state.showDuplicateSong}
-        onClose={() => setState(prev => ({ ...prev, showDuplicateSong: false, duplicateSongTitle: '' }))}
+        onClose={() =>
+          setState((prev) => ({
+            ...prev,
+            showDuplicateSong: false,
+            duplicateSongTitle: "",
+          }))
+        }
         songTitle={state.duplicateSongTitle}
       />
 
       {/* Confirmation Dialog */}
-      <Dialog open={confirmDialog.isOpen} onOpenChange={(open) => !open && setConfirmDialog({ isOpen: false, video: null })}>
+      <Dialog
+        open={confirmDialog.isOpen}
+        onOpenChange={(open) =>
+          !open && setConfirmDialog({ isOpen: false, video: null })
+        }
+      >
         <DialogContent className="bg-gradient-to-b from-amber-50 to-amber-100 border-amber-600">
           <DialogHeader>
-            <DialogTitle className="text-xl text-amber-900">Add song to Playlist?</DialogTitle>
+            <DialogTitle className="text-xl text-amber-900">
+              Add song to Playlist?
+            </DialogTitle>
           </DialogHeader>
-          
+
           {confirmDialog.video && (
             <div className="py-4">
               <div className="flex gap-3">
-                <img 
-                  src={confirmDialog.video.thumbnailUrl} 
+                <img
+                  src={confirmDialog.video.thumbnailUrl}
                   alt={confirmDialog.video.title}
                   className="w-20 h-15 object-cover rounded"
                 />
                 <div>
-                  <h3 className="font-semibold text-amber-900">{confirmDialog.video.title}</h3>
-                  <p className="text-amber-700">{confirmDialog.video.channelTitle}</p>
+                  <h3 className="font-semibold text-amber-900">
+                    {confirmDialog.video.title}
+                  </h3>
+                  <p className="text-amber-700">
+                    {confirmDialog.video.channelTitle}
+                  </p>
                   {confirmDialog.video.duration && (
-                    <p className="text-amber-600 text-sm">{confirmDialog.video.duration}</p>
+                    <p className="text-amber-600 text-sm">
+                      {confirmDialog.video.duration}
+                    </p>
                   )}
-                  {state.mode === 'PAID' && (
-                    <p className="text-sm text-amber-600 mt-1">Cost: 1 Credit</p>
+                  {state.mode === "PAID" && (
+                    <p className="text-sm text-amber-600 mt-1">
+                      Cost: 1 Credit
+                    </p>
                   )}
                 </div>
               </div>
             </div>
           )}
-          
+
           <DialogFooter className="flex gap-4">
             <Button
               variant="outline"
@@ -517,25 +647,39 @@ const Index = () => {
 
       <AdminConsole
         isOpen={state.isAdminOpen}
-        onClose={() => setState(prev => ({ ...prev, isAdminOpen: false }))}
+        onClose={() => setState((prev) => ({ ...prev, isAdminOpen: false }))}
         mode={state.mode}
-        onModeChange={(mode) => setState(prev => ({ ...prev, mode }))}
+        onModeChange={(mode) => setState((prev) => ({ ...prev, mode }))}
         credits={state.credits}
-        onCreditsChange={(credits) => setState(prev => ({ ...prev, credits }))}
+        onCreditsChange={(credits) =>
+          setState((prev) => ({ ...prev, credits }))
+        }
         apiKey={state.apiKey}
-        onApiKeyChange={(apiKey) => setState(prev => ({ ...prev, apiKey }))}
+        onApiKeyChange={(apiKey) => setState((prev) => ({ ...prev, apiKey }))}
+        searchMethod={state.searchMethod}
+        onSearchMethodChange={(searchMethod) =>
+          setState((prev) => ({ ...prev, searchMethod }))
+        }
         selectedCoinAcceptor={state.selectedCoinAcceptor}
-        onCoinAcceptorChange={(device) => setState(prev => ({ ...prev, selectedCoinAcceptor: device }))}
+        onCoinAcceptorChange={(device) =>
+          setState((prev) => ({ ...prev, selectedCoinAcceptor: device }))
+        }
         logs={state.logs}
         userRequests={state.userRequests}
         creditHistory={state.creditHistory}
         backgrounds={state.backgrounds}
         selectedBackground={state.selectedBackground}
-        onBackgroundChange={(id) => setState(prev => ({ ...prev, selectedBackground: id }))}
+        onBackgroundChange={(id) =>
+          setState((prev) => ({ ...prev, selectedBackground: id }))
+        }
         cycleBackgrounds={state.cycleBackgrounds}
-        onCycleBackgroundsChange={(cycle) => setState(prev => ({ ...prev, cycleBackgrounds: cycle }))}
+        onCycleBackgroundsChange={(cycle) =>
+          setState((prev) => ({ ...prev, cycleBackgrounds: cycle }))
+        }
         bounceVideos={state.bounceVideos}
-        onBounceVideosChange={(bounce) => setState(prev => ({ ...prev, bounceVideos: bounce }))}
+        onBounceVideosChange={(bounce) =>
+          setState((prev) => ({ ...prev, bounceVideos: bounce }))
+        }
         onBackgroundUpload={handleBackgroundUpload}
         onAddLog={addLog}
         onAddUserRequest={addUserRequest}
@@ -545,7 +689,9 @@ const Index = () => {
         onPlayerToggle={handlePlayerToggle}
         onSkipSong={handleSkipSong}
         maxSongLength={state.maxSongLength}
-        onMaxSongLengthChange={(minutes) => setState(prev => ({ ...prev, maxSongLength: minutes }))}
+        onMaxSongLengthChange={(minutes) =>
+          setState((prev) => ({ ...prev, maxSongLength: minutes }))
+        }
         defaultPlaylist={state.defaultPlaylist}
         onDefaultPlaylistChange={handleDefaultPlaylistChange}
         currentPlaylistVideos={getCurrentPlaylistForDisplay()}
@@ -554,13 +700,21 @@ const Index = () => {
         currentlyPlaying={state.currentlyPlaying}
         priorityQueue={state.priorityQueue}
         showMiniPlayer={state.showMiniPlayer}
-        onShowMiniPlayerChange={(show) => setState(prev => ({ ...prev, showMiniPlayer: show }))}
+        onShowMiniPlayerChange={(show) =>
+          setState((prev) => ({ ...prev, showMiniPlayer: show }))
+        }
         testMode={state.testMode}
-        onTestModeChange={(testMode) => setState(prev => ({ ...prev, testMode }))}
+        onTestModeChange={(testMode) =>
+          setState((prev) => ({ ...prev, testMode }))
+        }
         coinValueA={state.coinValueA}
-        onCoinValueAChange={(value) => setState(prev => ({ ...prev, coinValueA: value }))}
+        onCoinValueAChange={(value) =>
+          setState((prev) => ({ ...prev, coinValueA: value }))
+        }
         coinValueB={state.coinValueB}
-        onCoinValueBChange={(value) => setState(prev => ({ ...prev, coinValueB: value }))}
+        onCoinValueBChange={(value) =>
+          setState((prev) => ({ ...prev, coinValueB: value }))
+        }
       />
     </BackgroundDisplay>
   );
