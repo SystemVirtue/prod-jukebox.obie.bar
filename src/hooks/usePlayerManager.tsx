@@ -236,6 +236,9 @@ export const usePlayerManager = (
       `Opening player window on ${display.name} (${fullscreen ? "fullscreen" : "windowed"})`,
     );
 
+    // Clear any previous close state since user is explicitly opening
+    localStorage.removeItem("jukeboxPlayerWindowState");
+
     const features = displayManager.generateWindowFeatures(display, fullscreen);
     const playerWindow = window.open("/player.html", "JukeboxPlayer", features);
 
