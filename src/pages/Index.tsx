@@ -13,6 +13,7 @@ import { Check, X, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { SearchInterface } from "@/components/SearchInterface";
 import { IframeSearchInterface } from "@/components/IframeSearchInterface";
+import "@/utils/emergencyFallback";
 import { InsufficientCreditsDialog } from "@/components/InsufficientCreditsDialog";
 import { DuplicateSongDialog } from "@/components/DuplicateSongDialog";
 import { AdminConsole } from "@/components/AdminConsole";
