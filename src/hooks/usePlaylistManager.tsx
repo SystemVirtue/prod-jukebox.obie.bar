@@ -220,10 +220,57 @@ export const usePlaylistManager = (
         );
       } while (nextPageToken);
 
-      // Check if we got any videos, if not, use fallback
+      // Check if we got any videos, if not, proceed directly to fallback
       if (allVideos.length === 0) {
-        console.log("No videos loaded, using fallback playlist");
-        throw new Error("No videos available: Using fallback playlist");
+        console.log("No videos loaded, proceeding to fallback playlist");
+        // Don't throw error, just create fallback playlist directly
+        const fallbackVideos: PlaylistItem[] = [
+          {
+            id: "fallback-1",
+            title: "Demo Song 1 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "dQw4w9WgXcQ", // Rick Roll as fallback
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+          {
+            id: "fallback-2",
+            title: "Demo Song 2 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "oHg5SJYRHA0", // Another classic
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+          {
+            id: "fallback-3",
+            title: "Demo Song 3 (Offline Mode)",
+            channelTitle: "System",
+            videoId: "kJQP7kiw5Fk", // Despacito
+            isNowPlaying: false,
+            isUserRequest: false,
+          },
+        ];
+
+        setState((prev) => ({
+          ...prev,
+          defaultPlaylistVideos: fallbackVideos,
+          inMemoryPlaylist: fallbackVideos,
+          currentVideoIndex: 0,
+        }));
+
+        toast({
+          title: "Quota Exceeded - Fallback Mode",
+          description:
+            "YouTube API quota exceeded. Using fallback playlist. Enable API key rotation in admin settings for better reliability.",
+          variant: "default",
+        });
+
+        addLog(
+          "SONG_PLAYED",
+          "Loaded fallback playlist due to quota exhaustion",
+        );
+
+        return; // Exit the function successfully
       }
 
       // Shuffle playlist ONCE after loading
