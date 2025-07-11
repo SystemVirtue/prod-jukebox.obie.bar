@@ -16,6 +16,21 @@ interface DisplayPreference {
   lastUsedDisplay?: string;
 }
 
+/**
+ * DisplayManager - Handles external display detection and window positioning
+ *
+ * Features:
+ * - Automatic detection of external displays using modern Screen API
+ * - User preference management for display selection
+ * - Fullscreen mode support with fallback options
+ * - Browser compatibility with graceful degradation
+ *
+ * Usage:
+ * 1. Call getRecommendedDisplayConfig() to get optimal display setup
+ * 2. Use getBestExternalDisplay() to check for external monitors
+ * 3. Generate window features with generateWindowFeatures()
+ * 4. Save user preferences with saveDisplayPreference()
+ */
 class DisplayManager {
   private cachedDisplays: DisplayInfo[] = [];
   private lastDetectionTime = 0;
