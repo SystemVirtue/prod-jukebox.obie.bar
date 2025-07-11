@@ -410,19 +410,31 @@ export const usePlayerManager = (
             isPlayerRunning: true,
           };
 
-          // Wait for window to load before retrying
-          emergencyPlayerWindow.addEventListener("load", () => {
-            console.log("[PlaySong] Emergency window loaded, retrying song");
-            setTimeout(() => {
-              playSong(videoId, title, artist, logType, retryCount + 1);
-            }, 1000);
-          });
+          // Use a flag to prevent double retries
+          let hasRetried = false;
 
-          // Fallback timeout in case load event doesn't fire
+          // Wait for window to load before retrying
+          const handleLoad = () => {
+            if (!hasRetried) {
+              hasRetried = true;
+              console.log("[PlaySong] Emergency window loaded, retrying song");
+              setTimeout(() => {
+                playSong(videoId, title, artist, logType, retryCount + 1);
+              }, 1000);
+            }
+          };
+
+          emergencyPlayerWindow.addEventListener("load", handleLoad);
+
+          // Fallback timeout in case load event doesn't fire (reduced to avoid conflicts)
           setTimeout(() => {
-            console.log("[PlaySong] Fallback retry with emergency window");
-            playSong(videoId, title, artist, logType, retryCount + 1);
-          }, 3000);
+            if (!hasRetried) {
+              hasRetried = true;
+              console.log("[PlaySong] Fallback retry with emergency window");
+              emergencyPlayerWindow.removeEventListener("load", handleLoad);
+              playSong(videoId, title, artist, logType, retryCount + 1);
+            }
+          }, 2000);
 
           return newState;
         } else {
