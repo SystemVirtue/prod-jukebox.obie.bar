@@ -161,6 +161,8 @@ export const AdminConsole: React.FC<AdminConsoleProps> = ({
   onCreditsChange,
   apiKey,
   onApiKeyChange,
+  searchMethod,
+  onSearchMethodChange,
   selectedCoinAcceptor,
   onCoinAcceptorChange,
   logs,
