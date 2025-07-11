@@ -498,11 +498,11 @@ const Index = () => {
       <LoadingIndicator isVisible={isLoading} />
       <CreditsDisplay credits={state.credits} mode={state.mode} />
       <div className="relative z-10 min-h-screen p-8 flex flex-col">
-        {/* Now Playing Ticker - Top Left - Reduced width by 20% (from 48rem to 38.4rem) */}
-        <div className="absolute top-4 left-4 z-20">
+        {/* Now Playing Ticker - Responsive positioning and sizing */}
+        <div className="absolute top-2 left-2 sm:top-4 sm:left-4 z-20 max-w-[calc(100vw-1rem)] sm:max-w-none">
           <Card className="bg-black/60 border-yellow-400 shadow-lg backdrop-blur-sm">
-            <CardContent className="p-3">
-              <div className="text-amber-100 font-bold text-lg w-[30.7rem] truncate">
+            <CardContent className="p-2 sm:p-3">
+              <div className="text-amber-100 font-bold text-sm sm:text-lg w-[calc(100vw-4rem)] sm:w-[30.7rem] truncate">
                 Now Playing: {state.currentlyPlaying}
               </div>
             </CardContent>
