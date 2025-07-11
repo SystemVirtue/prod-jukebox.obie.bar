@@ -179,23 +179,63 @@ class YouTubeQuotaService {
     return usage ? usage.percentage >= 90 : false;
   }
 
-  // Get the next available API key from the rotation list
-  getNextAvailableKey(
+  // Get the next available API key by testing ALL keys sequentially
+  async getNextAvailableKey(
     currentKey: string,
     availableKeys: string[],
-  ): string | null {
-    const currentIndex = availableKeys.indexOf(currentKey);
+  ): Promise<string | null> {
+    console.log(
+      `[API Rotation] Testing ALL ${availableKeys.length} keys sequentially...`,
+    );
 
-    // Start checking from the next key after current
-    for (let i = 1; i < availableKeys.length; i++) {
-      const nextIndex = (currentIndex + i) % availableKeys.length;
-      const nextKey = availableKeys[nextIndex];
+    // Test ALL keys sequentially, starting from key1 (primary)
+    const orderedKeys = [
+      "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4", // key1 - Primary
+      "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY", // key2
+      "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU", // key3
+      "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk", // key4
+    ];
 
-      if (!this.isKeyExhausted(nextKey)) {
-        return nextKey;
+    // Add custom key if it exists and is different from predefined ones
+    const customKey = availableKeys.find((key) => !orderedKeys.includes(key));
+    if (customKey) {
+      orderedKeys.push(customKey);
+    }
+
+    // Test each key sequentially
+    for (const testKey of orderedKeys) {
+      if (availableKeys.includes(testKey) && testKey !== currentKey) {
+        console.log(
+          `[API Rotation] Testing key ending in ...${testKey.slice(-8)}`,
+        );
+
+        try {
+          // Test the key by checking quota
+          await this.checkQuotaUsage(testKey);
+
+          // If quota check succeeds and key is not exhausted, use it
+          if (!this.isKeyExhausted(testKey)) {
+            console.log(
+              `[API Rotation] Found available key: ...${testKey.slice(-8)}`,
+            );
+            return testKey;
+          } else {
+            console.log(
+              `[API Rotation] Key ...${testKey.slice(-8)} is quota exhausted`,
+            );
+          }
+        } catch (error) {
+          console.log(
+            `[API Rotation] Key ...${testKey.slice(-8)} failed test:`,
+            error.message,
+          );
+          // Mark this key as exhausted if it fails
+          this.trackApiUsage(testKey, "search", 10000); // Mark as exhausted
+        }
       }
     }
 
+    console.log(`[API Rotation] ALL keys have been tested - none available`);
     return null; // All keys are exhausted
   }
 
