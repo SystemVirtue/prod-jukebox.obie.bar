@@ -208,7 +208,8 @@ export const usePlaylistManager = (
         error instanceof Error &&
         (error.message.includes("Network error") ||
           error.message.includes("Failed to fetch") ||
-          error.message.includes("Quota exceeded"))
+          error.message.includes("Quota exceeded") ||
+          error.message.includes("No videos available"))
       ) {
         console.log(
           "API unavailable or quota exceeded, providing fallback playlist content",
