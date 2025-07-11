@@ -4,6 +4,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,9 @@ export const DisplayConfirmationDialog: React.FC<
             <MonitorSpeaker className="w-6 h-6 text-blue-600" />
             External Display Detected
           </DialogTitle>
+          <DialogDescription>
+            Choose how to display the video player on your external monitor.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
