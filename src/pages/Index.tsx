@@ -203,11 +203,57 @@ const Index = () => {
         "videos. Initializing player...",
       );
 
-      // Add a small delay to ensure state is settled
-      setTimeout(() => {
-        console.log("[Auto-init] Executing player initialization");
-        initializePlayer();
-      }, 1000);
+      // Try initialization immediately and retry if needed
+      let retryCount = 0;
+      const maxRetries = 3;
+
+      const tryInitialization = async () => {
+        console.log(`[Auto-init] Attempt ${retryCount + 1}/${maxRetries + 1}`);
+
+        try {
+          await initializePlayer();
+
+          // Check if player was successfully created
+          setTimeout(() => {
+            setState((currentState) => {
+              if (
+                !currentState.playerWindow ||
+                currentState.playerWindow.closed
+              ) {
+                retryCount++;
+                if (retryCount <= maxRetries) {
+                  console.log(
+                    `[Auto-init] Retry ${retryCount}/${maxRetries} in 2 seconds...`,
+                  );
+                  setTimeout(tryInitialization, 2000);
+                } else {
+                  console.error(
+                    "[Auto-init] Failed to initialize player after all retries",
+                  );
+                  toast({
+                    title: "Player Initialization Failed",
+                    description:
+                      "Could not open player window automatically. Please use the 'Open Player' button in the admin panel.",
+                    variant: "destructive",
+                  });
+                }
+              } else {
+                console.log("[Auto-init] Player successfully initialized!");
+              }
+              return currentState;
+            });
+          }, 1500);
+        } catch (error) {
+          console.error("[Auto-init] Error during initialization:", error);
+          retryCount++;
+          if (retryCount <= maxRetries) {
+            setTimeout(tryInitialization, 2000);
+          }
+        }
+      };
+
+      // Start with a small delay
+      setTimeout(tryInitialization, 500);
     } else {
       console.log("[Auto-init] Skipping initialization - conditions not met");
     }
@@ -216,6 +262,7 @@ const Index = () => {
     state.playerWindow,
     state.isPlayerRunning,
     initializePlayer,
+    toast,
   ]);
 
   // Enhanced autoplay logic - only start when player is ready and playlist has songs
