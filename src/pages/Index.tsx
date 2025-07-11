@@ -23,6 +23,7 @@ import { useJukeboxState } from "@/hooks/useJukeboxState";
 import { usePlayerManager } from "@/hooks/usePlayerManager";
 import { usePlaylistManager } from "@/hooks/usePlaylistManager";
 import { useVideoSearch } from "@/hooks/useVideoSearch";
+import { useApiKeyRotation } from "@/hooks/useApiKeyRotation";
 import { LoadingIndicator } from "@/components/LoadingIndicator";
 import { CreditsDisplay } from "@/components/CreditsDisplay";
 
