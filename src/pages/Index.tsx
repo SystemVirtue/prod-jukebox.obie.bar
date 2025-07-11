@@ -601,29 +601,33 @@ const Index = () => {
           </div>
         )}
 
-        {/* Coming Up Ticker - Bottom */}
-        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-2 overflow-hidden">
+        {/* Coming Up Ticker - Responsive bottom ticker */}
+        <div className="absolute bottom-0 left-0 right-0 bg-black/80 text-amber-200 py-1 sm:py-2 overflow-hidden">
           <div
             className="whitespace-nowrap animate-marquee"
             key={`${state.currentlyPlaying}-${state.priorityQueue.length}-${state.inMemoryPlaylist.length}`}
           >
-            <span className="text-lg font-bold">COMING UP: </span>
+            <span className="text-sm sm:text-lg font-bold">COMING UP: </span>
             {getUpcomingTitles().map((title, index) => (
-              <span key={`${index}-${title}`} className="mx-8 text-lg">
+              <span
+                key={`${index}-${title}`}
+                className="mx-4 sm:mx-8 text-sm sm:text-lg"
+              >
                 {index + 1}. {title}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="absolute bottom-4 left-4">
+        {/* Responsive admin button */}
+        <div className="absolute bottom-2 left-2 sm:bottom-4 sm:left-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setState((prev) => ({ ...prev, isAdminOpen: true }))}
-            className="text-amber-200 hover:text-amber-100 opacity-30 hover:opacity-100"
+            className="text-amber-200 hover:text-amber-100 opacity-30 hover:opacity-100 p-1 sm:p-2"
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
       </div>
