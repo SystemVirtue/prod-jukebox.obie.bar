@@ -361,6 +361,21 @@ export const usePlayerManager = (
   ) => {
     const MAX_RETRIES = 2;
 
+    // Validate input parameters
+    if (!videoId || !title) {
+      console.error("[PlaySong] Invalid parameters:", {
+        videoId,
+        title,
+        artist,
+      });
+      toast({
+        title: "Invalid Song",
+        description: "Cannot play song - missing video ID or title.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     console.log(
       `[PlaySong] Starting: ${videoId} - ${title} by ${artist} (retry: ${retryCount})`,
     );
