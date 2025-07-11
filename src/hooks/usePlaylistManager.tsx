@@ -52,7 +52,15 @@ export const usePlaylistManager = (
 
       // Load ALL videos without any limits
       do {
-        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${playlistId}&maxResults=50&key=${state.apiKey}${nextPageToken ? `&pageToken=${nextPageToken}` : ""}`;
+        // Validate parameters before constructing URL
+        if (!playlistId || typeof playlistId !== "string") {
+          throw new Error("Invalid playlist ID provided");
+        }
+        if (!state.apiKey || typeof state.apiKey !== "string") {
+          throw new Error("Invalid API key provided");
+        }
+
+        const url = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${encodeURIComponent(playlistId)}&maxResults=50&key=${encodeURIComponent(state.apiKey)}${nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : ""}`;
 
         let response;
         let fetchSuccessful = false;
