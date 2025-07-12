@@ -39,7 +39,7 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
     { key: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4", name: "Key 1 (Primary)" },
     { key: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY", name: "Key 2" },
     { key: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU", name: "Key 3" },
-    { key: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk", name: "Key 4" },
+    { key: "AIzaSyD6lYWv9Jww_r_RCpO-EKZEyrK4vNd9FeQ", name: "Key 4" },
     { key: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA", name: "Key 5" },
   ];
 
