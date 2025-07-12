@@ -30,45 +30,37 @@ export const usePlaylistManager = (
 
     console.log("Loading playlist videos for:", playlistId);
 
-    if (!state.apiKey) {
+    // Fallback if no API key or all keys exhausted
+    if (!state.apiKey || state.allKeysExhausted) {
       console.log(
-        "No API key available - using HTML parser fallback immediately",
+        "No valid API key available or all keys exhausted - using backend proxy fallback immediately",
       );
-
       try {
-        // Use HTML parser directly when no API key is available
-        const fallbackVideos =
-          await youtubeHtmlParserService.parsePlaylist(playlistId);
-
+        const fallbackVideos = await youtubeHtmlParserService.parsePlaylist(playlistId);
         console.log(
-          `[LoadPlaylist] HTML parser generated ${fallbackVideos.length} fallback videos`,
+          `[LoadPlaylist] Proxy fallback generated ${fallbackVideos.length} videos`,
         );
-
         setState((prev) => ({
           ...prev,
           defaultPlaylistVideos: fallbackVideos,
           inMemoryPlaylist: [...fallbackVideos],
           currentVideoIndex: 0,
         }));
-
         toast({
           title: "Fallback Mode Active",
-          description: `Loaded ${fallbackVideos.length} popular songs using fallback mode.`,
+          description: `Loaded ${fallbackVideos.length} songs using fallback mode.`,
           variant: "default",
         });
-
         addLog(
           "SONG_PLAYED",
-          `Loaded HTML parser playlist with ${fallbackVideos.length} songs - no API key available`,
+          `Loaded proxy fallback playlist with ${fallbackVideos.length} songs - no valid API key`,
         );
-
         return;
       } catch (error) {
-        console.error("HTML parser fallback failed:", error);
+        console.error("Proxy fallback failed:", error);
         toast({
           title: "Fallback Failed",
-          description:
-            "Unable to load fallback playlist. Please check your connection.",
+          description: "Unable to load fallback playlist from backend proxy. Please check your connection.",
           variant: "destructive",
         });
         return;

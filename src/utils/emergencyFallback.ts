@@ -13,34 +13,23 @@ export const emergencyRecovery = {
     console.log(
       "[EmergencyRecovery] Starting forced fallback playlist load...",
     );
-
     try {
-      const fallbackPlaylist =
-        await youtubeHtmlParserService.parsePlaylist("emergency");
+      // All fallback data is now provided by the backend proxy
+      const playlist = await youtubeHtmlParserService.parsePlaylist("emergency");
+      if (!playlist || playlist.length === 0) {
+        throw new Error("No fallback playlist available from backend proxy.");
+      }
+      localStorage.setItem("emergency-playlist", JSON.stringify(playlist));
       console.log(
-        `[EmergencyRecovery] Generated ${fallbackPlaylist.length} fallback songs`,
+        `[EmergencyRecovery] Fallback playlist loaded from backend proxy and stored in localStorage. Run emergencyRecovery.injectPlaylist() to inject.`
       );
-
-      // Store in localStorage for potential recovery
-      localStorage.setItem(
-        "emergency-playlist",
-        JSON.stringify(fallbackPlaylist),
-      );
-
-      console.log(
-        "[EmergencyRecovery] Fallback playlist stored in localStorage",
-      );
-      console.log(
-        "To manually inject playlist, run: emergencyRecovery.injectPlaylist()",
-      );
-
-      return fallbackPlaylist;
+      return playlist;
     } catch (error) {
       console.error(
-        "[EmergencyRecovery] Failed to generate fallback playlist:",
-        error,
+        "[EmergencyRecovery] Failed to load fallback playlist from backend proxy:",
+        error
       );
-      return [];
+      throw error;
     }
   },
 

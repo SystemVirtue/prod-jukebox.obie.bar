@@ -203,23 +203,33 @@ class MusicSearchService {
   ): Promise<SearchResult[]> {
     switch (method) {
       case "iframe_search":
-        // Use HTML parser for iframe search - no API key needed
+        // Use backend proxy for search fallback - no API key needed
         console.log(
-          `[MusicSearch] Using HTML parser for iframe search: ${query}`,
+          `[MusicSearch] Using backend proxy for search fallback: ${query}`,
         );
-        const htmlResults = await youtubeHtmlParserService.searchYouTube(
-          query,
-          maxResults,
-        );
-        return htmlResults.map((video) => ({
-          id: video.id,
-          title: video.title,
-          channelTitle: video.channelTitle,
-          thumbnailUrl: video.thumbnailUrl,
-          videoUrl: video.videoUrl,
-          duration: video.duration,
-          officialScore: 0,
-        }));
+        try {
+          const searchUrl = `http://localhost:4321/api/search?query=${encodeURIComponent(query)}&maxResults=${maxResults}`;
+          const response = await fetch(searchUrl);
+          if (!response.ok) {
+            throw new Error(`Proxy search failed: ${response.status}`);
+          }
+          const data = await response.json();
+          if (!data.results || !Array.isArray(data.results)) {
+            throw new Error("Malformed search response from proxy");
+          }
+          return data.results.map((video: any) => ({
+            id: video.id,
+            title: video.title,
+            channelTitle: video.channelTitle,
+            thumbnailUrl: video.thumbnailUrl,
+            videoUrl: video.videoUrl,
+            duration: video.duration,
+            officialScore: 0,
+          }));
+        } catch (err) {
+          console.error("Proxy search error:", err);
+          throw new Error("Unable to fetch search results from proxy backend.");
+        }
 
       case "youtube_api":
         if (!apiKey) {

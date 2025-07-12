@@ -648,7 +648,31 @@ export const usePlayerManager = (
         console.error("[PerformSkip] No player window available for skip");
       }
 
-      return { ...currentState, showSkipConfirmation: false };
+      // Advance the queue: remove the current song from inMemoryPlaylist
+      let newPlaylist = currentState.inMemoryPlaylist;
+      if (newPlaylist.length > 0) {
+        newPlaylist = newPlaylist.slice(1); // Remove first song
+      }
+
+      // Play next song if available
+      if (newPlaylist.length > 0) {
+        const nextSong = newPlaylist[0];
+        setTimeout(() => {
+          playSong(
+            nextSong.videoId,
+            nextSong.title,
+            nextSong.channelTitle,
+            "SONG_PLAYED",
+            0
+          );
+        }, 500); // Allow fade-out to complete
+      } else {
+        // No more songs in queue
+        addLog("SONG_PLAYED", "Queue ended after skip");
+      }
+
+      return { ...currentState, inMemoryPlaylist: newPlaylist, showSkipConfirmation: false };
+
     });
   };
 
