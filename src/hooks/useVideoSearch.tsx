@@ -39,7 +39,7 @@ export const useVideoSearch = (
 
     console.log("performSearch called with query:", query);
 
-    if (query.toUpperCase() === "ADMIN") {
+    if (query.toUpperCase() === "OBIEADMIN") {
       setState((prev) => ({
         ...prev,
         isAdminOpen: true,
