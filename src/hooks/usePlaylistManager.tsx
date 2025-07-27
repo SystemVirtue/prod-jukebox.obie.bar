@@ -1,4 +1,3 @@
-```typescript
 import { JukeboxState, PlaylistItem, LogEntry } from "./useJukeboxState";
 import { youtubeQuotaService } from "@/services/youtubeQuota";
 import { youtubeHtmlParserService } from "@/services/youtubeHtmlParser";
