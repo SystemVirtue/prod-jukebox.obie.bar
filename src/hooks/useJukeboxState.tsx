@@ -99,7 +99,8 @@ export interface JukeboxState {
 }
 
 //const DEFAULT_API_KEY = 'AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4';
-const DEFAULT_API_KEY = 'AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU';
+//const DEFAULT_API_KEY = 'AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU';
+const DEFAULT_API_KEY = 'AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso';
 const DEFAULT_PLAYLIST_ID = 'PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH';
 
 export const useJukeboxState = () => {
