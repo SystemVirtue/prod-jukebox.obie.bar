@@ -121,6 +121,7 @@ const DEFAULT_PLAYLIST_ID =
   import.meta.env.VITE_DEFAULT_PLAYLIST_ID ||
   "PLN9QqCogPsXJCgeL_iEgYnW6Rl_8nIUUH";
 
+
 export const useJukeboxState = () => {
   const [state, setState] = useState<JukeboxState>({
     mode: "PAID",
