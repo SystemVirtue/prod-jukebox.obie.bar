@@ -13,6 +13,7 @@ export const useApiKeyRotation = (
     key3: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU",
     key4: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk",
     key5: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA",
+    key6: "AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso",
   };
 
   const getAvailableKeys = useCallback(() => {
