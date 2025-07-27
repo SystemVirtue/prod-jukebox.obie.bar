@@ -1,6 +1,8 @@
+```typescript
 import { JukeboxState, PlaylistItem, LogEntry } from "./useJukeboxState";
 import { youtubeQuotaService } from "@/services/youtubeQuota";
 import { youtubeHtmlParserService } from "@/services/youtubeHtmlParser";
+import React from "react"; // Import React to use useRef and useCallback
 
 export const usePlaylistManager = (
   state: JukeboxState,
@@ -19,6 +21,10 @@ export const usePlaylistManager = (
   ) => void,
   toast: any,
 ) => {
+  // At the top of the usePlaylistManager function, after the parameters
+  const lastPlayedVideoId = React.useRef<string | null>(null);
+  const isPlayingNext = React.useRef<boolean>(false);
+
   const loadPlaylistVideos = async (playlistId: string) => {
     // Global guard: prevent any playlist loading if we're in a bad state
     if (state.allKeysExhausted || state.isAppPaused) {
@@ -82,8 +88,6 @@ export const usePlaylistManager = (
     try {
       let allVideos: PlaylistItem[] = [];
       let nextPageToken = "";
-      let retryCount = 0;
-      const maxRetries = 2;
 
       // Load ALL videos without any limits
       do {
@@ -224,7 +228,7 @@ export const usePlaylistManager = (
 
           // Track API usage
           youtubeQuotaService.trackApiUsage(state.apiKey, "playlistItems", 1);
-        } catch (error) {
+        } catch (error: any) { // Explicitly type error as 'any' for better error handling
           // Track failures for future reference
           const failureKey = `playlist-fetch-failures-${playlistId}`;
           const currentFailures =
@@ -413,7 +417,7 @@ export const usePlaylistManager = (
       console.log(
         `[LoadPlaylist] Loaded ALL ${allVideos.length} videos from playlist (shuffled order)`,
       );
-    } catch (error) {
+    } catch (error: any) { // Explicitly type error as 'any' for better error handling
       console.error("Error loading playlist:", error);
 
       // Provide fallback content when API is unavailable
@@ -496,81 +500,101 @@ export const usePlaylistManager = (
     return shuffled;
   };
 
-  const playNextSong = () => {
-    console.log(
-      "[PlayNext] playNextSong called - checking priority queue first...",
-    );
-    console.log(
-      "[PlayNext] Priority queue length:",
-      state.priorityQueue.length,
-    );
-    console.log(
-      "[PlayNext] In-memory playlist length:",
-      state.inMemoryPlaylist.length,
-    );
-
-    // Always check priority queue first
-    if (state.priorityQueue.length > 0) {
-      console.log("[PlayNext] Playing next song from priority queue");
-      const nextRequest = state.priorityQueue[0];
-      console.log(
-        "[PlayNext] Next priority song:",
-        nextRequest.title,
-        "VideoID:",
-        nextRequest.videoId,
-      );
-
-      setState((prev) => ({
-        ...prev,
-        priorityQueue: prev.priorityQueue.slice(1),
-      }));
-
-      playSong(
-        nextRequest.videoId,
-        nextRequest.title,
-        nextRequest.channelTitle,
-        "USER_SELECTION",
-      );
+  const playNextSong = React.useCallback(() => {
+    // Prevent multiple simultaneous calls to playNextSong
+    if (isPlayingNext.current) {
+      console.log('[PlayNext] playNextSong already in progress, skipping duplicate call');
       return;
     }
 
-    // Play from in-memory playlist - SEQUENTIAL ORDER
-    if (state.inMemoryPlaylist.length > 0) {
-      console.log(
-        "[PlayNext] Playing next song from in-memory playlist (sequential order)",
-      );
-      const nextVideo = state.inMemoryPlaylist[0];
-      console.log(
-        "[PlayNext] Next playlist song:",
-        nextVideo.title,
-        "VideoID:",
-        nextVideo.videoId,
-      );
+    isPlayingNext.current = true;
+    console.log('[PlayNext] playNextSong called - checking priority queue first...');
+    console.log('[PlayNext] Priority queue length:', state.priorityQueue.length);
+    console.log('[PlayNext] In-memory playlist length:', state.inMemoryPlaylist.length);
 
-      // Move the song to end of playlist FIRST (circular playlist)
-      setState((prev) => ({
-        ...prev,
-        inMemoryPlaylist: [...prev.inMemoryPlaylist.slice(1), nextVideo],
-      }));
+    try {
+      // Always check priority queue first
+      if (state.priorityQueue.length > 0) {
+        console.log('[PlayNext] Playing next song from priority queue');
+        const nextRequest = state.priorityQueue[0];
 
-      // THEN send song to player
-      playSong(
-        nextVideo.videoId,
-        nextVideo.title,
-        nextVideo.channelTitle,
-        "SONG_PLAYED",
-      );
-    } else {
-      console.warn(
-        "[PlayNext] No songs available in playlist or priority queue!",
-      );
+        // Skip if this is the same as the last played song
+        if (nextRequest.videoId === lastPlayedVideoId.current) {
+          console.warn('[PlayNext] Duplicate song detected in priority queue, skipping to next');
+          setState(prev => ({
+            ...prev,
+            priorityQueue: prev.priorityQueue.slice(1)
+          }));
+          isPlayingNext.current = false;
+          playNextSong(); // Try again with next song
+          return;
+        }
+
+        console.log('[PlayNext] Next priority song:', nextRequest.title, 'VideoID:', nextRequest.videoId);
+
+        setState(prev => ({
+          ...prev,
+          priorityQueue: prev.priorityQueue.slice(1),
+        }));
+
+        lastPlayedVideoId.current = nextRequest.videoId;
+        playSong(
+          nextRequest.videoId,
+          nextRequest.title,
+          nextRequest.channelTitle,
+          'USER_SELECTION',
+        );
+        return;
+      }
+
+      // Play from in-memory playlist - SEQUENTIAL ORDER
+      if (state.inMemoryPlaylist.length > 0) {
+        console.log('[PlayNext] Playing next song from in-memory playlist (sequential order)');
+
+        // Find the next song that's not the same as the last played
+        let nextVideoIndex = 0;
+        let nextVideo = state.inMemoryPlaylist[0];
+
+        // If the next song is the same as the last played, try to find a different one
+        if (state.inMemoryPlaylist.length > 1 && nextVideo.videoId === lastPlayedVideoId.current) {
+          console.warn('[PlayNext] Next song in playlist is the same as last played, finding next available');
+          nextVideoIndex = 1;
+          nextVideo = state.inMemoryPlaylist[1] || state.inMemoryPlaylist[0];
+        }
+
+        console.log('[PlayNext] Next playlist song:', nextVideo.title, 'VideoID:', nextVideo.videoId);
+
+        // Create a new playlist with the played song moved to the end
+        const newPlaylist = [...state.inMemoryPlaylist];
+        const [playedSong] = newPlaylist.splice(nextVideoIndex, 1);
+        newPlaylist.push(playedSong);
+
+        setState(prev => ({
+          ...prev,
+          inMemoryPlaylist: newPlaylist
+        }));
+
+        lastPlayedVideoId.current = nextVideo.videoId;
+        playSong(
+          nextVideo.videoId,
+          nextVideo.title,
+          nextVideo.channelTitle,
+          'SONG_PLAYED',
+        );
+      } else {
+        console.warn('[PlayNext] No songs available in playlist or priority queue!');
+      }
+    } catch (error) {
+      console.error('[PlayNext] Error in playNextSong:', error);
+    } finally {
+      isPlayingNext.current = false;
     }
-  };
+  }, [state.priorityQueue, state.inMemoryPlaylist, state.currentlyPlaying, playSong, setState]); // Added state.currentlyPlaying to dependencies
 
-  const handleVideoEnded = () => {
-    console.log("[VideoEnded] Video ended, triggering playNextSong...");
+  const handleVideoEnded = React.useCallback(() => {
+    console.log('[VideoEnded] Video ended, triggering playNextSong...');
     playNextSong();
-  };
+  }, [playNextSong]);
 
   const handleDefaultPlaylistChange = (playlistId: string) => {
     setState((prev) => ({ ...prev, defaultPlaylist: playlistId }));
