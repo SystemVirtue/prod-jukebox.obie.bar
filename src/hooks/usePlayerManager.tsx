@@ -3,7 +3,7 @@ import { JukeboxState, PlaylistItem, LogEntry } from "./useJukeboxState";
 import { displayManager, DisplayInfo } from "@/services/displayManager";
 import * as React from 'react';
 
-export const usePlaylistManager = (
+export const usePlayerManager = (
   state: JukeboxState,
   setState: React.Dispatch<React.SetStateAction<JukeboxState>>,
   addLog: (
