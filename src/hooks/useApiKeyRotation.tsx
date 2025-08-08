@@ -9,11 +9,12 @@ export const useApiKeyRotation = (
 ) => {
   const API_KEY_OPTIONS = {
     key1: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4",
-    key2: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY",
+    key2: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA",
     key3: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU",
     key4: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk",
-    key5: "AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso",
-    key6: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA",
+    key5: "AIzaSyD7iB_2dHUu9yS87WD4wMbkJQduibU5vco",
+    key6: "AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso",
+    key7: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY",
   };
 
   const getAvailableKeys = useCallback(() => {
