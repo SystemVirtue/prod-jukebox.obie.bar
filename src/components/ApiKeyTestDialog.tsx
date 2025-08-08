@@ -37,12 +37,26 @@ export const ApiKeyTestDialog: React.FC<ApiKeyTestDialogProps> = ({
 
   const API_KEYS = [
     { key: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4", name: "Key 1 (Primary)" },
-    { key: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY", name: "Key 2" },
+    { key: "AIzaSyDQ_Jx4Dwje2snQisj7hEFVK9lJJ0tptcc", name: "Key 2" },
     { key: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU", name: "Key 3" },
-    { key: "AIzaSyD6lYWv9Jww_r_RCpO-EKZEyrK4vNd9FeQ", name: "Key 4" },
-    { key: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA", name: "Key 5" },
+    { key: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk", name: "Key 4" },
+    { key: "AIzaSyD7iB_2dHUu9yS87WD4wMbkJQduibU5vco", name: "Key 5" },
+    { key: "AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso", name: "Key 6" },
+    { key: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY", name: "Key 7" },
+    { key: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA", name: "Key 8" },
+    { key: "AIzaSyD6lYWv9Jww_r_RCpO-EKZEyrK4vNd9FeQ", name: "Key 9" },
   ];
 
+  
+  //    key1: "AIzaSyC12QKbzGaKZw9VD3-ulxU_mrd0htZBiI4",
+  //  key2: "AIzaSyDQ_Jx4Dwje2snQisj7hEFVK9lJJ0tptcc",
+   // key3: "AIzaSyDy6_QI9SP5nOZRVoNa5xghSHtY3YWX5kU",
+   // key4: "AIzaSyCPAY_ukeGnAGJdCvYk1bVVDxZjQRJqsdk",
+  //  key5: "AIzaSyD7iB_2dHUu9yS87WD4wMbkJQduibU5vco",
+   // key6: "AIzaSyCgtXTfFuUiiBsNXH6z_k9-GiCqiS0Cgso",
+   // key7: "AIzaSyCKHHGkaztp8tfs2BVxiny0InE_z-kGDtY",
+  //  key8: "AIzaSyBGcwaCm70o4ir0CKcNIJ0V_7TeyY2cwdA",
+    
   useEffect(() => {
     if (isOpen && !hasStarted) {
       console.log("[ApiKeyTestDialog] Starting API key tests...");
