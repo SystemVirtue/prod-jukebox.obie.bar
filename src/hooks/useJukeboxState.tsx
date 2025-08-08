@@ -160,6 +160,12 @@ export const useJukeboxState = () => {
         name: "Neon 1",
         url: "/backgrounds/Obie_NEON1.png",
         type: "image",
+      },   
+      {
+        id: "carla",
+        name: "Carla",
+        url: "/backgrounds/Obie - Carla v1.mp4",
+        type: "video",
       },
       {
         id: "neon2",
