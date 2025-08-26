@@ -1470,7 +1470,7 @@ const DisplayControls: React.FC<DisplayControlsProps> = ({
         <div className="flex items-center gap-2">
           <Checkbox
             checked={autoDetect}
-            onCheckedChange={(checked) => setAutoDetect(checked === true)}
+            onCheckedChange={setAutoDetect}
             id="auto-detect-display"
           />
           <label
@@ -1506,7 +1506,7 @@ const DisplayControls: React.FC<DisplayControlsProps> = ({
         <div className="flex items-center gap-2">
           <Checkbox
             checked={useFullscreen}
-            onCheckedChange={(checked) => setUseFullscreen(checked === true)}
+            onCheckedChange={setUseFullscreen}
             id="use-fullscreen"
           />
           <label htmlFor="use-fullscreen" className="text-sm text-blue-700">
