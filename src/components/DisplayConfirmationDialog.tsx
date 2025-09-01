@@ -64,7 +64,7 @@ export const DisplayConfirmationDialog: React.FC<
             <Checkbox
               id="remember"
               checked={rememberChoice}
-              onCheckedChange={setRememberChoice}
+              onCheckedChange={(checked) => setRememberChoice(checked === true)}
             />
             <label htmlFor="remember" className="text-sm text-gray-600">
               Remember my choice for future sessions

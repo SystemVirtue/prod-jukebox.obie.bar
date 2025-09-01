@@ -247,7 +247,6 @@ const Index = () => {
 
   const {
     performSearch,
-    filterForOfficial,
     handleVideoSelect,
     confirmAddToPlaylist,
     handleKeyboardInput,

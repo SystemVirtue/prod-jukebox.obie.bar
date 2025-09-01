@@ -1,0 +1,589 @@
+# YouTube Jukebox Application - Technical Specification
+
+## 1. APPLICATION OVERVIEW
+
+### 1.1 Application Type
+- React/TypeScript Single Page Application (SPA)
+- Built with Vite build tool
+- Modern web application with PWA potential
+- Multi-monitor display support
+- YouTube Music Jukebox System
+
+### 1.2 Core Functionality
+- YouTube video search and playback
+- Multi-monitor display management
+- Credit-based request system
+- Admin console for system management
+- Real-time playlist management
+- API key rotation system
+- Quota management for YouTube API
+
+## 2. NAVIGATION TREE HIERARCHY
+
+### 2.1 Route Structure
+```
+/ (Root/Index)
+├── Main Interface
+│   ├── Search Interface
+│   ├── Current Playing Display
+│   ├── Queue Management
+│   └── Background Controls
+│
+├── /player (External Player Window)
+│   ├── YouTube Iframe Player
+│   ├── Video Controls
+│   └── Display Information
+│
+└── Admin Functions (Accessed via special commands)
+    ├── API Key Management
+    ├── Credit System Control
+    ├── Playlist Management
+    ├── System Logs
+    └── Display Configuration
+```
+
+### 2.2 Component Navigation Flow
+```
+App.tsx
+└── Router
+    ├── Index.tsx (Main Application)
+    │   ├── SearchInterface.tsx
+    │   ├── IframeSearchInterface.tsx
+    │   ├── BackgroundManager.tsx
+    │   ├── CreditsDisplay.tsx
+    │   ├── AdminConsole.tsx (Conditional)
+    │   └── Various Dialog Components
+    │
+    └── NotFound.tsx (404 Handler)
+```
+
+## 3. FILE STRUCTURE TREE
+
+### 3.1 Project Root Structure
+```
+project-root/
+├── src/
+│   ├── components/           # React Components
+│   │   ├── ui/              # Shadcn/UI Components
+│   │   ├── AdminConsole.tsx
+│   │   ├── ApiKeyTestDialog.tsx
+│   │   ├── BackgroundManager.tsx
+│   │   ├── CreditsDisplay.tsx
+│   │   ├── DisplayConfirmationDialog.tsx
+│   │   ├── DuplicateSongDialog.tsx
+│   │   ├── IframeSearchInterface.tsx
+│   │   ├── InsufficientCreditsDialog.tsx
+│   │   ├── LoadingIndicator.tsx
+│   │   ├── QuotaExhaustedDialog.tsx
+│   │   ├── SearchInterface.tsx
+│   │   └── SerialCommunication.tsx
+│   │
+│   ├── hooks/               # Custom React Hooks
+│   │   ├── useApiKeyRotation.tsx
+│   │   ├── useJukeboxState.tsx
+│   │   ├── usePlayerManager.tsx
+│   │   ├── usePlaylistManager.tsx
+│   │   └── useVideoSearch.tsx
+│   │
+│   ├── services/            # Business Logic Services
+│   │   ├── circuitBreaker.ts
+│   │   ├── displayManager.ts
+│   │   ├── musicSearch.ts
+│   │   ├── youtubeHtmlParser.ts
+│   │   └── youtubeQuota.ts
+│   │
+│   ├── utils/               # Utility Functions
+│   │   ├── apiKeyTester.ts
+│   │   └── emergencyFallback.ts
+│   │
+│   ├── pages/               # Page Components
+│   │   ├── Index.tsx
+│   │   └── NotFound.tsx
+│   │
+│   ├── integrations/        # External Integrations
+│   │   └── supabase/
+│   │       ├── client.ts
+│   │       └── types.ts
+│   │
+│   └── lib/                 # Shared Libraries
+│       └── utils.ts
+│
+├── backend/                 # Backend Proxy Services
+│   └── youtubePlaylistProxy.cjs
+│
+├── public/                  # Static Assets
+│   ├── backgrounds/         # Background Media Files
+│   ├── player.html         # External Player Window
+│   └── lovable-uploads/    # Uploaded Assets
+│
+└── scripts/                # Build Scripts
+    ├── start-proxy.cjs
+    └── start-proxy.js
+```
+
+## 4. UI COMPONENTS DETAILED BREAKDOWN
+
+### 4.1 Core Application Components
+
+#### 4.1.1 SearchInterface.tsx
+**Purpose**: Main search interface for finding YouTube videos
+**Functions**:
+- `performSearch()` - Executes video search
+- `handleVideoSelect()` - Processes video selection
+- `handleKeyboardInput()` - Handles keyboard navigation
+**Associated Files**:
+- `useVideoSearch.tsx` (hook)
+- `musicSearch.ts` (service)
+- `SearchResult` interface in `useJukeboxState.tsx`
+
+#### 4.1.2 IframeSearchInterface.tsx
+**Purpose**: Alternative search interface using iframe proxy
+**Functions**:
+- `handleProxySearch()` - Proxy-based search execution
+- `parseProxyResults()` - Result parsing from proxy
+**Associated Files**:
+- `backend/youtubePlaylistProxy.cjs`
+- `youtubeHtmlParser.ts`
+
+#### 4.1.3 AdminConsole.tsx
+**Purpose**: Administrative control panel
+**Key Functions**:
+- `handleApiKeyAdd()` - Add new API keys
+- `handleApiKeyRemove()` - Remove API keys
+- `testApiKey()` - Test key validity
+- `handleCreditAdjustment()` - Modify credit amounts
+- `handlePlaylistLoad()` - Load playlists
+- `handleSystemReset()` - Reset system state
+- `exportLogs()` - Export system logs
+- `handleBackgroundUpload()` - Upload background media
+**Associated Files**:
+- `useApiKeyRotation.tsx`
+- `apiKeyTester.ts`
+- `youtubeQuota.ts`
+
+#### 4.1.4 BackgroundManager.tsx
+**Purpose**: Manages background media display
+**Functions**:
+- `handleBackgroundChange()` - Switch backgrounds
+- `handleMediaLoad()` - Load media files
+- `handleFullscreen()` - Fullscreen controls
+**Associated Files**:
+- Background media files in `public/backgrounds/`
+
+#### 4.1.5 CreditsDisplay.tsx
+**Purpose**: Shows current credit balance and history
+**Functions**:
+- `displayCurrentCredits()` - Show balance
+- `showCreditHistory()` - Display transaction history
+**Associated Files**:
+- Credit management in `useJukeboxState.tsx`
+
+### 4.2 Dialog Components
+
+#### 4.2.1 DisplayConfirmationDialog.tsx
+**Purpose**: Confirms video addition to playlist
+**Functions**:
+- `confirmAddition()` - Confirm video add
+- `cancelAddition()` - Cancel operation
+
+#### 4.2.2 DuplicateSongDialog.tsx
+**Purpose**: Handles duplicate song detection
+**Functions**:
+- `handleDuplicateChoice()` - Process user choice
+- `checkForDuplicates()` - Duplicate detection
+
+#### 4.2.3 ApiKeyTestDialog.tsx
+**Purpose**: API key testing interface
+**Functions**:
+- `testSingleKey()` - Test individual key
+- `testAllKeys()` - Batch key testing
+
+#### 4.2.4 QuotaExhaustedDialog.tsx
+**Purpose**: Handles API quota exhaustion
+**Functions**:
+- `handleQuotaExhaustion()` - Process quota limits
+- `suggestAlternatives()` - Provide alternatives
+
+#### 4.2.5 InsufficientCreditsDialog.tsx
+**Purpose**: Manages insufficient credit scenarios
+**Functions**:
+- `handleInsufficientCredits()` - Process credit shortage
+- `showCreditOptions()` - Display credit options
+
+### 4.3 Utility Components
+
+#### 4.3.1 LoadingIndicator.tsx
+**Purpose**: Visual loading feedback
+**Functions**:
+- `showLoading()` - Display loading state
+- `hideLoading()` - Hide loading state
+
+#### 4.3.2 SerialCommunication.tsx
+**Purpose**: Serial port communication (hardware integration)
+**Functions**:
+- `initializeSerial()` - Setup serial connection
+- `sendCommand()` - Send serial commands
+- `receiveData()` - Process incoming data
+
+## 5. IMPLEMENTATION DETAILS
+
+### 5.1 YouTube API v3 Implementation
+
+#### 5.1.1 API Integration Location
+**Primary Service**: `src/services/musicSearch.ts`
+**Main Class**: `MusicSearchService`
+
+#### 5.1.2 API Endpoints Used
+```javascript
+// Search Endpoint
+https://www.googleapis.com/youtube/v3/search
+Parameters:
+- part: 'snippet'
+- q: search query
+- type: 'video'
+- videoCategoryId: '10' (Music)
+- maxResults: 25
+- key: API_KEY
+
+// Video Details Endpoint
+https://www.googleapis.com/youtube/v3/videos
+Parameters:
+- part: 'contentDetails,status'
+- id: video IDs (comma-separated)
+- key: API_KEY
+```
+
+#### 5.1.3 Search Implementation Flow
+```
+1. User Input → SearchInterface.tsx
+2. performSearch() → useVideoSearch.tsx
+3. musicSearchService.search() → musicSearch.ts
+4. searchWithYouTubeAPI() → YouTube API v3
+5. Result Processing → filterForOfficial()
+6. State Update → useJukeboxState.tsx
+7. UI Update → SearchInterface.tsx
+```
+
+#### 5.1.4 Code Location for Search Function
+**File**: `src/services/musicSearch.ts`
+**Method**: `searchWithYouTubeAPI()`
+**Lines**: Approximately 56-188
+
+```typescript
+async searchWithYouTubeAPI(query: string, apiKey: string): Promise<SearchResult[]> {
+  // Rate limiting check
+  // API quota validation
+  // Search request execution
+  // Video details fetching
+  // Result filtering and processing
+  // Official content scoring
+}
+```
+
+### 5.2 API Key Rotation System
+
+#### 5.2.1 Implementation Location
+**File**: `src/hooks/useApiKeyRotation.tsx`
+**Purpose**: Manages multiple YouTube API keys and rotation
+
+#### 5.2.2 Key Rotation Logic
+```typescript
+const rotateToNextKey = () => {
+  // Find next available key
+  // Check key validity
+  // Update current key index
+  // Reset failure counters
+}
+```
+
+#### 5.2.3 Quota Management
+**File**: `src/services/youtubeQuota.ts`
+**Functions**:
+- `checkQuotaStatus()` - Monitor quota usage
+- `handleQuotaExhaustion()` - Quota limit response
+- `resetQuotaCounters()` - Daily quota reset
+
+### 5.3 Search Function Implementation Details
+
+#### 5.3.1 Search Methods Available
+1. **iframe_search**: Backend proxy search
+2. **youtube_api**: Direct API v3 search
+3. **ytmusic_api**: YouTube Music API (disabled in browser)
+
+#### 5.3.2 Search Processing Pipeline
+```
+Input Query
+↓
+Search Method Selection
+↓
+API Call Execution
+↓
+Result Filtering (embeddable videos only)
+↓
+Duration Processing (ISO 8601 → minutes)
+↓
+Official Content Scoring
+↓
+Result Ranking and Sorting
+↓
+State Update
+```
+
+#### 5.3.3 Official Content Scoring Algorithm
+**Location**: `src/services/musicSearch.ts` - `filterForOfficial()`
+**Scoring Criteria**:
+- Title keywords: "official", "music video" (+3 points)
+- Channel keywords: "VEVO", "Records", "Music" (+2 points)
+- Combined scoring for ranking
+
+## 6. URL ENDPOINT SUMMARY
+
+### 6.1 Main Application Endpoints
+
+#### 6.1.1 Index Route ("/")
+**Component**: `src/pages/Index.tsx`
+**Purpose**: Main application interface
+**Related Files**:
+- `src/hooks/useJukeboxState.tsx` - State management
+- `src/hooks/useVideoSearch.tsx` - Search functionality
+- `src/hooks/usePlayerManager.tsx` - Player control
+- `src/hooks/usePlaylistManager.tsx` - Playlist management
+- `src/components/SearchInterface.tsx` - Search UI
+- `src/components/BackgroundManager.tsx` - Background control
+- `src/components/CreditsDisplay.tsx` - Credit display
+
+**Key Features**:
+- Video search interface
+- Current playing display
+- Queue management
+- Background media control
+- Credit system display
+- Admin console access (via special command)
+
+#### 6.1.2 Player Route ("/player")
+**File**: `public/player.html`
+**Purpose**: External player window for multi-monitor setup
+**Related Files**:
+- `src/hooks/usePlayerManager.tsx` - Player control logic
+- `src/services/displayManager.ts` - Display management
+
+**Features**:
+- YouTube iframe player
+- Full-screen video playback
+- Cross-window communication
+- Display positioning control
+
+### 6.2 Backend Proxy Endpoints
+
+#### 6.2.1 Playlist Proxy
+**Endpoint**: `/api/playlist`
+**File**: `backend/youtubePlaylistProxy.cjs`
+**Method**: GET
+**Parameters**: 
+- `playlist`: YouTube playlist URL or ID
+**Response**: JSON array of playlist videos
+**Purpose**: Fallback for playlist loading when API quota exhausted
+
+## 7. ADMIN CONSOLE DETAILED FUNCTIONALITY
+
+### 7.1 Admin Console Access
+**Trigger**: Special search query "OBIEADMIN"
+**Component**: `src/components/AdminConsole.tsx`
+**State Management**: Conditional rendering based on `showAdminConsole` state
+
+### 7.2 Admin Console Sections
+
+#### 7.2.1 API Key Management
+**Functions & Related Files**:
+- `handleApiKeyAdd()` → `useApiKeyRotation.tsx`
+- `handleApiKeyRemove()` → `useApiKeyRotation.tsx`
+- `testApiKey()` → `src/utils/apiKeyTester.ts`
+- `testAllKeys()` → `src/utils/apiKeyTester.ts`
+
+**Features**:
+- Add/remove YouTube API keys
+- Test individual key validity
+- Batch test all keys
+- View key status and quota usage
+
+#### 7.2.2 Credit System Management
+**Functions & Related Files**:
+- `handleCreditAdjustment()` → `useJukeboxState.tsx`
+- `addCreditHistory()` → `useJukeboxState.tsx`
+- Credit display → `src/components/CreditsDisplay.tsx`
+
+**Features**:
+- Adjust credit amounts
+- View credit history
+- Reset credit counters
+- Configure credit costs
+
+#### 7.2.3 Playlist Management
+**Functions & Related Files**:
+- `handlePlaylistLoad()` → `usePlaylistManager.tsx`
+- `handleDefaultPlaylistChange()` → `usePlaylistManager.tsx`
+- `handlePlaylistShuffle()` → `usePlaylistManager.tsx`
+- `handlePlaylistReorder()` → `usePlaylistManager.tsx`
+
+**Features**:
+- Load YouTube playlists
+- Set default playlists
+- Shuffle playlist order
+- Reorder playlist items
+- View playlist statistics
+
+#### 7.2.4 System Logs
+**Functions & Related Files**:
+- `exportLogs()` → `useJukeboxState.tsx`
+- `addLog()` → `useJukeboxState.tsx`
+- Log display in AdminConsole.tsx
+
+**Features**:
+- View system activity logs
+- Export logs to file
+- Filter logs by type
+- Clear log history
+
+#### 7.2.5 Display Configuration
+**Functions & Related Files**:
+- `handleDisplayConfig()` → `src/services/displayManager.ts`
+- Multi-monitor support → `usePlayerManager.tsx`
+- Background control → `src/components/BackgroundManager.tsx`
+
+**Features**:
+- Configure display layouts
+- Multi-monitor setup
+- Background media management
+- Fullscreen controls
+
+#### 7.2.6 System Controls
+**Functions & Related Files**:
+- `handleSystemReset()` → Multiple state hooks
+- `clearAllData()` → `useJukeboxState.tsx`
+- Emergency fallback → `src/utils/emergencyFallback.ts`
+
+**Features**:
+- Reset system state
+- Clear all data
+- Emergency recovery
+- System health monitoring
+
+### 7.3 Admin Console State Management
+**State Variables**:
+- `showApiKeyDialog` - API key management dialog
+- `showCreditDialog` - Credit adjustment dialog
+- `showPlaylistDialog` - Playlist management dialog
+- `showSystemLogs` - System logs display
+- `showDisplayConfig` - Display configuration panel
+
+## 8. TECHNICAL ARCHITECTURE
+
+### 8.1 State Management Pattern
+**Primary Hook**: `useJukeboxState.tsx`
+**Pattern**: Centralized state with custom hooks
+**State Structure**:
+```typescript
+interface JukeboxState {
+  mode: 'free' | 'paid'
+  credits: number
+  currentSong: PlaylistItem | null
+  priorityQueue: PlaylistItem[]
+  inMemoryPlaylist: PlaylistItem[]
+  searchResults: SearchResult[]
+  // ... additional state properties
+}
+```
+
+### 8.2 Service Layer Architecture
+**Pattern**: Service classes with singleton pattern
+**Services**:
+- `MusicSearchService` - Search functionality
+- `DisplayManager` - Multi-monitor control
+- `CircuitBreaker` - API failure handling
+- `YouTubeQuota` - Quota management
+
+### 8.3 Component Communication
+**Pattern**: Props drilling with custom hooks
+**Communication Methods**:
+- State lifting through hooks
+- Event callbacks
+- Context for theme/UI state
+- localStorage for persistence
+
+### 8.4 Error Handling Strategy
+**Components**:
+- `CircuitBreaker` - API failure protection
+- `EmergencyFallback` - System recovery
+- Error boundaries (implicit in React)
+- Graceful degradation for API failures
+
+## 9. EXTERNAL DEPENDENCIES
+
+### 9.1 Core Dependencies
+- React 18.3.1 - UI framework
+- TypeScript - Type safety
+- Vite - Build tool
+- Tailwind CSS - Styling
+- React Router - Navigation
+
+### 9.2 UI Dependencies
+- Radix UI - Accessible components
+- Lucide React - Icons
+- Shadcn/UI - Component library
+- Sonner - Toast notifications
+
+### 9.3 API Dependencies
+- Axios - HTTP client
+- YouTube Data API v3 - Video search
+- Cheerio - HTML parsing (backend)
+- Express - Backend proxy server
+
+### 9.4 Utility Dependencies
+- Class Variance Authority - Component variants
+- Tailwind Merge - Style merging
+- Date-fns - Date manipulation
+- Zod - Schema validation
+
+## 10. DEPLOYMENT CONSIDERATIONS
+
+### 10.1 Build Configuration
+**Build Tool**: Vite
+**Output**: Static files for web deployment
+**Environment**: Client-side only (SPA)
+
+### 10.2 Environment Variables
+**API Keys**: Client-side storage (not recommended for production)
+**Configuration**: Runtime configuration via localStorage
+
+### 10.3 Performance Optimizations
+- Code splitting via React.lazy
+- Image optimization
+- Bundle size optimization
+- API response caching
+
+## 11. FUTURE ENHANCEMENT OPPORTUNITIES
+
+### 11.1 PWA Conversion
+- Service worker implementation
+- Offline functionality
+- App installation capability
+- Background sync
+
+### 11.2 Backend Integration
+- Supabase integration (partially implemented)
+- User authentication
+- Persistent data storage
+- Real-time synchronization
+
+### 11.3 Advanced Features
+- Voice control integration
+- Machine learning recommendations
+- Advanced analytics
+- Social features
+
+---
+
+**Document Version**: 1.0
+**Last Updated**: Current Date
+**Application Version**: Based on current codebase
+**Maintainer**: Development Team

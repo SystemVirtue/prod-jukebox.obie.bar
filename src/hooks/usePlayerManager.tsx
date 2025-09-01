@@ -256,7 +256,7 @@ export const usePlayerManager = (
         setTimeout(() => reject(new Error("Display detection timeout")), 3000),
       );
 
-      const displays = await Promise.race([displayPromise, timeoutPromise]);
+      const displays = await Promise.race([displayPromise, timeoutPromise]) as DisplayInfo[];
       console.log("[InitPlayer] Available displays:", displays);
 
       let targetDisplay = null;
